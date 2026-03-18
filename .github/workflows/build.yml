@@ -52,8 +52,15 @@ jobs:
             archlinux:latest \
             /bin/bash -lc '
               set -e
-              pacman -Sy --noconfirm debtap fakeroot binutils
-              debtap -u
+              pacman -Sy --noconfirm base-devel git sudo fakeroot binutils pacman-contrib
+              useradd -m builder
+              echo "builder ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+              su - builder -c "
+                git clone https://aur.archlinux.org/debtap.git ~/debtap
+                cd ~/debtap
+                makepkg -si --noconfirm
+              "
+              yes | debtap -u
               cd /work/src-tauri/target/release/bundle/deb
               debtap -q ./*.deb
               mv ./*.zst /work/dist/zst/
@@ -69,7 +76,7 @@ jobs:
             dist/zst/*.zst
 
   windows:
-    runs-on: windows-2019
+    runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
 
@@ -127,9 +134,30 @@ jobs:
       - name: Build macOS bundles
         run: npm run tauri build -- --bundles app,dmg
 
+      - name: Capture macOS runtime screenshots
+        run: |
+          mkdir -p screenshots
+          APP_PATH="$(find src-tauri/target/release/bundle/macos -maxdepth 1 -name '*.app' | head -n 1)"
+          if [ -z "$APP_PATH" ]; then
+            echo "macOS uygulama paketi bulunamadi"
+            exit 1
+          fi
+
+          open "$APP_PATH"
+          for index in 1 2 3 4; do
+            sleep 15
+            screencapture -x "screenshots/belgeselsemoflix-${index}.png"
+          done
+          osascript -e 'tell application "BELGESELSEMOFLIX" to quit' || true
+
+      - name: Zip macOS screenshots
+        run: |
+          ditto -c -k --sequesterRsrc --keepParent screenshots macos-screenshots.zip
+
       - uses: actions/upload-artifact@v4
         with:
           name: belgeselsemoflix-1.0-macos
           path: |
             src-tauri/target/release/bundle/macos/*.app
             src-tauri/target/release/bundle/dmg/*.dmg
+            macos-screenshots.zip
