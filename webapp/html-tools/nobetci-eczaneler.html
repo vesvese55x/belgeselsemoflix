@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nöbetçi Eczaneler | BELGESELSEMOFLIX</title>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary-color: #e50914;
+            --background-color: #141414;
+            --surface-color: #1f1f1f;
+            --text-color: #e5e5e5;
+            --text-secondary: #b3b3b3;
+            --gradient-premium: linear-gradient(135deg, #141e30 0%, #243b55 100%);
+            --card-hover-transform: scale(1.02);
+            --transition-speed: 0.3s;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        header {
+            background: var(--gradient-premium);
+            padding: 2rem 1rem;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(45deg, #fff, #e50914);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        /* Controls */
+        .controls-container {
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            padding: 1rem;
+            margin-top: 1rem;
+            border-radius: 12px;
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        select {
+            background: var(--surface-color);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 0.8rem 1.5rem;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 1rem;
+            cursor: pointer;
+            min-width: 200px;
+            transition: all var(--transition-speed);
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23e50914%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+            background-repeat: no-repeat;
+            background-position: right 1rem top 50%;
+            background-size: 0.65rem auto;
+        }
+
+        select:hover,
+        select:focus {
+            border-color: var(--primary-color);
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(229, 9, 20, 0.2);
+        }
+
+        /* Main Content */
+        main {
+            flex: 1;
+            padding: 2rem 1rem;
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .pharmacy-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        /* Card */
+        .card {
+            background: var(--surface-color);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: transform var(--transition-speed), box-shadow var(--transition-speed);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            border-color: rgba(229, 9, 20, 0.3);
+        }
+
+        .card-header {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 1.2rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .pharmacy-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: white;
+        }
+
+        .dist-badge {
+            background: rgba(229, 9, 20, 0.2);
+            color: var(--primary-color);
+            padding: 0.2rem 0.6rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            white-space: nowrap;
+            margin-left: 0.5rem;
+        }
+
+        .card-body {
+            padding: 1.2rem;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .info-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.8rem;
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        .info-row i {
+            color: var(--primary-color);
+            margin-top: 0.3rem;
+            width: 16px;
+            text-align: center;
+        }
+
+        .phone-link {
+            color: var(--text-color);
+            text-decoration: none;
+            transition: color 0.2s;
+            font-weight: 500;
+        }
+
+        .phone-link:hover {
+            color: var(--primary-color);
+        }
+
+        .card-footer {
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .btn-map {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            width: 100%;
+            padding: 0.8rem;
+            background: var(--primary-color);
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+
+        .btn-map:hover {
+            background: #f40612;
+        }
+
+        /* Loading & Error */
+        .status-msg {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-secondary);
+            grid-column: 1 / -1;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(229, 9, 20, 0.3);
+            border-radius: 50%;
+            border-top-color: var(--primary-color);
+            animation: spin 1s ease-in-out infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .controls-container {
+                flex-direction: column;
+                gap: 0.8rem;
+            }
+
+            select {
+                width: 100%;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <h1><i class="fas fa-notes-medical"></i> Nöbetçi Eczaneler</h1>
+        <p class="subtitle">TR & KKTC Günlük Nöbetçi Eczane Listesi</p>
+
+        <div class="controls-container">
+            <select id="citySelect" onchange="handleCityChange()">
+                <option value="">Şehir Seçiniz...</option>
+            </select>
+
+            <select id="distSelect" onchange="handleDistChange()" disabled>
+                <option value="">Önce Şehir Seçiniz</option>
+            </select>
+        </div>
+    </header>
+
+    <main>
+        <div id="pharmacyGrid" class="pharmacy-grid">
+            <div class="status-msg">
+                <div class="spinner"></div>
+                <p>Veriler yükleniyor...</p>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // State
+        let allData = {};
+        let selectedCity = '';
+        let selectedDist = '';
+
+        // DOM Elements
+        const citySelect = document.getElementById('citySelect');
+        const distSelect = document.getElementById('distSelect');
+        const grid = document.getElementById('pharmacyGrid');
+
+        // Initialize
+        async function init() {
+            try {
+                // Fetch Data
+                // Note: Using a CORS proxy if direct access fails, but trying direct first
+                // Since the user provided the URL, we assume it might work or we use a proxy
+                let response;
+                try {
+                    response = await fetch('https://belgeselsemo.com.tr/php/eczaneler.php');
+                    if (!response.ok) throw new Error('Direct fetch failed');
+                } catch (e) {
+                    console.warn('Direct fetch failed, trying proxy...');
+                    response = await fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent('https://belgeselsemo.com.tr/php/eczaneler.php'));
+                }
+
+                if (!response.ok) throw new Error('Veri çekilemedi');
+
+                allData = await response.json();
+
+                populateCities();
+
+                // Show initial message
+                grid.innerHTML = `
+                    <div class="status-msg">
+                        <i class="fas fa-map-marker-alt" style="font-size: 3rem; margin-bottom: 1rem; color: var(--surface-color);"></i>
+                        <p>Lütfen nöbetçi eczaneleri görmek için bir şehir seçiniz.</p>
+                    </div>
+                `;
+
+            } catch (error) {
+                console.error('Hata:', error);
+                grid.innerHTML = `
+                    <div class="status-msg">
+                        <i class="fas fa-exclamation-circle" style="font-size: 3rem; margin-bottom: 1rem; color: var(--primary-color);"></i>
+                        <p>Veriler yüklenirken bir hata oluştu.</p>
+                        <p style="font-size: 0.8rem; margin-top: 0.5rem;">${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Populate City Dropdown
+        function populateCities() {
+            const cities = Object.keys(allData).sort((a, b) => a.localeCompare(b, 'tr'));
+
+            citySelect.innerHTML = '<option value="">Şehir Seçiniz...</option>';
+            cities.forEach(city => {
+                const option = document.createElement('option');
+                option.value = city;
+                option.textContent = city;
+                citySelect.appendChild(option);
+            });
+        }
+
+        // Handle City Change
+        function handleCityChange() {
+            selectedCity = citySelect.value;
+            selectedDist = '';
+
+            if (!selectedCity) {
+                distSelect.innerHTML = '<option value="">Önce Şehir Seçiniz</option>';
+                distSelect.disabled = true;
+                grid.innerHTML = '<div class="status-msg"><p>Lütfen bir şehir seçiniz.</p></div>';
+                return;
+            }
+
+            // Populate Districts
+            const pharmacies = allData[selectedCity];
+            // Extract unique districts
+            const districts = [...new Set(pharmacies.map(p => p.dist))].sort((a, b) => a.localeCompare(b, 'tr'));
+
+            distSelect.innerHTML = '<option value="">Tüm İlçeler</option>';
+            districts.forEach(dist => {
+                const option = document.createElement('option');
+                option.value = dist;
+                option.textContent = dist;
+                distSelect.appendChild(option);
+            });
+
+            distSelect.disabled = false;
+
+            // Render all pharmacies for the city initially
+            renderPharmacies();
+        }
+
+        // Handle District Change
+        function handleDistChange() {
+            selectedDist = distSelect.value;
+            renderPharmacies();
+        }
+
+        // Render Pharmacies
+        function renderPharmacies() {
+            if (!selectedCity) return;
+
+            let pharmacies = allData[selectedCity];
+
+            // Filter by district if selected
+            if (selectedDist) {
+                pharmacies = pharmacies.filter(p => p.dist === selectedDist);
+            }
+
+            if (pharmacies.length === 0) {
+                grid.innerHTML = '<div class="status-msg"><p>Bu kriterlere uygun nöbetçi eczane bulunamadı.</p></div>';
+                return;
+            }
+
+            grid.innerHTML = pharmacies.map(pharmacy => `
+                <div class="card">
+                    <div class="card-header">
+                        <div class="pharmacy-name">${pharmacy.name}</div>
+                        <div class="dist-badge">${pharmacy.dist}</div>
+                    </div>
+                    <div class="card-body">
+                        <div class="info-row">
+                            <i class="fas fa-map-pin"></i>
+                            <span>${pharmacy.address}</span>
+                        </div>
+                        <div class="info-row">
+                            <i class="fas fa-phone"></i>
+                            <a href="tel:${pharmacy.phone}" class="phone-link">${formatPhone(pharmacy.phone)}</a>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <a href="https://www.google.com/maps/search/?api=1&query=${pharmacy.loc}" target="_blank" class="btn-map">
+                            <i class="fas fa-location-arrow"></i> Haritada Gör
+                        </a>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Helper: Format Phone Number
+        function formatPhone(phone) {
+            if (!phone) return 'Numara Yok';
+            // Simple formatting if it looks like a standard TR number
+            // Remove non-digits
+            const cleaned = ('' + phone).replace(/\D/g, '');
+            if (cleaned.length === 10 || (cleaned.length === 11 && cleaned.startsWith('0'))) {
+                // 05XX XXX XX XX or 5XX XXX XX XX
+                const p = cleaned.startsWith('0') ? cleaned.substring(1) : cleaned;
+                return `0(${p.substring(0, 3)}) ${p.substring(3, 6)} ${p.substring(6, 8)} ${p.substring(8, 10)}`;
+            }
+            return phone;
+        }
+
+        // Start
+        init();
+    </script>
+</body>
+
+</html>

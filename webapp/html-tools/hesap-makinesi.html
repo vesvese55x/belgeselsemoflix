@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gelişmiş Hesap Makinesi | BELGESELSEMOFLIX</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.8.0/math.js"></script>
+<script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
+<style>
+:root{--primary:#e50914;--bg:#141414;--surface:#1f1f1f;--surface2:#2a2a2a;--text:#e5e5e5;--text2:#b3b3b3;--op:#ff9f43;--fn:#2e86de;--green:#4ade80;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+header{background:var(--surface);border-bottom:1px solid rgba(255,255,255,0.1);}
+.tabs-container{display:flex;overflow-x:auto;gap:.4rem;padding:.5rem .8rem;scrollbar-width:none;}
+.tabs-container::-webkit-scrollbar{display:none;}
+.tab-btn{background:transparent;border:1px solid rgba(255,255,255,0.1);color:var(--text2);padding:.45rem 1rem;border-radius:20px;font-size:.82rem;white-space:nowrap;cursor:pointer;transition:all .2s;font-family:'Outfit',sans-serif;}
+.tab-btn:hover{background:rgba(255,255,255,.05);color:#fff;}
+.tab-btn.active{background:var(--primary);border-color:var(--primary);color:#fff;font-weight:600;box-shadow:0 4px 15px rgba(229,9,20,.4);}
+.display-area{background:linear-gradient(135deg,#141e30,#243b55);padding:1rem 1.2rem;display:flex;flex-direction:column;justify-content:flex-end;min-height:110px;}
+.history-line{color:var(--text2);font-size:.9rem;margin-bottom:.3rem;min-height:1.2rem;font-family:'JetBrains Mono',monospace;opacity:.7;text-align:right;}
+.input-line{color:#fff;font-size:2.2rem;font-weight:300;font-family:'JetBrains Mono',monospace;word-break:break-all;border:none;background:transparent;width:100%;text-align:right;outline:none;}
+.input-line::placeholder{color:rgba(255,255,255,.2);}
+.workspace{flex:1;display:flex;flex-direction:column;padding:.8rem;overflow-y:auto;}
+.workspace.keypad-mode{overflow-y:hidden;padding:.6rem;}
+.keypad{display:grid;gap:.5rem;flex:1;}
+.workspace.keypad-mode .keypad{height:100%;align-content:stretch;}
+.grid-4{grid-template-columns:repeat(4,1fr);}
+.grid-5{grid-template-columns:repeat(5,1fr);}
+.key-btn{background:var(--surface);border:none;border-radius:10px;color:#fff;font-size:1.1rem;font-family:'Outfit',sans-serif;cursor:pointer;transition:transform .1s,background .2s;display:flex;align-items:center;justify-content:center;min-height:48px;box-shadow:0 3px 0 rgba(0,0,0,.25);user-select:none;}
+.key-btn:active{transform:translateY(3px);box-shadow:none;}
+.key-btn:hover{background:var(--surface2);}
+.key-op{color:var(--op);background:rgba(255,159,67,.1);}
+.key-fn{color:var(--fn);font-size:.95rem;font-weight:600;}
+.key-eq{background:var(--primary);color:#fff;box-shadow:0 3px 0 #b2060e;}
+.key-eq:hover{background:#f40612;}
+.key-ac{color:#ff6b6b;font-weight:600;}
+.form-layout{display:flex;flex-direction:column;gap:.8rem;max-width:640px;margin:0 auto;width:100%;}
+.input-group{display:flex;flex-direction:column;gap:.4rem;}
+.input-group label{color:var(--text2);font-size:.85rem;}
+.form-input{background:var(--surface);border:1px solid rgba(255,255,255,.1);padding:.7rem .9rem;border-radius:8px;color:#fff;font-family:'JetBrains Mono',monospace;font-size:1rem;width:100%;}
+.form-input:focus{border-color:var(--primary);outline:none;}
+.action-btn{background:var(--primary);color:#fff;border:none;padding:.75rem;border-radius:8px;font-size:.95rem;font-weight:600;cursor:pointer;font-family:'Outfit',sans-serif;transition:background .2s;}
+.action-btn:hover{background:#f40612;}
+.row2{display:flex;gap:.6rem;}
+.row2>*{flex:1;}
+.result-box{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);padding:.9rem;border-radius:8px;font-family:'JetBrains Mono',monospace;font-size:.88rem;white-space:pre-wrap;display:none;line-height:1.8;color:var(--green);max-height:220px;overflow-y:auto;}
+.result-box.html-mode{white-space:normal;}
+.result-box.error{color:#ff6b6b;}
+.result-box sup{font-size:.7em;vertical-align:super;line-height:0;}
+.result-box .math-line{display:block;margin:.15rem 0;}
+.result-box .math-eq{color:#fff;font-size:.95rem;margin-bottom:.4rem;display:block;}
+.result-box .term{color:var(--green);}
+.result-box .coef{color:var(--op);}
+.result-box .step{color:var(--text2);font-size:.8rem;}
+#plot-container{width:100%;min-height:280px;border-radius:8px;overflow:hidden;margin-top:.5rem;}
+.btn-grid{display:grid;gap:.5rem;}
+.info-box{background:rgba(255,255,255,.04);border-radius:8px;padding:10px;margin-bottom:6px;font-size:.82rem;color:#aaa;line-height:1.6;}
+@media(max-width:600px){.grid-5{grid-template-columns:repeat(4,1fr);}.key-btn{font-size:1rem;}}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:9999;backdrop-filter:blur(4px);}
+.modal-overlay.hidden{display:none;}
+.modal-box{background:#1f1f1f;border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:1.4rem 1.6rem;width:min(340px,90vw);box-shadow:0 20px 60px rgba(0,0,0,.6);}
+.modal-box label{display:block;color:var(--text2);font-size:.88rem;margin-bottom:.6rem;}
+.modal-box input{width:100%;background:#141414;border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:.65rem .9rem;color:#fff;font-family:'JetBrains Mono',monospace;font-size:1rem;outline:none;}
+.modal-box input:focus{border-color:var(--primary);}
+.modal-actions{display:flex;gap:.6rem;justify-content:flex-end;margin-top:1rem;}
+.modal-actions button{padding:.55rem 1.2rem;border-radius:8px;border:none;font-size:.9rem;font-weight:600;cursor:pointer;font-family:'Outfit',sans-serif;}
+.modal-cancel{background:rgba(255,255,255,.08);color:var(--text2);}
+.modal-cancel:hover{background:rgba(255,255,255,.14);}
+.modal-ok{background:var(--primary);color:#fff;}
+.modal-ok:hover{background:#f40612;}
+</style>
+</head>
+<body>
+<header><div class="tabs-container" id="tabs"></div></header>
+<div class="display-area">
+  <div class="history-line" id="history"></div>
+  <input type="text" class="input-line" id="display" placeholder="0" readonly>
+</div>
+<div class="workspace" id="workspace"></div>
+<div class="modal-overlay hidden" id="custom-modal">
+  <div class="modal-box">
+    <label id="modal-label">Değer girin:</label>
+    <input type="text" id="modal-input" autocomplete="off">
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="modalCancel()">Vazgeç</button>
+      <button class="modal-ok" onclick="modalOk()">Tamam</button>
+    </div>
+  </div>
+</div>
+<script>
+var MODES=[
+  {id:'basit',name:'Basit'},{id:'bilimsel',name:'Bilimsel'},{id:'grafik',name:'Grafik'},
+  {id:'denklem',name:'Denklem'},{id:'kesir',name:'Kesir'},{id:'matris',name:'Matris'},
+  {id:'turev',name:'Türev'},{id:'integral',name:'İntegral'},{id:'toplam',name:'Σ/Π'},
+  {id:'limit',name:'Limit'},{id:'vektor',name:'Vektör'},{id:'geometri',name:'Geometri'},
+  {id:'ebob',name:'EBOB/EKOK'},{id:'asal',name:'Asal Sayılar'},
+  {id:'permutasyon',name:'P/C/Olasılık'},{id:'binom',name:'Binom/Pascal'}
+];
+var currentMode='basit', expression='';
+var _modalCb=null;
+function customPrompt(msg,def,cb){
+  document.getElementById('modal-label').textContent=msg;
+  var inp=document.getElementById('modal-input');
+  inp.value=def||'';
+  document.getElementById('custom-modal').classList.remove('hidden');
+  inp.focus();inp.select();
+  _modalCb=cb;
+}
+function modalOk(){
+  var v=document.getElementById('modal-input').value;
+  document.getElementById('custom-modal').classList.add('hidden');
+  if(_modalCb){_modalCb(v);_modalCb=null;}
+}
+function modalCancel(){
+  document.getElementById('custom-modal').classList.add('hidden');
+  _modalCb=null;
+}
+// Enter tuşuyla modal onaylansın
+document.addEventListener('keydown',function(e){
+  if(!document.getElementById('custom-modal').classList.contains('hidden')){
+    if(e.key==='Enter'){e.preventDefault();modalOk();}
+    if(e.key==='Escape'){e.preventDefault();modalCancel();}
+  }
+});
+
+function init(){
+  renderTabs();
+  switchMode('basit');
+  // Tabs mouse drag scroll
+  var tc=document.getElementById('tabs');
+  var isDragging=false,startX=0,scrollLeft=0;
+  tc.addEventListener('mousedown',function(e){isDragging=true;startX=e.pageX-tc.offsetLeft;scrollLeft=tc.scrollLeft;tc.style.cursor='grabbing';});
+  tc.addEventListener('mouseleave',function(){isDragging=false;tc.style.cursor='';});
+  tc.addEventListener('mouseup',function(){isDragging=false;tc.style.cursor='';});
+  tc.addEventListener('mousemove',function(e){if(!isDragging)return;e.preventDefault();var x=e.pageX-tc.offsetLeft;tc.scrollLeft=scrollLeft-(x-startX);});
+  document.addEventListener('keydown',function(e){
+    var tag=document.activeElement.tagName;
+    if(tag==='INPUT'&&!document.activeElement.readOnly)return;
+    if(tag==='TEXTAREA')return;
+    var k=e.key;
+    if(/^[0-9]$/.test(k)){e.preventDefault();append(k);}
+    else if(k==='.'){e.preventDefault();append('.');}
+    else if(k==='+'||e.code==='NumpadAdd'){e.preventDefault();append('+');}
+    else if(k==='-'||e.code==='NumpadSubtract'){e.preventDefault();append('-');}
+    else if(k==='*'||e.code==='NumpadMultiply'){e.preventDefault();append('*');}
+    else if(k==='/'||e.code==='NumpadDivide'){e.preventDefault();append('/');}
+    else if(k==='%'){e.preventDefault();append('%');}
+    else if(k==='^'){e.preventDefault();append('^');}
+    else if(k==='('){e.preventDefault();append('(');}
+    else if(k===')'){e.preventDefault();append(')');}
+    else if(k==='Enter'||k==='='||e.code==='NumpadEnter'){e.preventDefault();calculate();}
+    else if(k==='Backspace'){e.preventDefault();backspace();}
+    else if(k==='Escape'||k==='Delete'){e.preventDefault();clearAll();}
+  });
+}
+
+function renderTabs(){
+  document.getElementById('tabs').innerHTML=MODES.map(function(m){
+    return '<button class="tab-btn '+(m.id===currentMode?'active':'')+'" onclick="switchMode(\''+m.id+'\')">'+m.name+'</button>';
+  }).join('');
+}
+
+function switchMode(id){currentMode=id;renderTabs();renderWorkspace();clearAll();}
+
+function setDisplay(val,hist){
+  document.getElementById('display').value=val;
+  if(hist!==undefined)document.getElementById('history').textContent=hist;
+}
+
+function showResult(id,text,isErr,isHtml){
+  var b=document.getElementById(id);if(!b)return;
+  b.style.display='block';
+  b.className='result-box'+(isErr?' error':'')+(isHtml?' html-mode':'');
+  if(isHtml){b.innerHTML=text;}else{b.textContent=text;}
+  // Display'de daha anlamlı özet göster
+  var plain=isHtml?text.replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim():text;
+  var lines=plain.split('\n').filter(function(l){return l.trim()!=='';});
+  var summary='';
+  for(var i=0;i<lines.length;i++){
+    var l=lines[i];
+    if(/[=→]/.test(l)){summary=l.trim();break;}
+  }
+  if(!summary&&lines.length)summary=lines[0].trim();
+  setDisplay(summary.substring(0,60));
+}
+
+function fmt(n,p){p=p||8;return parseFloat(Number(n).toFixed(p)).toString();}
+function geoVal(id){var el=document.getElementById('geo-'+id);return el?parseFloat(el.value)||0:0;}
+function geoRaw(id){var el=document.getElementById('geo-'+id);return el&&el.value.trim()!==''?parseFloat(el.value):NaN;}
+
+function renderWorkspace(){
+  var ws=document.getElementById('workspace');
+  ws.innerHTML='';
+  ws.classList.remove('keypad-mode');
+  switch(currentMode){
+    case 'basit':    renderKeypad(ws,[['C','(',')','/'],['7','8','9','*'],['4','5','6','-'],['1','2','3','+'],['+/-','0','.','⌫'],['xʸ','√','ⁿ√','=']]);break;
+    case 'bilimsel': renderKeypad(ws,[['sin','cos','tan','asin','acos'],['atan','log','ln','sqrt','cbrt'],['^','(',')','/','*'],['^2','^3','pi','e','mod'],['7','8','9','-','+'],['4','5','6','1','2'],['3','0','.','⌫','=']],'grid-5');break;
+    case 'grafik':   renderGrafik(ws);break;
+    case 'denklem':  renderDenklem(ws);break;
+    case 'kesir':    renderKesir(ws);break;
+    case 'matris':   renderMatris(ws);break;
+    case 'turev':    renderTurev(ws);break;
+    case 'integral': renderIntegral(ws);break;
+    case 'toplam':   renderToplam(ws);break;
+    case 'limit':    renderLimit(ws);break;
+    case 'vektor':   renderVektor(ws);break;
+    case 'geometri': renderGeometri(ws);break;
+    case 'ebob':     renderEbob(ws);break;
+    case 'asal':     renderAsal(ws);break;
+    case 'permutasyon': renderPermutasyon(ws);break;
+    case 'binom':    renderBinom(ws);break;
+  }
+}
+
+function renderKeypad(container,rows,gridClass){
+  gridClass=gridClass||'grid-4';
+  container.classList.add('keypad-mode');
+  var kp=document.createElement('div');
+  kp.className='keypad '+gridClass;
+  rows.forEach(function(row){
+    row.forEach(function(key){
+      var btn=document.createElement('button');
+      btn.className='key-btn';
+      btn.textContent=key;
+      if(['+','-','*','/','%','^','mod'].indexOf(key)>-1)btn.classList.add('key-op');
+      if(['sin','cos','tan','asin','acos','atan','log','ln','sqrt','cbrt','pi','e','^2','^3'].indexOf(key)>-1)btn.classList.add('key-fn');
+      if(key==='='){btn.classList.add('key-eq');btn.onclick=calculate;}
+      else if(key==='C'){btn.classList.add('key-ac');btn.onclick=clearAll;}
+      else if(key==='⌫'){btn.classList.add('key-op');btn.onclick=backspace;}
+      else if(key==='+/-'){btn.onclick=function(){expression=expression?String(-parseFloat(expression)):'';setDisplay(expression);};}
+      else if(key==='xʸ'){btn.classList.add('key-fn');btn.onclick=function(){append('^');};}
+      else if(key==='√'){btn.classList.add('key-fn');btn.onclick=function(){append('sqrt');};}
+      else if(key==='ⁿ√'){btn.classList.add('key-fn');btn.onclick=function(){
+        var cur=expression;
+        customPrompt('Kaçıncı kök? (örn: 3 = küpkök)','3',function(deg){
+          if(deg&&!isNaN(deg)){expression='('+cur+')^(1/'+deg+')';setDisplay(expression);}
+        });
+      };}
+      else{btn.onclick=function(){append(key);};}
+      kp.appendChild(btn);
+    });
+  });
+  container.appendChild(kp);
+}
+
+function append(val){
+  var exprMap={sin:'sin(',cos:'cos(',tan:'tan(',asin:'asin(',acos:'acos(',atan:'atan(',log:'log10(',ln:'log(',sqrt:'sqrt(',cbrt:'cbrt(',pi:'pi',e:'e','^2':'^2','^3':'^3',mod:'%'};
+  expression+=(exprMap[val]!==undefined?exprMap[val]:val);
+  setDisplay(expression);
+}
+function clearAll(){expression='';setDisplay('','');}
+function backspace(){expression=expression.slice(0,-1);setDisplay(expression);}
+function calculate(){
+  try{
+    var hist=expression+' =';
+    var result=math.evaluate(expression);
+    var f=math.format(result,{precision:12});
+    expression=f;setDisplay(f,hist);
+  }catch(e){setDisplay('Hata');setTimeout(function(){setDisplay(expression);},1500);}
+}
+
+// --- GRAFİK ---
+function renderGrafik(ws){
+  ws.innerHTML='<div class="form-layout"><div class="input-group"><label>Fonksiyon(lar) — virgülle birden fazla:</label><input class="form-input" id="gfn" placeholder="x^2, sin(x), 1/x, (x^2-1)/(x-1)"></div><div class="row2"><div class="input-group"><label>x Min</label><input type="number" class="form-input" id="gmin" value="-10"></div><div class="input-group"><label>x Max</label><input type="number" class="form-input" id="gmax" value="10"></div><div class="input-group"><label>Adım</label><input type="number" class="form-input" id="gstep" value="0.05" step="0.01"></div></div><button class="action-btn" onclick="plotGraph()">Grafik Çiz</button><div id="plot-container"></div><div class="result-box" id="grafik-result"></div></div>';
+}
+function plotGraph(){
+  var fns=document.getElementById('gfn').value.split(',').map(function(s){return s.trim();}).filter(Boolean);
+  var min=parseFloat(document.getElementById('gmin').value);
+  var max=parseFloat(document.getElementById('gmax').value);
+  var step=parseFloat(document.getElementById('gstep').value)||0.05;
+  var colors=['#e50914','#2e86de','#4ade80','#ff9f43','#a855f7'];
+  var traces=[];
+  var info=[];
+  fns.forEach(function(fn,i){
+    try{
+      var compiled=math.compile(fn);
+      var xs=[],ys=[];
+      for(var x=min;x<=max;x+=step){
+        try{var y=compiled.evaluate({x:x});if(isFinite(y)){xs.push(parseFloat(x.toFixed(6)));ys.push(y);}}catch(e){}
+      }
+      traces.push({x:xs,y:ys,type:'scatter',mode:'lines',name:fn,line:{color:colors[i%colors.length],width:2.5}});
+      // Kesişim noktaları (x ekseni)
+      var zeros=[];
+      for(var j=1;j<xs.length;j++){if(ys[j-1]*ys[j]<0){zeros.push(fmt((xs[j-1]+xs[j])/2,4));}}
+      info.push(fn+': '+(zeros.length?'Sıfırlar ≈ x='+zeros.join(', '):'Görünür sıfır yok'));
+    }catch(e){info.push(fn+': Hata - '+e.message);}
+  });
+  Plotly.newPlot('plot-container',traces,{
+    margin:{t:20,r:10,b:40,l:50},
+    paper_bgcolor:'rgba(0,0,0,0)',
+    plot_bgcolor:'rgba(255,255,255,0.92)',
+    xaxis:{title:'x',zeroline:true,zerolinecolor:'#333'},
+    yaxis:{title:'f(x)',zeroline:true,zerolinecolor:'#333'},
+    legend:{bgcolor:'rgba(0,0,0,0.5)',font:{color:'#fff'}}
+  },{displayModeBar:false,responsive:true});
+  showResult('grafik-result',info.join('\n'));
+}
+
+// --- DENKLEM ---
+function renderDenklem(ws){
+  ws.innerHTML='<div class="form-layout"><div class="input-group"><label>Derece:</label><select class="form-input" id="eq-deg" onchange="updateEqInputs()"><option value="1">1. Derece</option><option value="2" selected>2. Derece</option><option value="3">3. Derece</option><option value="4">4. Derece</option><option value="5">5. Derece</option><option value="6">6. Derece</option></select></div><div id="eq-inputs"></div><button class="action-btn" onclick="solvePoly()">Çöz</button><div class="result-box" id="eq-result"></div></div>';
+  updateEqInputs();
+}
+function updateEqInputs(){
+  var deg=parseInt(document.getElementById('eq-deg').value);
+  var labels=['a','b','c','d','e','f','g'];
+  var cont=document.getElementById('eq-inputs');
+  cont.style.cssText='display:grid;gap:.5rem;grid-template-columns:repeat(auto-fill,minmax(70px,1fr))';
+  cont.innerHTML=Array.from({length:deg+1},function(_,i){return '<input type="number" class="form-input" id="eq-c'+i+'" placeholder="'+labels[i]+'" step="any">';}).join('');
+}
+function solvePoly(){
+  var deg=parseInt(document.getElementById('eq-deg').value);
+  var coeffs=Array.from({length:deg+1},function(_,i){return parseFloat(document.getElementById('eq-c'+i).value)||0;});
+  try{
+    var html='';
+    if(deg===1){
+      var x=-coeffs[1]/coeffs[0];
+      html='<span class="math-eq">x = <b>'+fmt(x)+'</b></span>';
+    }else if(deg===2){
+      var a=coeffs[0],b=coeffs[1],c=coeffs[2],D=b*b-4*a*c;
+      html='<span class="math-line">Δ = b² - 4ac = '+fmt(D)+'</span>';
+      if(D>0){
+        html+='<span class="math-eq">x<sub>1</sub> = <b>'+fmt((-b+Math.sqrt(D))/(2*a))+'</b></span>';
+        html+='<span class="math-eq">x<sub>2</sub> = <b>'+fmt((-b-Math.sqrt(D))/(2*a))+'</b></span>';
+      }else if(D===0){
+        html+='<span class="math-eq">x<sub>1</sub> = x<sub>2</sub> = <b>'+fmt(-b/(2*a))+'</b></span>';
+      }else{
+        var re=fmt(-b/(2*a)), im=fmt(Math.sqrt(-D)/(2*a));
+        html+='<span class="math-line" style="color:var(--text2)">Δ &lt; 0 → Karmaşık kökler</span>';
+        html+='<span class="math-eq">x<sub>1</sub> = '+re+' + '+im+'<i>i</i></span>';
+        html+='<span class="math-eq">x<sub>2</sub> = '+re+' − '+im+'<i>i</i></span>';
+      }
+    }else{
+      var roots=durKerner(coeffs);
+      html='<span class="math-eq">'+deg+'. derece denklem kökleri:</span>';
+      roots.forEach(function(r,i){
+        var re=r[0],im=r[1];
+        var val=Math.abs(im)<1e-8?'<b>'+fmt(re)+'</b>':'<b>'+fmt(re)+(im>=0?' + ':' − ')+fmt(Math.abs(im))+'<i>i</i></b>';
+        html+='<span class="math-line">x<sub>'+(i+1)+'</sub> = '+val+'</span>';
+      });
+    }
+    showResult('eq-result',html,false,true);
+  }catch(e){showResult('eq-result','Hata: '+e.message,true);}
+}
+function durKerner(coeffs){
+  var n=coeffs.length-1,a=coeffs[0];
+  var p=coeffs.map(function(c){return c/a;});
+  var roots=Array.from({length:n},function(_,k){var ang=2*Math.PI*k/n;return[0.4*Math.cos(ang),0.4*Math.sin(ang)];});
+  function evalP(re,im){var vr=p[0],vi=0;for(var i=1;i<=n;i++){var nr=vr*re-vi*im+p[i];var ni=vr*im+vi*re;vr=nr;vi=ni;}return[vr,vi];}
+  function cdiv(ar,ai,br,bi){var d=br*br+bi*bi;return[(ar*br+ai*bi)/d,(ai*br-ar*bi)/d];}
+  for(var iter=0;iter<300;iter++){
+    for(var i=0;i<n;i++){
+      var pv=evalP(roots[i][0],roots[i][1]);
+      var dr=1,di=0;
+      for(var j=0;j<n;j++){if(j===i)continue;var df=roots[i][0]-roots[j][0],dfi=roots[i][1]-roots[j][1];var nr=dr*df-di*dfi,ni=dr*dfi+di*df;dr=nr;di=ni;}
+      var q=cdiv(pv[0],pv[1],dr,di);roots[i][0]-=q[0];roots[i][1]-=q[1];
+    }
+  }
+  return roots;
+}
+
+// --- KESİR ---
+function renderKesir(ws){
+  ws.innerHTML='<div class="form-layout">'
+  +'<h4 style="color:var(--text2);font-size:.82rem;text-transform:uppercase;letter-spacing:.5px">Kesir Hesaplayici</h4>'
+  +'<div class="info-box">Iki kesir: pay/payda girin. Coklu/bileskik kesir icin asagidaki kutulari kullanin.</div>'
+  +'<div style="display:grid;grid-template-columns:1fr auto 1fr auto 1fr;gap:.5rem;align-items:center">'
+  +'<div><input class="form-input" id="f1n" placeholder="Pay" style="margin-bottom:4px"><div style="border-top:2px solid #fff;margin:2px 0"></div><input class="form-input" id="f1d" placeholder="Payda"></div>'
+  +'<select class="form-input" id="fop" style="width:60px;text-align:center"><option>+</option><option>-</option><option>x</option><option>/</option><option>^</option></select>'
+  +'<div><input class="form-input" id="f2n" placeholder="Pay" style="margin-bottom:4px"><div style="border-top:2px solid #fff;margin:2px 0"></div><input class="form-input" id="f2d" placeholder="Payda"></div>'
+  +'<span style="font-size:1.5rem">=</span>'
+  +'<div id="fres" style="text-align:center;font-family:JetBrains Mono,monospace;font-size:1.1rem;color:var(--green)">?</div>'
+  +'</div>'
+  +'<button class="action-btn" onclick="calcFrac()">Hesapla</button>'
+  +'<hr style="border-color:rgba(255,255,255,.08);margin:.2rem 0">'
+  +'<div class="input-group"><label>Coklu kesir ifadesi (ornek: 1/2 + 3/4 - 1/6 veya (3/4)^2 * 2/3):</label>'
+  +'<input class="form-input" id="fexpr" placeholder="1/2 + 3/4 - 1/6 * 2/5"></div>'
+  +'<button class="action-btn" onclick="calcFracExpr()">Ifadeyi Hesapla</button>'
+  +'<hr style="border-color:rgba(255,255,255,.08);margin:.2rem 0">'
+  +'<div class="info-box">Bileskik (ic ice) kesir: pay veya payda icine kesir yazin.<br>Ornek: pay=1, payda=2+1/3 → 1/(2+1/3)</div>'
+  +'<div class="row2">'
+  +'<div class="input-group"><label>Bileskik kesir payi</label><input class="form-input" id="cfn" placeholder="1 veya 1+1/2"></div>'
+  +'<div class="input-group"><label>Bileskik kesir paydasi</label><input class="form-input" id="cfd" placeholder="2+1/3"></div>'
+  +'</div>'
+  +'<button class="action-btn" onclick="calcCompoundFrac()">Bileskik Kesir Hesapla</button>'
+  +'<div class="result-box" id="frac-result"></div>'
+  +'</div>';
+}
+function gcd2(a,b){a=Math.abs(a);b=Math.abs(b);while(b){var t=b;b=a%b;a=t;}return a;}
+function simplify(n,d){if(d===0)return[n,d];var g=gcd2(Math.abs(n),Math.abs(d));var s=d<0?-1:1;return[s*n/g,s*d/g];}
+function calcFrac(){
+  var n1=parseFloat(document.getElementById('f1n').value)||0;
+  var d1=parseFloat(document.getElementById('f1d').value)||1;
+  var n2=parseFloat(document.getElementById('f2n').value)||0;
+  var d2=parseFloat(document.getElementById('f2d').value)||1;
+  var op=document.getElementById('fop').value;
+  var rn,rd;
+  if(op==='+'){rn=n1*d2+n2*d1;rd=d1*d2;}
+  else if(op==='-'){rn=n1*d2-n2*d1;rd=d1*d2;}
+  else if(op==='x'){rn=n1*n2;rd=d1*d2;}
+  else if(op==='/'){rn=n1*d2;rd=d1*n2;}
+  else{var r=Math.pow(n1/d1,n2/d2);rn=r;rd=1;}
+  var s=simplify(rn,rd);
+  document.getElementById('fres').textContent=s[0]+'/'+s[1];
+  var dec=s[0]/s[1];
+  var html='<span class="math-eq">'+s[0]+'<span style="display:inline-block;border-top:1px solid var(--green);padding-top:1px;margin:0 2px">/'+s[1]+'</span> = <b>'+fmt(dec)+'</b></span>';
+  html+='<span class="math-line">Yuzde: %'+fmt(dec*100,4)+'</span>';
+  if(Math.abs(dec)>1){var w=Math.trunc(dec),fr=simplify(Math.round((dec-w)*s[1]),s[1]);html+='<span class="math-line">Karma kesir: '+w+' '+fr[0]+'/'+fr[1]+'</span>';}
+  showResult('frac-result',html,false,true);
+}
+function calcFracExpr(){
+  var expr=document.getElementById('fexpr').value;
+  try{
+    var r=math.evaluate(expr);
+    var dec=parseFloat(math.format(r,{precision:12}));
+    var bestN=0,bestD=1,bestErr=Infinity;
+    for(var d=1;d<=100000;d++){var n=Math.round(dec*d);var err=Math.abs(n/d-dec);if(err<bestErr){bestErr=err;bestN=n;bestD=d;if(err<1e-10)break;}}
+    var s=simplify(bestN,bestD);
+    var html='<span class="math-eq">Sonuc: <b>'+fmt(dec)+'</b></span>';
+    html+='<span class="math-line">Kesir: '+s[0]+'/'+s[1]+'</span>';
+    html+='<span class="math-line">Yuzde: %'+fmt(dec*100,4)+'</span>';
+    if(Math.abs(dec)>1&&s[1]!==1){var w=Math.trunc(dec),fr=simplify(Math.round((dec-w)*s[1]),s[1]);html+='<span class="math-line">Karma kesir: '+w+' '+fr[0]+'/'+fr[1]+'</span>';}
+    showResult('frac-result',html,false,true);
+  }catch(e){showResult('frac-result','Hata: '+e.message,true);}
+}
+function calcCompoundFrac(){
+  var numStr=document.getElementById('cfn').value.trim()||'1';
+  var denStr=document.getElementById('cfd').value.trim()||'1';
+  try{
+    var numVal=math.evaluate(numStr);
+    var denVal=math.evaluate(denStr);
+    if(denVal===0){showResult('frac-result','Payda sifir olamaz',true);return;}
+    var dec=numVal/denVal;
+    var bestN=0,bestD=1,bestErr=Infinity;
+    for(var d=1;d<=100000;d++){var n=Math.round(dec*d);var err=Math.abs(n/d-dec);if(err<bestErr){bestErr=err;bestN=n;bestD=d;if(err<1e-10)break;}}
+    var s=simplify(bestN,bestD);
+    var html='<span class="math-eq">('+numStr+') / ('+denStr+')</span>';
+    html+='<span class="math-line">= <b>'+fmt(dec)+'</b></span>';
+    html+='<span class="math-line">Kesir: '+s[0]+'/'+s[1]+'</span>';
+    html+='<span class="math-line">Yuzde: %'+fmt(dec*100,4)+'</span>';
+    if(Math.abs(dec)>1&&s[1]!==1){var w=Math.trunc(dec),fr=simplify(Math.round((dec-w)*s[1]),s[1]);html+='<span class="math-line">Karma kesir: '+w+' '+fr[0]+'/'+fr[1]+'</span>';}
+    showResult('frac-result',html,false,true);
+  }catch(e){showResult('frac-result','Hata: '+e.message,true);}
+}
+
+// --- MATRİS ---
+function renderMatris(ws){
+  ws.innerHTML='<div class="form-layout"><div class="row2"><div class="input-group"><label>Boyut (nxn)</label><input type="number" class="form-input" id="mat-size" value="2" min="1" max="6" onchange="buildMatInputs()"></div></div><div id="mat-a-wrap"><p style="color:var(--text2);font-size:.85rem;margin-bottom:4px">Matris A</p><div id="mat-a"></div></div><div id="mat-b-wrap"><p style="color:var(--text2);font-size:.85rem;margin-bottom:4px">Matris B (opsiyonel)</p><div id="mat-b"></div></div><div class="btn-grid" style="grid-template-columns:repeat(3,1fr)"><button class="action-btn" onclick="calcMat(\'det\')">Det(A)</button><button class="action-btn" onclick="calcMat(\'inv\')">Inv(A)</button><button class="action-btn" onclick="calcMat(\'trans\')">Transpoze</button><button class="action-btn" onclick="calcMat(\'add\')">A+B</button><button class="action-btn" onclick="calcMat(\'mul\')">AxB</button><button class="action-btn" onclick="calcMat(\'rank\')">Rank(A)</button></div><div class="result-box" id="mat-result"></div></div>';
+  buildMatInputs();
+}
+function buildMatInputs(){
+  var n=parseInt(document.getElementById('mat-size').value)||2;
+  ['a','b'].forEach(function(id){
+    var d=document.getElementById('mat-'+id);
+    d.style.cssText='display:grid;grid-template-columns:repeat('+n+',1fr);gap:4px;margin-bottom:8px';
+    d.innerHTML=Array.from({length:n*n},function(_,i){return '<input type="number" class="form-input" id="m'+id+i+'" value="0" step="any" style="padding:.4rem;text-align:center">';}).join('');
+  });
+}
+function getMatrix(id){
+  var n=parseInt(document.getElementById('mat-size').value)||2;
+  return Array.from({length:n},function(_,r){return Array.from({length:n},function(_,c){return parseFloat(document.getElementById('m'+id+(r*n+c)).value)||0;});});
+}
+function matRank(M){
+  var m=M.map(function(r){return r.slice();}),rank=0,rows=m.length,cols=m[0].length;
+  for(var c=0;c<cols&&rank<rows;c++){
+    var pivot=-1;
+    for(var r=rank;r<rows;r++){if(Math.abs(m[r][c])>1e-10){pivot=r;break;}}
+    if(pivot===-1)continue;
+    var tmp=m[rank];m[rank]=m[pivot];m[pivot]=tmp;
+    var f=m[rank][c];m[rank]=m[rank].map(function(v){return v/f;});
+    for(var r2=0;r2<rows;r2++){if(r2!==rank){var f2=m[r2][c];m[r2]=m[r2].map(function(v,i){return v-f2*m[rank][i];});}}
+    rank++;
+  }
+  return rank;
+}
+function calcMat(op){
+  try{
+    var A=getMatrix('a'),B=getMatrix('b'),res;
+    if(op==='det')res='Det(A) = '+fmt(math.det(A));
+    else if(op==='inv')res='Inv(A):\n'+math.inv(A).map(function(r){return r.map(function(v){return fmt(v,4);}).join('\t');}).join('\n');
+    else if(op==='trans')res='Transpoze:\n'+math.transpose(A).map(function(r){return r.map(function(v){return fmt(v,4);}).join('\t');}).join('\n');
+    else if(op==='add')res='A+B:\n'+math.add(A,B).map(function(r){return r.map(function(v){return fmt(v,4);}).join('\t');}).join('\n');
+    else if(op==='mul')res='AxB:\n'+math.multiply(A,B).map(function(r){return r.map(function(v){return fmt(v,4);}).join('\t');}).join('\n');
+    else if(op==='rank')res='Rank(A) = '+matRank(A);
+    showResult('mat-result',res);
+  }catch(e){showResult('mat-result','Hata: '+e.message,true);}
+}
+
+// --- TÜREV ---
+function renderTurev(ws){
+  ws.innerHTML='<div class="form-layout"><div class="input-group"><label>f(x):</label><input class="form-input" id="dfn" placeholder="x^3 + 2*x^2 - 5*x + 1"></div><div class="row2"><div class="input-group"><label>x değeri</label><input type="number" class="form-input" id="dx" value="2" step="any"></div><div class="input-group"><label>Derece</label><input type="number" class="form-input" id="dord" value="1" min="1" max="5"></div></div><button class="action-btn" onclick="calcDeriv()">Türev Hesapla</button><div class="result-box" id="deriv-result"></div></div>';
+}
+function calcDeriv(){
+  var fn=document.getElementById('dfn').value;
+  var xv=parseFloat(document.getElementById('dx').value);
+  var ord=parseInt(document.getElementById('dord').value)||1;
+  try{
+    var compiled=math.compile(fn);
+    var h=1e-5;
+    function nthD(f,x,n){
+      if(n===0)return f.evaluate({x:x});
+      var s=0;
+      for(var k=0;k<=n;k++){var sign=(k%2===0?1:-1);s+=sign*math.combinations(n,k)*f.evaluate({x:x+(n-k)*h});}
+      return s/Math.pow(h,n);
+    }
+    var val=nthD(compiled,xv,ord);
+    var label=ord===1?"f'":"f<sup>("+ord+")</sup>";
+    var html='<span class="math-eq">'+label+'('+xv+') = <b>'+fmt(val)+'</b></span>';
+    showResult('deriv-result',html,false,true);
+  }catch(e){showResult('deriv-result','Hata: '+e.message,true);}
+}
+
+// --- İNTEGRAL ---
+function renderIntegral(ws){
+  ws.innerHTML='<div class="form-layout"><div class="input-group"><label>f(x):</label><input class="form-input" id="ifn" placeholder="x^2 * sin(x)"></div><div class="row2"><div class="input-group"><label>Alt sınır a</label><input type="number" class="form-input" id="ia" value="0" step="any"></div><div class="input-group"><label>Üst sınır b</label><input type="number" class="form-input" id="ib" value="1" step="any"></div><div class="input-group"><label>Adım</label><input type="number" class="form-input" id="in" value="10000"></div></div><button class="action-btn" onclick="calcInt()">İntegral Hesapla</button><div class="result-box" id="int-result"></div></div>';
+}
+function calcInt(){
+  var fn=document.getElementById('ifn').value;
+  var a=parseFloat(document.getElementById('ia').value);
+  var b=parseFloat(document.getElementById('ib').value);
+  var n=parseInt(document.getElementById('in').value)||10000;
+  try{
+    var compiled=math.compile(fn);
+    var h=(b-a)/n,s=compiled.evaluate({x:a})+compiled.evaluate({x:b});
+    for(var i=1;i<n;i++)s+=(i%2===0?2:4)*compiled.evaluate({x:a+i*h});
+    var result=fmt((h/3)*s);
+    var html='<span class="math-eq">∫<sub>'+a+'</sub><sup>'+b+'</sup> f(x) dx = <b>'+result+'</b></span>';
+    showResult('int-result',html,false,true);
+  }catch(e){showResult('int-result','Hata: '+e.message,true);}
+}
+
+// --- SIGMA/PI ---
+function renderToplam(ws){
+  ws.innerHTML='<div class="form-layout"><div class="input-group"><label>İfade (değişken: i):</label><input class="form-input" id="sexpr" placeholder="i^2 + 1/i"></div><div class="row2"><div class="input-group"><label>Başlangıç</label><input type="number" class="form-input" id="sstart" value="1"></div><div class="input-group"><label>Bitiş</label><input type="number" class="form-input" id="send" value="10"></div></div><div class="row2"><button class="action-btn" onclick="calcSigma(\'sum\')">Σ Toplam</button><button class="action-btn" onclick="calcSigma(\'prod\')">Π Çarpım</button></div><div class="result-box" id="sigma-result"></div></div>';
+}
+function calcSigma(type){
+  var expr=document.getElementById('sexpr').value;
+  var start=parseInt(document.getElementById('sstart').value);
+  var end=parseInt(document.getElementById('send').value);
+  try{
+    var compiled=math.compile(expr),total=type==='sum'?0:1,terms=[];
+    for(var i=start;i<=end;i++){var v=compiled.evaluate({i:i});if(type==='sum')total+=v;else total*=v;if(terms.length<5)terms.push('i='+i+': '+fmt(v,4));}
+    showResult('sigma-result',(type==='sum'?'Σ':'Π')+' = '+fmt(total)+'\n\nİlk terimler:\n'+terms.join('\n')+(end-start>=5?'\n...':''));
+  }catch(e){showResult('sigma-result','Hata: '+e.message,true);}
+}
+
+// --- LİMİT ---
+function renderLimit(ws){
+  ws.innerHTML='<div class="form-layout"><div class="input-group"><label>f(x):</label><input class="form-input" id="lfn" placeholder="sin(x)/x"></div><div class="row2"><div class="input-group"><label>x değeri</label><input type="text" class="form-input" id="lx" value="0" placeholder="0, Infinity"></div><div class="input-group"><label>Yön</label><select class="form-input" id="ldir"><option value="both">Her iki yön</option><option value="right">Sağdan</option><option value="left">Soldan</option></select></div></div><button class="action-btn" onclick="calcLimit()">Limit Hesapla</button><div class="result-box" id="limit-result"></div></div>';
+}
+function calcLimit(){
+  var fn=document.getElementById('lfn').value;
+  var xStr=document.getElementById('lx').value.trim();
+  var dir=document.getElementById('ldir').value;
+  try{
+    var compiled=math.compile(fn);
+    var xv=xStr==='Infinity'||xStr==='inf'?1e15:xStr==='-Infinity'||xStr==='-inf'?-1e15:parseFloat(xStr);
+    var eps=[1e-4,1e-6,1e-8,1e-10];
+    function evalAt(x){try{var v=compiled.evaluate({x:x});return isFinite(v)?v:null;}catch(e){return null;}}
+    var lines=[];
+    if(dir==='both'||dir==='right'){var vals=eps.map(function(e){return evalAt(xv+e);}).filter(function(v){return v!==null;});if(vals.length)lines.push('Sağdan: '+fmt(vals[vals.length-1]));}
+    if(dir==='both'||dir==='left'){var vals2=eps.map(function(e){return evalAt(xv-e);}).filter(function(v){return v!==null;});if(vals2.length)lines.push('Soldan: '+fmt(vals2[vals2.length-1]));}
+    if(!lines.length)lines=['Limit hesaplanamadı'];
+    showResult('limit-result','lim(x→'+xStr+') f(x):\n'+lines.join('\n'));
+  }catch(e){showResult('limit-result','Hata: '+e.message,true);}
+}
+
+// --- VEKTÖR ---
+function renderVektor(ws){
+  ws.innerHTML='<div class="form-layout"><div class="input-group"><label>Vektör A (x,y,z):</label><input class="form-input" id="va" placeholder="1, 2, 3"></div><div class="input-group"><label>Vektör B:</label><input class="form-input" id="vb" placeholder="4, 5, 6"></div><div class="btn-grid" style="grid-template-columns:repeat(3,1fr)"><button class="action-btn" onclick="calcVec(\'add\')">A+B</button><button class="action-btn" onclick="calcVec(\'sub\')">A-B</button><button class="action-btn" onclick="calcVec(\'dot\')">A·B</button><button class="action-btn" onclick="calcVec(\'cross\')">AxB</button><button class="action-btn" onclick="calcVec(\'mag\')">\|A\|,\|B\|</button><button class="action-btn" onclick="calcVec(\'angle\')">Açı</button></div><div class="result-box" id="vec-result"></div></div>';
+}
+function parseVec(id){return document.getElementById(id).value.split(',').map(Number);}
+function calcVec(op){
+  try{
+    var A=parseVec('va'),B=parseVec('vb'),res='';
+    if(op==='add')res='A+B = ['+math.add(A,B).map(function(v){return fmt(v);}).join(', ')+']';
+    else if(op==='sub')res='A-B = ['+math.subtract(A,B).map(function(v){return fmt(v);}).join(', ')+']';
+    else if(op==='dot')res='A·B = '+fmt(math.dot(A,B));
+    else if(op==='cross'){var c=math.cross(A,B);res='AxB = ['+c.map(function(v){return fmt(v);}).join(', ')+']';}
+    else if(op==='mag')res='|A| = '+fmt(math.norm(A))+'\n|B| = '+fmt(math.norm(B));
+    else if(op==='angle'){var cos=math.dot(A,B)/(math.norm(A)*math.norm(B));res='Açı = '+fmt(Math.acos(cos)*180/Math.PI)+'°';}
+    showResult('vec-result',res);
+  }catch(e){showResult('vec-result','Hata: '+e.message,true);}
+}
+
+// --- GEOMETRİ ---
+function renderGeometri(ws){
+  ws.innerHTML='<div class="form-layout"><div class="input-group"><label>Şekil:</label><select class="form-input" id="geo-shape" onchange="updateGeoInputs()"><option value="dik-ucgen">Dik Üçgen (Pisagor)</option><option value="ucgen-genel">Genel Üçgen (Sin/Cos Teoremi)</option><option value="ucgen-alan">Üçgen Alan (Heron)</option><option value="aci-donusum">Açı Dönüşümü (Derece/Radyan)</option><option value="cokgen-aci">Çokgen İç/Dış Açı</option><option value="daire">Daire</option><option value="kare">Kare</option><option value="dikdortgen">Dikdörtgen</option><option value="kup">Küp</option><option value="silindir">Silindir</option><option value="kure">Küre</option><option value="koni">Koni</option><option value="piramit">Piramit</option><option value="ucgen-prizma">Üçgen Prizma</option></select></div><div id="geo-inputs"></div><button class="action-btn" id="geo-btn" onclick="calcGeo()">Hesapla</button><div class="result-box" id="geo-result"></div></div>';
+  updateGeoInputs();
+}
+var GEO_STD={
+  'ucgen-alan':[['a','Kenar a'],['b','Kenar b'],['c','Kenar c']],
+  'cokgen-aci':[['n','Kenar sayısı n']],
+  'daire':[['r','Yarıçap r']],
+  'kare':[['a','Kenar a']],
+  'dikdortgen':[['a','Kenar a'],['b','Kenar b']],
+  'kup':[['a','Kenar a']],
+  'silindir':[['r','Yarıçap r'],['h','Yükseklik h']],
+  'kure':[['r','Yarıçap r']],
+  'koni':[['r','Taban yarıçapı r'],['h','Yükseklik h']],
+  'piramit':[['a','Taban kenar a'],['h','Yükseklik h']],
+  'ucgen-prizma':[['a','Taban a'],['b','Taban b'],['c','Taban c'],['h','Yükseklik h']]
+};
+function updateGeoInputs(){
+  var shape=document.getElementById('geo-shape').value;
+  var cont=document.getElementById('geo-inputs');
+  var btn=document.getElementById('geo-btn');
+  if(shape==='dik-ucgen'){
+    cont.innerHTML='<div class="info-box">Herhangi <b style="color:#fff">2 kutuyu</b> doldurun, 3. otomatik hesaplanır.<br><span style="color:#ff9f43">Hipotenüs her zaman en büyük kenar olmalıdır.</span></div><div class="input-group"><label>Dik kenar a</label><input type="number" class="form-input" id="geo-a" placeholder="boş=bilinmiyor" step="any" oninput="dikLock()"></div><div class="input-group"><label>Dik kenar b</label><input type="number" class="form-input" id="geo-b" placeholder="boş=bilinmiyor" step="any" oninput="dikLock()"></div><div class="input-group"><label>Hipotenüs c <span style="color:#ff9f43">(en büyük)</span></label><input type="number" class="form-input" id="geo-c" placeholder="boş=bilinmiyor" step="any" oninput="dikLock()"></div><div id="dik-warn" style="color:#ff6b6b;font-size:.82rem;min-height:1.2rem"></div>';
+    if(btn)btn.style.display='block';return;
+  }
+  if(shape==='ucgen-genel'){
+    cont.innerHTML='<div class="info-box">Bilinen değerleri girin (en az 3). Kenarlar a,b,c — Açılar A,B,C (derece)</div><div class="row2"><div class="input-group"><label>Kenar a</label><input type="number" class="form-input" id="geo-a" placeholder="-" step="any"></div><div class="input-group"><label>Kenar b</label><input type="number" class="form-input" id="geo-b" placeholder="-" step="any"></div><div class="input-group"><label>Kenar c</label><input type="number" class="form-input" id="geo-c" placeholder="-" step="any"></div></div><div class="row2"><div class="input-group"><label>Açı A (°)</label><input type="number" class="form-input" id="geo-A" placeholder="-" step="any"></div><div class="input-group"><label>Açı B (°)</label><input type="number" class="form-input" id="geo-B" placeholder="-" step="any"></div><div class="input-group"><label>Açı C (°)</label><input type="number" class="form-input" id="geo-C" placeholder="-" step="any"></div></div>';
+    if(btn)btn.style.display='block';return;
+  }
+  if(shape==='aci-donusum'){
+    cont.innerHTML='<div class="input-group"><label>Derece → Radyan</label><input type="number" class="form-input" id="geo-deg" placeholder="180" step="any" oninput="aciCalc(\'deg\')"></div><div class="input-group"><label>Radyan → Derece</label><input type="number" class="form-input" id="geo-rad" placeholder="3.14159" step="any" oninput="aciCalc(\'rad\')"></div>';
+    if(btn)btn.style.display='none';return;
+  }
+  var inputs=GEO_STD[shape]||[];
+  cont.innerHTML=inputs.map(function(p){return '<div class="input-group"><label>'+p[1]+'</label><input type="number" class="form-input" id="geo-'+p[0]+'" value="" placeholder="0" step="any"></div>';}).join('');
+  if(btn)btn.style.display='block';
+}
+function dikLock(){
+  var ids=['geo-a','geo-b','geo-c'];
+  var vals=ids.map(function(id){return document.getElementById(id).value.trim();});
+  var filled=vals.filter(function(v){return v!=='';}).length;
+  ids.forEach(function(id,i){
+    var el=document.getElementById(id);
+    if(filled>=2&&vals[i]===''){el.readOnly=true;el.style.opacity='.4';}
+    else{el.readOnly=false;el.style.opacity='1';}
+  });
+  var warn=document.getElementById('dik-warn');
+  var a=parseFloat(vals[0]),b=parseFloat(vals[1]),c=parseFloat(vals[2]);
+  if(!isNaN(c)&&((!isNaN(a)&&c<=a)||(!isNaN(b)&&c<=b)))warn.textContent='⚠ Uyarı: Hipotenüs en büyük kenar olmak zorundadır!';
+  else warn.textContent='';
+}
+function aciCalc(from){
+  var PI=Math.PI,deg,rad;
+  if(from==='deg'){deg=parseFloat(document.getElementById('geo-deg').value);if(isNaN(deg))return;rad=deg*PI/180;document.getElementById('geo-rad').value=fmt(rad);}
+  else{rad=parseFloat(document.getElementById('geo-rad').value);if(isNaN(rad))return;deg=rad*180/PI;document.getElementById('geo-deg').value=fmt(deg);}
+  showResult('geo-result',fmt(deg)+'° = '+fmt(rad)+' rad\nTümler (90-a) = '+fmt(90-deg)+'°\nBütünler (180-a) = '+fmt(180-deg)+'°\nsin = '+fmt(Math.sin(rad))+'\ncos = '+fmt(Math.cos(rad))+'\ntan = '+fmt(Math.tan(rad)));
+}
+function calcGeo(){
+  var shape=document.getElementById('geo-shape').value,PI=Math.PI,res='';
+  try{
+    if(shape==='dik-ucgen'){
+      var warn=document.getElementById('dik-warn');
+      if(warn&&warn.textContent){showResult('geo-result',warn.textContent,true);return;}
+      var a=geoRaw('a'),b=geoRaw('b'),c=geoRaw('c');
+      if(!isNaN(a)&&!isNaN(b)&&isNaN(c))c=Math.sqrt(a*a+b*b);
+      else if(!isNaN(a)&&isNaN(b)&&!isNaN(c))b=Math.sqrt(c*c-a*a);
+      else if(isNaN(a)&&!isNaN(b)&&!isNaN(c))a=Math.sqrt(c*c-b*b);
+      else{showResult('geo-result','Lütfen tam olarak 2 değer girin.',true);return;}
+      if(b<=0||a<=0||c<=0){showResult('geo-result','Geçersiz değerler.',true);return;}
+      var A=Math.atan2(a,b)*180/PI,B=Math.atan2(b,a)*180/PI;
+      res='Kenarlar:\na = '+fmt(a)+'\nb = '+fmt(b)+'\nc (hipotenüs) = '+fmt(c)+'\n\nAçılar:\nA = '+fmt(A)+'°  ('+fmt(A*PI/180,6)+' rad)\nB = '+fmt(B)+'°  ('+fmt(B*PI/180,6)+' rad)\nC = 90°\n\nTrigonometri (A için):\nsin A = '+fmt(a/c)+'\ncos A = '+fmt(b/c)+'\ntan A = '+fmt(a/b)+'\n\nAlan = '+fmt(a*b/2)+'\nÇevre = '+fmt(a+b+c)+'\nİç çevre r = '+fmt((a+b-c)/2)+'\nDış çevre R = '+fmt(c/2);
+      showResult('geo-result',res);
+      setDisplay('a='+fmt(a)+' b='+fmt(b)+' c='+fmt(c)+' | Alan='+fmt(a*b/2));
+      return;
+    }else if(shape==='ucgen-genel'){
+      var a=geoRaw('a'),b=geoRaw('b'),c=geoRaw('c');
+      var A=geoRaw('A'),B=geoRaw('B'),C=geoRaw('C');
+      var toR=function(d){return d*PI/180;};
+      var angK=[A,B,C].filter(function(v){return !isNaN(v);}).length;
+      if(angK===2){if(isNaN(A))A=180-B-C;else if(isNaN(B))B=180-A-C;else C=180-A-B;}
+      if(!isNaN(a)&&!isNaN(A)){var R=a/Math.sin(toR(A));if(isNaN(b)&&!isNaN(B))b=R*Math.sin(toR(B));if(isNaN(c)&&!isNaN(C))c=R*Math.sin(toR(C));}
+      if(!isNaN(b)&&!isNaN(B)){var R2=b/Math.sin(toR(B));if(isNaN(a)&&!isNaN(A))a=R2*Math.sin(toR(A));if(isNaN(c)&&!isNaN(C))c=R2*Math.sin(toR(C));}
+      if(!isNaN(a)&&!isNaN(b)&&!isNaN(C)&&isNaN(c))c=Math.sqrt(a*a+b*b-2*a*b*Math.cos(toR(C)));
+      if(!isNaN(a)&&!isNaN(c)&&!isNaN(B)&&isNaN(b))b=Math.sqrt(a*a+c*c-2*a*c*Math.cos(toR(B)));
+      if(!isNaN(b)&&!isNaN(c)&&!isNaN(A)&&isNaN(a))a=Math.sqrt(b*b+c*c-2*b*c*Math.cos(toR(A)));
+      if(!isNaN(a)&&!isNaN(b)&&!isNaN(c)){if(isNaN(A))A=Math.acos((b*b+c*c-a*a)/(2*b*c))*180/PI;if(isNaN(B))B=Math.acos((a*a+c*c-b*b)/(2*a*c))*180/PI;if(isNaN(C))C=180-A-B;}
+      var s=(a+b+c)/2,alan=Math.sqrt(s*(s-a)*(s-b)*(s-c));
+      var Rdis=a/(2*Math.sin(toR(A))),ric=alan/s;
+      res='Kenarlar:\na='+fmt(a)+' b='+fmt(b)+' c='+fmt(c)+'\n\nAçılar:\nA='+fmt(A)+'° B='+fmt(B)+'° C='+fmt(C)+'°\n\nAlan = '+fmt(alan)+'\nÇevre = '+fmt(a+b+c)+'\nDış çevre R = '+fmt(Rdis)+'\nİç çevre r = '+fmt(ric);
+    }else if(shape==='ucgen-alan'){
+      var a=geoVal('a'),b=geoVal('b'),c=geoVal('c'),s=(a+b+c)/2;
+      res='Alan = '+fmt(Math.sqrt(s*(s-a)*(s-b)*(s-c)))+'\nÇevre = '+fmt(a+b+c);
+    }else if(shape==='cokgen-aci'){
+      var n=geoVal('n');res='İç açı toplamı = '+((n-2)*180)+'°\nHer iç açı = '+fmt((n-2)*180/n)+'°\nDış açı toplamı = 360°\nHer dış açı = '+fmt(360/n)+'°';
+    }else if(shape==='daire'){var r=geoVal('r');res='Alan = '+fmt(PI*r*r)+'\nÇevre = '+fmt(2*PI*r)+'\nÇap = '+fmt(2*r);}
+    else if(shape==='kare'){var a=geoVal('a');res='Alan = '+fmt(a*a)+'\nÇevre = '+fmt(4*a)+'\nKöşegen = '+fmt(a*Math.sqrt(2));}
+    else if(shape==='dikdortgen'){var a=geoVal('a'),b=geoVal('b');res='Alan = '+fmt(a*b)+'\nÇevre = '+fmt(2*(a+b))+'\nKöşegen = '+fmt(Math.sqrt(a*a+b*b));}
+    else if(shape==='kup'){var a=geoVal('a');res='Hacim = '+fmt(a*a*a)+'\nYüzey = '+fmt(6*a*a)+'\nKöşegen = '+fmt(a*Math.sqrt(3));}
+    else if(shape==='silindir'){var r=geoVal('r'),h=geoVal('h');res='Hacim = '+fmt(PI*r*r*h)+'\nYan Yüzey = '+fmt(2*PI*r*h)+'\nToplam Yüzey = '+fmt(2*PI*r*(r+h));}
+    else if(shape==='kure'){var r=geoVal('r');res='Hacim = '+fmt(4/3*PI*r*r*r)+'\nYüzey = '+fmt(4*PI*r*r);}
+    else if(shape==='koni'){var r=geoVal('r'),h=geoVal('h'),l=Math.sqrt(r*r+h*h);res='Hacim = '+fmt(PI*r*r*h/3)+'\nYan Yüzey = '+fmt(PI*r*l)+'\nToplam = '+fmt(PI*r*(r+l))+'\nEğik h = '+fmt(l);}
+    else if(shape==='piramit'){var a=geoVal('a'),h=geoVal('h');res='Hacim = '+fmt(a*a*h/3)+'\nTaban = '+fmt(a*a)+'\nYan Yüzey = '+fmt(2*a*Math.sqrt((a/2)*(a/2)+h*h));}
+    else if(shape==='ucgen-prizma'){var a=geoVal('a'),b=geoVal('b'),c=geoVal('c'),h=geoVal('h'),s=(a+b+c)/2,tb=Math.sqrt(s*(s-a)*(s-b)*(s-c));res='Hacim = '+fmt(tb*h)+'\nTaban = '+fmt(tb)+'\nYan Yüzey = '+fmt((a+b+c)*h);}
+    if(res)showResult('geo-result',res);
+  }catch(e){showResult('geo-result','Hata: '+e.message,true);}
+}
+
+// --- EBOB/EKOK ---
+function renderEbob(ws){
+  ws.innerHTML='<div class="form-layout"><div class="input-group"><label>Sayılar (virgülle):</label><input class="form-input" id="gcd-nums" placeholder="12, 18, 24"></div><div class="row2"><button class="action-btn" onclick="calcGCD()">EBOB</button><button class="action-btn" onclick="calcLCM()">EKOK</button><button class="action-btn" onclick="calcBoth()">İkisi de</button></div><div class="result-box" id="gcd-result"></div></div>';
+}
+function getNums(){return document.getElementById('gcd-nums').value.split(',').map(function(s){return parseInt(s.trim());}).filter(function(n){return !isNaN(n);});}
+function calcGCD(){var n=getNums();try{showResult('gcd-result','EBOB = '+math.gcd.apply(null,n));}catch(e){showResult('gcd-result','Hata',true);}}
+function calcLCM(){var n=getNums();try{showResult('gcd-result','EKOK = '+math.lcm.apply(null,n));}catch(e){showResult('gcd-result','Hata',true);}}
+function calcBoth(){var n=getNums();try{showResult('gcd-result','EBOB = '+math.gcd.apply(null,n)+'\nEKOK = '+math.lcm.apply(null,n));}catch(e){showResult('gcd-result','Hata',true);}}
+
+// --- ASAL SAYILAR ---
+function renderAsal(ws){
+  ws.innerHTML='<div class="form-layout"><div class="input-group"><label>Sayı:</label><input type="number" class="form-input" id="prime-num" placeholder="97"></div><button class="action-btn" onclick="checkPrime()">Analiz Et</button><div class="result-box" id="prime-result"></div></div>';
+}
+function isPrimeNum(n){if(n<2)return false;if(n===2)return true;if(n%2===0)return false;for(var i=3;i<=Math.sqrt(n);i+=2)if(n%i===0)return false;return true;}
+function primeFactors(n){var f=[],d=2;while(d*d<=n){while(n%d===0){f.push(d);n=Math.floor(n/d);}d++;}if(n>1)f.push(n);return f;}
+function checkPrime(){
+  var n=parseInt(document.getElementById('prime-num').value);
+  if(isNaN(n)||n<1){showResult('prime-result','Geçerli bir sayı girin',true);return;}
+  var prime=isPrimeNum(n),lines=[];
+  lines.push(n+' → '+(prime?'✓ ASAL SAYI':'✗ Asal değil'));
+  if(!prime){
+    var factors=primeFactors(n),unique=factors.filter(function(v,i,a){return a.indexOf(v)===i;});
+    lines.push('Asal çarpanlar: '+unique.map(function(p){var e=factors.filter(function(f){return f===p;}).length;return e>1?p+'^'+e:String(p);}).join(' × '));
+    lines.push('Çarpan sayısı: '+factors.length+' (tekrarlı), '+unique.length+' (tekrarsız)');
+    var divisors=[];for(var i=1;i<=n;i++){if(n%i===0)divisors.push(i);}
+    lines.push('Tüm bölenler: '+divisors.join(', '));
+    lines.push('Bölen sayısı: '+divisors.length);
+  }
+  if(prime){
+    var count=0;for(var i=2;i<=n;i++){if(isPrimeNum(i))count++;}
+    lines.push(n+' → '+count+'. asal sayı');
+    var prev=[];for(var i=n-1;i>=2&&prev.length<5;i--){if(isPrimeNum(i))prev.unshift(i);}
+    lines.push('Önceki 5 asal: '+prev.join(', '));
+    var nx=n+1;while(!isPrimeNum(nx))nx++;
+    lines.push('Sonraki asal: '+nx);
+  }else{
+    var pr=n-1;while(pr>=2&&!isPrimeNum(pr))pr--;
+    var nx=n+1;while(!isPrimeNum(nx))nx++;
+    lines.push('En yakın önceki asal: '+(pr>=2?pr:'yok'));
+    lines.push('En yakın sonraki asal: '+nx);
+    var cnt=0;for(var i=2;i<n;i++){if(isPrimeNum(i))cnt++;}
+    lines.push(n+"'den küçük asal sayı adedi: "+cnt);
+  }
+  showResult('prime-result',lines.join('\n'));
+}
+
+// --- PERMÜTASYON / KOMBİNASYON / OLASILIK ---
+function renderPermutasyon(ws){
+  ws.innerHTML='<div class="form-layout">'
+  +'<div class="info-box">P(n,r) = n!/(n-r)! &nbsp;|&nbsp; C(n,r) = n!/(r!(n-r)!) &nbsp;|&nbsp; Olasılık = İstenen/Toplam</div>'
+  +'<div class="row2"><div class="input-group"><label>n (toplam eleman)</label><input type="number" class="form-input" id="pc-n" value="10" min="0"></div><div class="input-group"><label>r (seçilen)</label><input type="number" class="form-input" id="pc-r" value="3" min="0"></div></div>'
+  +'<div class="btn-grid" style="grid-template-columns:repeat(3,1fr)">'
+  +'<button class="action-btn" onclick="calcPC(\'P\')">P(n,r)</button>'
+  +'<button class="action-btn" onclick="calcPC(\'C\')">C(n,r)</button>'
+  +'<button class="action-btn" onclick="calcPC(\'both\')">İkisi de</button>'
+  +'</div>'
+  +'<hr style="border-color:rgba(255,255,255,.08)">'
+  +'<h4 style="color:var(--text2);font-size:.82rem;text-transform:uppercase">Olasılık Hesabı</h4>'
+  +'<div class="row2"><div class="input-group"><label>İstenen sonuç sayısı (k)</label><input type="number" class="form-input" id="prob-k" value="1" min="0"></div><div class="input-group"><label>Toplam sonuç sayısı (n)</label><input type="number" class="form-input" id="prob-n" value="6" min="1"></div></div>'
+  +'<div class="row2"><div class="input-group"><label>Tekrar sayısı (t, opsiyonel)</label><input type="number" class="form-input" id="prob-t" value="1" min="1"></div></div>'
+  +'<button class="action-btn" onclick="calcProb()">Olasılık Hesapla</button>'
+  +'<hr style="border-color:rgba(255,255,255,.08)">'
+  +'<h4 style="color:var(--text2);font-size:.82rem;text-transform:uppercase">Faktöriyel / Genel</h4>'
+  +'<div class="row2"><div class="input-group"><label>n!</label><input type="number" class="form-input" id="fact-n" value="10" min="0"></div></div>'
+  +'<div class="row2"><button class="action-btn" onclick="calcFact()">n! Hesapla</button><button class="action-btn" onclick="calcAllPC()">Tüm C(n,k) listesi</button></div>'
+  +'<div class="result-box" id="pc-result"></div>'
+  +'</div>';
+}
+function factorial(n){if(n<0)return NaN;if(n===0||n===1)return 1;var r=1;for(var i=2;i<=n;i++)r*=i;return r;}
+function bigFactorial(n){
+  // BigInt destekli faktöriyel
+  if(n>170)return Infinity;
+  return factorial(n);
+}
+function calcPC(type){
+  var n=parseInt(document.getElementById('pc-n').value);
+  var r=parseInt(document.getElementById('pc-r').value);
+  if(isNaN(n)||isNaN(r)||r>n||n<0||r<0){showResult('pc-result','Geçersiz değer: n≥r≥0 olmalı',true);return;}
+  var P=factorial(n)/factorial(n-r);
+  var C=factorial(n)/(factorial(r)*factorial(n-r));
+  var res='';
+  if(type==='P')res='P('+n+','+r+') = '+n+'!/'+(n-r)+'! = '+fmt(P,0);
+  else if(type==='C')res='C('+n+','+r+') = '+n+'!/('+r+'!×'+(n-r)+'!) = '+fmt(C,0);
+  else res='P('+n+','+r+') = '+fmt(P,0)+'\nC('+n+','+r+') = '+fmt(C,0)+'\nP/C oranı = '+fmt(P/C,4);
+  showResult('pc-result',res);
+}
+function calcProb(){
+  var k=parseInt(document.getElementById('prob-k').value);
+  var n=parseInt(document.getElementById('prob-n').value);
+  var t=parseInt(document.getElementById('prob-t').value)||1;
+  if(isNaN(k)||isNaN(n)||n<1||k<0||k>n){showResult('pc-result','Geçersiz değer',true);return;}
+  var p=k/n;
+  var lines=[];
+  lines.push('P(tek denemede) = '+k+'/'+n+' = '+fmt(p,8));
+  lines.push('Yüzde: %'+fmt(p*100,4));
+  lines.push('Oran: 1/'+(fmt(n/k,4)));
+  if(t>1){
+    lines.push('\nt='+t+' denemede:');
+    lines.push('En az 1 kez: %'+fmt((1-Math.pow(1-p,t))*100,4));
+    lines.push('Tam 1 kez: %'+fmt(t*p*Math.pow(1-p,t-1)*100,4));
+    lines.push('Hiç çıkmama: %'+fmt(Math.pow(1-p,t)*100,4));
+  }
+  showResult('pc-result',lines.join('\n'));
+}
+function calcFact(){
+  var n=parseInt(document.getElementById('fact-n').value);
+  if(isNaN(n)||n<0){showResult('pc-result','Geçersiz değer',true);return;}
+  var f=factorial(n);
+  showResult('pc-result',n+'! = '+(isFinite(f)?fmt(f,0):'∞ (çok büyük)'));
+}
+function calcAllPC(){
+  var n=parseInt(document.getElementById('pc-n').value);
+  if(isNaN(n)||n<0||n>20){showResult('pc-result','n 0-20 arasında olmalı',true);return;}
+  var lines=['C('+n+',k) değerleri:'];
+  for(var k=0;k<=n;k++){
+    var C=factorial(n)/(factorial(k)*factorial(n-k));
+    lines.push('C('+n+','+k+') = '+fmt(C,0));
+  }
+  lines.push('\nToplam = '+Math.pow(2,n)+' (2^'+n+')');
+  showResult('pc-result',lines.join('\n'));
+}
+
+// --- BİNOM AÇILIMI / PASCAL ÜÇGENİ ---
+function renderBinom(ws){
+  ws.innerHTML='<div class="form-layout">'
+  +'<div class="info-box">(a+b)^n açılımı ve Pascal Üçgeni</div>'
+  +'<div class="row2"><div class="input-group"><label>a ifadesi</label><input class="form-input" id="bin-a" value="x" placeholder="x, 2x, 3..."></div><div class="input-group"><label>b ifadesi</label><input class="form-input" id="bin-b" value="1" placeholder="1, y, -2..."></div><div class="input-group"><label>Üs n</label><input type="number" class="form-input" id="bin-n" value="4" min="0" max="20"></div></div>'
+  +'<button class="action-btn" onclick="calcBinomExpand()">Binom Açılımı</button>'
+  +'<hr style="border-color:rgba(255,255,255,.08)">'
+  +'<div class="input-group"><label>Pascal Üçgeni — satır sayısı (max 15)</label><input type="number" class="form-input" id="pascal-n" value="8" min="1" max="15"></div>'
+  +'<button class="action-btn" onclick="calcPascal()">Pascal Üçgeni Göster</button>'
+  +'<hr style="border-color:rgba(255,255,255,.08)">'
+  +'<h4 style="color:var(--text2);font-size:.82rem;text-transform:uppercase">Binom Olasılığı B(n,p,k)</h4>'
+  +'<div class="row2"><div class="input-group"><label>Deneme sayısı n</label><input type="number" class="form-input" id="bp-n" value="10" min="1"></div><div class="input-group"><label>Başarı olasılığı p</label><input type="number" class="form-input" id="bp-p" value="0.5" step="0.01" min="0" max="1"></div><div class="input-group"><label>Tam k başarı</label><input type="number" class="form-input" id="bp-k" value="3" min="0"></div></div>'
+  +'<button class="action-btn" onclick="calcBinomProb()">Binom Olasılığı</button>'
+  +'<div class="result-box" id="binom-result"></div>'
+  +'</div>';
+}
+// Üs sayısını superscript HTML'e çevir
+function supHtml(n){
+  if(n===1)return '';
+  return '<sup>'+n+'</sup>';
+}
+// Sayıyı güzel göster (1 ise boş, -1 ise -)
+function coefStr(c){
+  if(c===1)return '';
+  if(c===-1)return '-';
+  return String(c);
+}
+// İfadeyi üslü HTML'e çevir: "3x" -> "3x", üs varsa "3x^2" -> "3x<sup>2</sup>"
+function termHtml(coef,aStr,aExp,bStr,bExp){
+  var parts=[];
+  var c=coef;
+  var sign=c<0?'-':'+';
+  var absC=Math.abs(c);
+  // a kısmı
+  var aPart='';
+  if(aExp>0){
+    aPart=aStr+(aExp>1?supHtml(aExp):'');
+  }
+  // b kısmı
+  var bPart='';
+  if(bExp>0){
+    bPart=bStr+(bExp>1?supHtml(bExp):'');
+  }
+  // katsayı
+  var cPart='';
+  if(absC!==1||(aExp===0&&bExp===0)){cPart=String(absC);}
+  else if(absC===1&&aExp===0&&bExp===0){cPart='1';}
+  var term=cPart+(cPart&&(aPart||bPart)?'':'')+aPart+(aPart&&bPart?'·':'')+bPart;
+  if(!term)term='1';
+  return {sign:sign,term:term};
+}
+
+function calcBinomExpand(){
+  var aStr=document.getElementById('bin-a').value.trim()||'a';
+  var bStr=document.getElementById('bin-b').value.trim()||'b';
+  var n=parseInt(document.getElementById('bin-n').value);
+  if(isNaN(n)||n<0||n>20){showResult('binom-result','n 0-20 arasinda olmali',true);return;}
+  function parseExpr(s){
+    s=s.trim();
+    var m=s.match(/^([+-]?\d*\.?\d*)\*?([a-zA-Z][a-zA-Z0-9]*)?$/);
+    if(!m)return{c:1,v:s};
+    var cStr=m[1]||'',vStr=m[2]||'';
+    var c=cStr===''||cStr==='+'?1:cStr==='-'?-1:parseFloat(cStr);
+    if(isNaN(c))c=1;
+    return{c:c,v:vStr};
+  }
+  var pa=parseExpr(aStr),pb=parseExpr(bStr);
+  function bvh(v,exp){if(!v||exp===0)return '';return v+(exp>1?'<sup>'+exp+'</sup>':'');}
+  var fullTerms=[];
+  for(var k=0;k<=n;k++){
+    var Ck=factorial(n)/(factorial(k)*factorial(n-k));
+    var aExp=n-k,bExp=k;
+    var realCoef=Math.round(Ck*Math.pow(pa.c,aExp)*Math.pow(pb.c,bExp)*1e9)/1e9;
+    var absRC=Math.abs(realCoef);
+    var aVar=bvh(pa.v,aExp),bVar=bvh(pb.v,bExp),varPart=aVar+bVar;
+    var cShow=(absRC===1&&varPart)?'':String(absRC%1===0?Math.round(absRC):absRC);
+    var stepA=(pa.c!==1?'('+pa.c+')':'')+bvh(pa.v,aExp)||'1';
+    var stepB=(pb.c!==1?'('+pb.c+')':'')+bvh(pb.v,bExp)||'1';
+    var stepHtml='<span class="step">C('+n+','+k+')'+(aExp>0?'&middot;'+stepA:'')+(bExp>0?'&middot;'+stepB:'')+'</span>';
+    fullTerms.push({cShow:cShow,varPart:varPart,step:stepHtml,realCoef:realCoef,absRC:absRC});
+  }
+  var bSign=pb.c<0?'':'+';
+  var html='<span class="math-eq">('+aStr+' '+bSign+bStr+')<sup>'+n+'</sup> =</span>';
+  html+='<div style="margin:.3rem 0;line-height:2.1">';
+  fullTerms.forEach(function(t,i){
+    var col=t.realCoef<0?'color:#ff9f43':'color:var(--green)';
+    var tv='<span style="'+col+'">'+(t.realCoef<0?'&minus;':'')+t.cShow+t.varPart+'</span>';
+    html+='<span class="math-line">'+t.step+' = '+tv+(i<fullTerms.length-1?' <span style="color:rgba(255,255,255,.4)">+</span>':'')+'</span>';
+  });
+  html+='</div><div style="border-top:1px solid rgba(255,255,255,.12);margin-top:.3rem;padding-top:.4rem">';
+  var rParts=[],pParts=[];
+  var supMap={'2':'\u00B2','3':'\u00B3','4':'\u2074','5':'\u2075','6':'\u2076','7':'\u2077','8':'\u2078','9':'\u2079'};
+  fullTerms.forEach(function(t,i){
+    var hp=(t.cShow||'')+t.varPart||'1';
+    var pp=(t.cShow||'')+t.varPart.replace(/<sup>(\d+)<\/sup>/g,function(_,e){return supMap[e]||'^'+e;})||'1';
+    if(i===0){rParts.push((t.realCoef<0?'&minus;':'')+hp);pParts.push((t.realCoef<0?'\u2212':'')+pp);}
+    else{rParts.push((t.realCoef<0?' &minus; ':' + ')+hp);pParts.push((t.realCoef<0?' \u2212 ':' + ')+pp);}
+  });
+  html+='<span style="color:#fff;font-size:.95rem;font-weight:600">= '+rParts.join('')+'</span></div>';
+  showResult('binom-result',html,false,true);
+  setDisplay(pParts.join('').substring(0,60));
+}
+function calcPascal(){
+  var rows=parseInt(document.getElementById('pascal-n').value)||8;
+  if(rows>15)rows=15;
+  var triangle=[[1]];
+  for(var i=1;i<rows;i++){
+    var row=[1];
+    for(var j=1;j<i;j++)row.push(triangle[i-1][j-1]+triangle[i-1][j]);
+    row.push(1);
+    triangle.push(row);
+  }
+  var html='<span class="math-eq">Pascal Üçgeni ('+rows+' satır)</span>';
+  html+='<div style="font-family:JetBrains Mono,monospace;line-height:1.9;text-align:center">';
+  triangle.forEach(function(row,i){
+    var pad=Array(rows-i+1).join('&nbsp;&nbsp;');
+    html+=pad+'<span style="color:var(--green)">'+row.join('</span>&nbsp;&nbsp;<span style="color:var(--green)">')+'</span><br>';
+  });
+  html+='</div>';
+  showResult('binom-result',html,false,true);
+}
+function calcBinomProb(){
+  var n=parseInt(document.getElementById('bp-n').value);
+  var p=parseFloat(document.getElementById('bp-p').value);
+  var k=parseInt(document.getElementById('bp-k').value);
+  if(isNaN(n)||isNaN(p)||isNaN(k)||p<0||p>1||k>n||k<0){showResult('binom-result','Geçersiz değer',true);return;}
+  var C=factorial(n)/(factorial(k)*factorial(n-k));
+  var exact=C*Math.pow(p,k)*Math.pow(1-p,n-k);
+  var cumLe=0,cumGe=0;
+  for(var i=0;i<=n;i++){
+    var Ci=factorial(n)/(factorial(i)*factorial(n-i));
+    var pi=Ci*Math.pow(p,i)*Math.pow(1-p,n-i);
+    if(i<=k)cumLe+=pi;
+    if(i>=k)cumGe+=pi;
+  }
+  var mean=n*p, variance=n*p*(1-p);
+  var html='<span class="math-eq">B(n='+n+', p='+p+', k='+k+')</span>';
+  html+='<span class="math-line">P(X='+k+') = C('+n+','+k+') · '+p+'<sup>'+k+'</sup> · '+(1-p)+'<sup>'+(n-k)+'</sup></span>';
+  html+='<span class="math-line" style="color:#fff;font-size:.95rem">= <b>'+fmt(exact,8)+'</b> &nbsp;(%'+fmt(exact*100,4)+')</span>';
+  html+='<span class="math-line" style="margin-top:.4rem">P(X ≤ '+k+') = '+fmt(cumLe,8)+' &nbsp;(%'+fmt(cumLe*100,4)+')</span>';
+  html+='<span class="math-line">P(X ≥ '+k+') = '+fmt(cumGe,8)+' &nbsp;(%'+fmt(cumGe*100,4)+')</span>';
+  html+='<span class="math-line" style="margin-top:.4rem;color:var(--text2)">μ = n·p = '+fmt(mean,4)+'</span>';
+  html+='<span class="math-line" style="color:var(--text2)">σ² = n·p·(1-p) = '+fmt(variance,4)+'</span>';
+  html+='<span class="math-line" style="color:var(--text2)">σ = √(σ²) = '+fmt(Math.sqrt(variance),4)+'</span>';
+  showResult('binom-result',html,false,true);
+}
+
+init();
+</script>
+</body>
+</html>

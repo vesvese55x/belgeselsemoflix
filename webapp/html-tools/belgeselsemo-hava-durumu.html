@@ -1,0 +1,2437 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BELGESELSEMO HAVA DURUMU</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.2/p5.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --custom-blue: #1E90FF;
+            --highlight-card: #FFA500;
+            --text-light: #E2E8F0;
+            --rainy-bg: #4682B4;
+            --sunny-bg: #FFD700;
+            --snowy-bg: #ADD8E6;
+            --cloudy-bg: #87CEEB;
+            --stormy-bg: #6A5ACD;
+            --aqi-good: #00FF00;
+            --aqi-moderate: #FFFF00;
+            --aqi-unhealthy: #FFA500;
+            --aqi-bad: #FF0000;
+            --footer-bg: #1E3A8A;
+            --glass-bg: rgba(0, 0, 50, 0.5);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --card-spacing: 2rem; /* Standard spacing between cards */
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(to bottom, #87CEEB, #1E90FF);
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            transition: background 0.5s ease;
+            line-height: 1.5;
+            color: var(--text-light);
+        }
+
+        #weatherCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 1rem;
+            position: relative;
+            z-index: 10;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        @media (min-width: 640px) {
+            .container {
+                padding: 1.5rem;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .container {
+                padding: 2rem 3rem;
+            }
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: white;
+            text-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+            margin: 0;
+            text-align: center;
+        }
+
+        @media (min-width: 640px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+
+        .input-container {
+            position: relative;
+            margin-bottom: 1.5rem;
+            width: 100%;
+            max-width: 300px;
+            margin-left: auto;
+            margin-right: auto;
+            box-sizing: border-box;
+        }
+
+        @media (min-width: 640px) {
+            .input-container {
+                max-width: 400px;
+            }
+        }
+
+        @media (min-width: 768px) {
+            .input-container {
+                max-width: 500px;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .input-container {
+                max-width: 600px;
+            }
+        }
+
+        @media (min-width: 1280px) {
+            .input-container {
+                max-width: 700px;
+            }
+        }
+
+        .input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 0.5rem 0.75rem 0.5rem 2.25rem; /* Reduced height for mobile */
+            border-radius: 1rem;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            outline: none;
+            color: white;
+            font-size: 0.95rem; /* Slightly smaller font */
+            box-sizing: border-box;
+            transition: all 0.3s ease;
+        }
+
+        @media (min-width: 768px) {
+            input[type="text"] {
+                font-size: 1.1rem;
+                padding: 0.75rem 0.875rem 0.75rem 2.5rem; /* Restore height for larger screens */
+            }
+        }
+
+        input[type="text"]::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        input[type="text"]:focus {
+            background: rgba(255, 255, 255, 0.2);
+            box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.4);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 0.75rem;
+            width: 1.1rem; /* Smaller icon for mobile */
+            height: 1.1rem;
+            opacity: 0.7;
+        }
+
+        @media (min-width: 768px) {
+            .search-icon {
+                width: 1.5rem;
+                height: 1.5rem;
+            }
+        }
+
+        #suggestions {
+            position: absolute;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border-radius: 1rem;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            margin-top: 0.25rem;
+            max-height: 15rem;
+            overflow-y: auto;
+            z-index: 20;
+        }
+
+        #suggestions div {
+            padding: 0.75rem;
+            cursor: pointer;
+            color: #1F2937;
+            font-size: 1rem;
+            transition: background-color 0.2s ease;
+        }
+
+        @media (min-width: 768px) {
+            #suggestions div {
+                font-size: 1.1rem;
+            }
+        }
+
+        #suggestions div:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .text-white {
+            color: white;
+        }
+
+        .text-red-300 {
+            color: #FCA5A5;
+        }
+
+        .mb-4 {
+            margin-bottom: 1rem;
+        }
+
+        .mb-6 {
+            margin-bottom: 1.5rem;
+        }
+
+        .text-sm {
+            font-size: 0.875rem;
+        }
+
+        .drop-shadow {
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            height: auto; /* Allow height to adjust to content */
+        }
+
+        .weather-panels {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: var(--card-spacing);
+            width: 100%;
+            margin-bottom: var(--card-spacing);
+        }
+
+        @media (min-width: 1024px) {
+            .weather-panels {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (min-width: 1280px) {
+            .weather-panels.with-astronomical {
+                grid-template-columns: 3fr 2fr;
+            }
+        }
+
+        .bg-current-rainy {
+            background: linear-gradient(135deg, rgba(0, 0, 100, 0.6), rgba(0, 50, 100, 0.6));
+            border: 1px solid rgba(0, 50, 100, 0.5);
+        }
+
+        .bg-current-sunny {
+            background: linear-gradient(135deg, rgba(100, 70, 0, 0.6), rgba(150, 100, 0, 0.6));
+            border: 1px solid rgba(150, 100, 0, 0.5);
+        }
+
+        .bg-current-snowy {
+            background: linear-gradient(135deg, rgba(100, 150, 200, 0.6), rgba(150, 200, 250, 0.6));
+            border: 1px solid rgba(150, 200, 250, 0.5);
+        }
+
+        .bg-current-cloudy {
+            background: linear-gradient(135deg, rgba(50, 100, 150, 0.6), rgba(100, 150, 200, 0.6));
+            border: 1px solid rgba(100, 150, 200, 0.5);
+        }
+
+        .bg-current-stormy {
+            background: linear-gradient(135deg, rgba(50, 0, 100, 0.6), rgba(100, 50, 150, 0.6));
+            border: 1px solid rgba(100, 50, 150, 0.5);
+        }
+
+        .bg-highlight-card {
+            background: linear-gradient(135deg, #FFA500, #D97706);
+        }
+
+        .bg-rainy-bg {
+            background: linear-gradient(135deg, #4682B4, #1E90FF);
+        }
+
+        .bg-sunny-bg {
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+        }
+
+        .bg-snowy-bg {
+            background: linear-gradient(135deg, #ADD8E6, #E6F0FA);
+        }
+
+        .bg-cloudy-bg {
+            background: linear-gradient(135deg, #87CEEB, #B0C4DE);
+        }
+
+        .bg-stormy-bg {
+            background: linear-gradient(135deg, #6A5ACD, #483D8B);
+        }
+
+        .p-6 {
+            padding: 1.5rem;
+        }
+
+        .p-3 {
+            padding: 0.75rem;
+        }
+
+        .rounded-lg {
+            border-radius: 1.25rem;
+        }
+
+        .shadow-modern {
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2), 0 4px 8px rgba(0, 0, 0, 0.15);
+            transition: all 0.3s ease;
+        }
+
+        .shadow-modern:hover {
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.25), 0 6px 12px rgba(0, 0, 0, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .text-xl {
+            font-size: 1.25rem;
+        }
+
+        @media (min-width: 768px) {
+            .text-xl {
+                font-size: 1.5rem;
+            }
+        }
+
+        .text-2xl {
+            font-size: 1.5rem;
+        }
+
+        @media (min-width: 768px) {
+            .text-2xl {
+                font-size: 1.75rem;
+            }
+        }
+
+        .text-4xl {
+            font-size: 2.25rem;
+        }
+
+        @media (min-width: 768px) {
+            .text-4xl {
+                font-size: 2.75rem;
+            }
+        }
+
+        .font-semibold {
+            font-weight: 600;
+        }
+
+        .font-bold {
+            font-weight: 700;
+        }
+
+        .font-medium {
+            font-weight: 500;
+        }
+
+        .text-light {
+            color: var(--text-light);
+        }
+
+        .grid {
+            display: grid;
+        }
+
+        .grid-cols-1 {
+            grid-template-columns: repeat(1, minmax(0, 1fr));
+        }
+
+        .grid-cols-2 {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        @media (min-width: 640px) {
+            .sm-grid-cols-2 {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (min-width: 768px) {
+            .md-grid-cols-3 {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+            .md-grid-cols-4 {
+                grid-template-columns: repeat(4, minmax(0, 1fr));
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .lg-grid-cols-5 {
+                grid-template-columns: repeat(5, minmax(0, 1fr));
+            }
+            .lg-grid-cols-7 {
+                grid-template-columns: repeat(7, minmax(0, 1fr));
+            }
+        }
+
+        @media (min-width: 1280px) {
+            .xl-grid-cols-7 {
+                grid-template-columns: repeat(7, minmax(0, 1fr));
+            }
+            .xl-grid-cols-8 {
+                grid-template-columns: repeat(8, minmax(0, 1fr));
+            }
+            .xl-hourly-grid {
+                grid-template-columns: repeat(4, 1fr);
+                grid-template-rows: repeat(2, auto);
+            }
+        }
+
+        .gap-4 {
+            gap: 1.5rem;
+        }
+
+        .gap-2 {
+            gap: 0.5rem;
+        }
+
+        .flex {
+            display: flex;
+        }
+
+        .flex-col {
+            flex-direction: column;
+        }
+
+        .flex-row {
+            flex-direction: row;
+        }
+
+        @media (min-width: 768px) {
+            .md-flex-row {
+                flex-direction: row;
+            }
+        }
+
+        .items-center {
+            align-items: center;
+        }
+
+        .justify-center {
+            justify-content: center;
+        }
+
+        .justify-between {
+            justify-content: space-between;
+        }
+
+        .justify-evenly {
+            justify-content: space-evenly;
+        }
+
+        .w-10 {
+            width: 2.5rem;
+        }
+
+        .h-10 {
+            height: 2.5rem;
+        }
+
+        .w-12 {
+            width: 3rem;
+        }
+
+        .h-12 {
+            height: 3rem;
+        }
+
+        .mr-2 {
+            margin-right: 0.5rem;
+        }
+
+        .mx-auto {
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .weather-icon {
+            animation: glow 2s infinite;
+            filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.8));
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes glow {
+            0% { filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.8)); }
+            50% { filter: drop-shadow(0 0 18px rgba(255, 255, 255, 1)); }
+            100% { filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.8)); }
+        }
+
+        .weather-card {
+            animation: fadeInUp 0.8s ease-in-out;
+            display: flex;
+            flex-direction: column;
+            height: fit-content; /* Fixed to fit content */
+        }
+
+        @keyframes fadeInUp {
+            0% { opacity: 0; transform: translateY(20px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+        .compass {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            background: url('https://cdn-icons-png.flaticon.com/512/149/149452.png') no-repeat center;
+            background-size: contain;
+            transform: rotate(var(--wind-deg));
+        }
+
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid var(--text-light);
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .scrollable-area {
+            flex: 1;
+            overflow-y: auto;
+            padding-bottom: 20px;
+            contain: strict;
+            display: flex;
+            flex-direction: column;
+            gap: var(--card-spacing);
+            max-height: calc(100vh - 180px); /* More room on mobile */
+        }
+
+        @media (min-width: 768px) {
+            .scrollable-area {
+                max-height: calc(100vh - 220px);
+            }
+        }
+
+        .bg-aqi-good {
+            background-color: var(--aqi-good);
+        }
+
+        .bg-aqi-moderate {
+            background-color: var(--aqi-moderate);
+        }
+
+        .bg-aqi-unhealthy {
+            background-color: var(--aqi-unhealthy);
+        }
+
+        .bg-aqi-bad {
+            background-color: var(--aqi-bad);
+        }
+
+        .px-2 {
+            padding-left: 0.5rem;
+            padding-right: 0.5rem;
+        }
+
+        .py-1 {
+            padding-top: 0.25rem;
+            padding-bottom: 0.25rem;
+        }
+
+        .text-black {
+            color: black;
+        }
+
+        /* Moon phase visualization */
+        .moon-phase-container {
+            position: relative;
+            width: 80px;
+            height: 80px;
+            margin: 1rem auto;
+        }
+
+        .moon-circle {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background-color: #F5F5F5;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.8);
+        }
+
+        .moon-shadow {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background-color: rgba(0, 0, 50, 0.95);
+            transition: all 0.3s ease;
+        }
+
+        /* Weather details grid */
+        .weather-details-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 0.5rem;
+        }
+
+        @media (min-width: 480px) {
+            .weather-details-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (min-width: 768px) {
+            .weather-details-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .weather-details-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        @media (min-width: 1280px) {
+            .weather-details-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+
+        .weather-detail-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 0.75rem;
+            border-radius: 0.75rem;
+            display: flex;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .weather-detail-item:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .detail-icon {
+            width: 1.5rem;
+            height: 1.5rem;
+            margin-right: 0.5rem;
+            opacity: 0.9;
+        }
+
+        .sun-position {
+            position: relative;
+            height: 100px;
+            width: 100%;
+            margin: 1rem 0;
+            background: linear-gradient(to bottom, rgba(135, 206, 235, 0.5), rgba(30, 144, 255, 0.2));
+            border-radius: 100% 100% 0 0 / 80% 80% 0 0;
+            overflow: hidden;
+        }
+
+        .sun {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            background: #FFD700;
+            border-radius: 50%;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+            transform: translate(-50%, -50%);
+            transition: all 0.3s ease;
+        }
+
+        .horizon {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.5);
+        }
+
+        footer {
+            background-color: var(--footer-bg);
+            padding: 0.75rem;
+            text-align: center;
+            color: white;
+            font-size: 0.75rem;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.2);
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            margin-top: 1rem;
+        }
+
+        @media (min-width: 768px) {
+            footer {
+                padding: 1rem;
+                font-size: 0.875rem;
+            }
+        }
+
+        /* Forecast card styling - updated to match city cards */
+        #forecastTable {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 1rem;
+            width: 100%;
+            overflow-x: auto;
+            padding: 0.5rem;
+        }
+
+        @media (min-width: 640px) {
+            #forecastTable {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 1rem;
+            }
+        }
+
+        @media (min-width: 768px) {
+            #forecastTable {
+                grid-template-columns: repeat(4, 1fr);
+                gap: 1rem;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            #forecastTable {
+                grid-template-columns: repeat(7, 1fr);
+                gap: 1.5rem;
+            }
+        }
+
+        #hourlyTable {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 1rem;
+            width: 100%;
+            overflow-x: auto;
+            padding: 0.5rem;
+        }
+
+        @media (min-width: 640px) {
+            #hourlyTable {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 1rem;
+            }
+        }
+
+        @media (min-width: 768px) {
+            #hourlyTable {
+                grid-template-columns: repeat(4, 1fr);
+                gap: 1rem;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            #hourlyTable {
+                grid-template-columns: repeat(8, 1fr);
+                gap: 1.5rem;
+            }
+        }
+
+        /* Ensure cards use consistent heights */
+        #hourlyForecast, #forecast, #currentWeather, #astronomicalInfo {
+            height: auto !important;
+        }
+
+        /* Card content wrapper to ensure proper padding and spacing */
+        .card-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* More elegant transitions */
+        .glass-card, .weather-detail-item, .weather-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Custom scrollbar for better UX */
+        .scrollable-area::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .scrollable-area::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+
+        .scrollable-area::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+        }
+
+        .scrollable-area::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.5);
+        }
+
+        /* Weather alert toast notification */
+        .weather-alert {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 59, 48, 0.9);
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 10px;
+            font-weight: 500;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            z-index: 100;
+            animation: slideUp 0.3s ease, fadeOut 0.5s ease 5s forwards;
+            max-width: 90%;
+        }
+
+        @keyframes slideUp {
+            from { transform: translate(-50%, 20px); opacity: 0; }
+            to { transform: translate(-50%, 0); opacity: 1; }
+        }
+
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; visibility: hidden; }
+        }
+
+        /* Back to top button */
+        .back-to-top {
+            position: fixed;
+            bottom: 60px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 50;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .back-to-top.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .back-to-top:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-3px);
+        }
+
+        /* Mini forecast summary cards */
+        .mini-forecast-card {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 0.5rem;
+            border-radius: 0.75rem;
+            text-align: center;
+            backdrop-filter: blur(5px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .mini-forecast-card:hover {
+            transform: translateY(-2px);
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        /* Seasonal background elements */
+        .seasonal-element {
+            position: absolute;
+            pointer-events: none;
+            z-index: -1;
+            opacity: 0.6;
+            transition: all 0.5s ease;
+        }
+
+        /* Loading animation container */
+        .loading-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .loading-text {
+            margin-top: 1rem;
+            font-size: 1.1rem;
+            color: white;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        /* IMPROVEMENT 1: Turkish Cities section with horizontal scrolling - UPDATED */
+        #turkishCities {
+            height: auto !important;
+            padding: 1.5rem;
+        }
+
+        .cities-grid-container {
+            overflow-x: auto;
+            padding-bottom: 1rem;
+            margin: 0 -0.5rem;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, 0.3) rgba(255, 255, 255, 0.1);
+            /* Always show scrollbar */
+            overflow-x: scroll;
+        }
+
+        .cities-grid {
+            display: grid;
+            gap: 1rem;
+            padding: 0.5rem;
+            width: max-content;
+            min-width: 100%;
+        }
+
+        /* Always a single row on all screen sizes */
+        .cities-grid {
+            grid-template-columns: repeat(12, minmax(150px, 1fr));
+            grid-auto-flow: column;
+        }
+
+        /* Keep single row on large screens too */
+        @media (min-width: 1024px) {
+            .cities-grid {
+                grid-template-columns: repeat(12, minmax(150px, 1fr));
+                grid-auto-flow: column;
+            }
+        }
+
+        .city-card {
+            background: rgba(255, 255, 255, 0.12);
+            border-radius: 0.75rem;
+            padding: 0.75rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            min-width: 150px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .city-card:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-3px);
+        }
+
+        .city-name {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            font-size: 1rem;
+        }
+
+        .city-temp {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin: 0.5rem 0;
+        }
+
+        .city-icon {
+            width: 40px;
+            height: 40px;
+            margin: 0 auto;
+        }
+
+        .city-details {
+            font-size: 0.875rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+            margin-top: 0.5rem;
+        }
+
+        .scroll-indicator {
+            display: flex;
+            justify-content: center;
+            margin-top: 0.5rem;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.875rem;
+        }
+
+        .scroll-arrow {
+            animation: bounceX 1.5s infinite;
+            display: inline-block;
+        }
+
+        @keyframes bounceX {
+            0%, 100% { transform: translateX(0); }
+            50% { transform: translateX(8px); }
+        }
+
+        /* Custom scrollbar for horizontal scrolling - UPDATED to always be visible */
+        .cities-grid-container::-webkit-scrollbar {
+            height: 8px;
+            display: block; /* Always visible */
+        }
+
+        .cities-grid-container::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+
+        .cities-grid-container::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+        }
+
+        .cities-grid-container::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.5);
+        }
+
+        /* Forecast and hourly forecast styling to match city cards */
+        .forecast-card, .hourly-card {
+            background: rgba(255, 255, 255, 0.12);
+            border-radius: 0.75rem;
+            padding: 0.75rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .forecast-card:hover, .hourly-card:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-3px);
+        }
+
+        .forecast-date {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            font-size: 1rem;
+        }
+
+        .forecast-temp {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin: 0.5rem 0;
+        }
+
+        .forecast-icon {
+            width: 40px;
+            height: 40px;
+            margin: 0 auto;
+        }
+
+        .forecast-details {
+            font-size: 0.875rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+            margin-top: 0.5rem;
+        }
+
+        .temperature-range {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 0.5rem 0;
+        }
+
+        .min-temp {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.875rem;
+        }
+
+        .max-temp {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.875rem;
+        }
+
+        .current-temp {
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body>
+<canvas id="weatherCanvas"></canvas>
+<div class="container">
+    <div class="header">
+        <h1>BELGESELSEMO HAVA DURUMU</h1>
+    </div>
+
+    <!-- Arama Kutusu ve Öneriler -->
+    <div class="input-container">
+        <div class="input-wrapper">
+            <img src="https://cdn-icons-png.flaticon.com/512/954/954591.png" alt="Search Icon" class="search-icon">
+            <input type="text" id="locationInput" placeholder="Şehir ara (örn. İstanbul)">
+        </div>
+        <div id="suggestions" class="hidden"></div>
+    </div>
+
+    <!-- Hata Mesajı -->
+    <div id="error" class="hidden text-red-300 text-center mb-4 drop-shadow"></div>
+
+    <!-- Kaydırılabilir Alan -->
+    <div class="scrollable-area">
+        <div class="weather-panels">
+            <!-- Mevcut Hava Durumu -->
+            <div id="currentWeather" class="p-6 rounded-lg shadow-modern weather-card">
+                <div class="loading-container">
+                    <span class="spinner"></span>
+                    <p class="loading-text">Hava durumu verileri yükleniyor...</p>
+                </div>
+            </div>
+
+            <!-- Astronomik Bilgiler -->
+            <div id="astronomicalInfo" class="glass-card p-6 rounded-lg shadow-modern hidden weather-card">
+                <h2 class="text-2xl font-semibold text-light mb-4 drop-shadow">Astronomik Bilgiler</h2>
+                <div id="astronomicalTable" class="grid grid-cols-1 sm-grid-cols-2 gap-4"></div>
+                <div id="moonPhaseVisual" class="moon-phase-container">
+                    <div class="moon-circle"></div>
+                    <div class="moon-shadow"></div>
+                </div>
+                <div id="sunPositionVisual" class="sun-position">
+                    <div class="horizon"></div>
+                    <div class="sun"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Saatlik Tahmin -->
+        <div id="hourlyForecast" class="glass-card p-6 rounded-lg shadow-modern hidden weather-card">
+            <h2 class="text-2xl font-semibold text-light mb-4 drop-shadow">Saatlik Tahmin</h2>
+            <div id="hourlyTable" class="grid gap-4"></div>
+        </div>
+
+        <!-- 7 Günlük Tahmin -->
+        <div id="forecast" class="glass-card p-6 rounded-lg shadow-modern weather-card">
+            <h2 class="text-2xl font-semibold text-light mb-4 drop-shadow">7 Günlük Tahmin</h2>
+            <div id="forecastTable" class="gap-4"></div>
+        </div>
+
+
+
+        <!-- IMPROVEMENT 1 & 2: Moved Turkish Cities section above Weather Facts -->
+        <div id="turkishCities" class="glass-card rounded-lg shadow-modern weather-card">
+            <h2 class="text-2xl font-semibold text-light mb-4 drop-shadow">İllere Göre Anlık Hava Durumu</h2>
+            <div class="cities-grid-container">
+                <div id="citiesGrid" class="cities-grid">
+                    <!-- Cities will be populated here -->
+                    <div class="loading-container">
+                        <span class="spinner"></span>
+                        <p class="loading-text">İl verileri yükleniyor...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="scroll-indicator">
+                <span>Sağa kaydırın</span>
+                <span class="scroll-arrow ml-2">&rarr;</span>
+            </div>
+        </div>
+
+        <!-- Weather Facts section - Now below Turkish Cities -->
+        <div id="weatherFacts" class="glass-card p-6 rounded-lg shadow-modern hidden weather-card">
+            <h2 class="text-2xl font-semibold text-light mb-4 drop-shadow">Hava Durumu Bilgileri</h2>
+            <div id="factsContainer" class="grid grid-cols-1 md-grid-cols-2 gap-4">
+                <!-- Facts will be filled dynamically -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Back to top button -->
+<div class="back-to-top" id="backToTop">
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M18 15l-6-6-6 6"/>
+    </svg>
+</div>
+
+<!-- Footer -->
+<footer>
+    Veriler https://openweathermap.org api'leri kullanılarak edinilmektedir. GROK kullanılarak BELGESELSEMO tarafından hazırlanmıştır.
+</footer>
+
+<script>
+    const PRIMARY_API_KEY = 'd1e7639f50aa6ef9c8164ca76eb1164d';
+    const BACKUP_API_KEY = 'ad2f165456100516e4edc2586fd62789';
+    const THIRD_API_KEY = '856c275bbd79c063c0de136eaecf9a0a'; // Added third API key as requested
+
+    let apiKeys = [PRIMARY_API_KEY, BACKUP_API_KEY, THIRD_API_KEY]; // Array of all API keys
+    let currentApiKeyIndex = 0; // Current index in the API keys array
+    let currentApiKey = apiKeys[currentApiKeyIndex];
+
+    const GEO_API_URL = 'https://api.openweathermap.org/geo/1.0/direct';
+    const REVERSE_GEO_API_URL = 'https://api.openweathermap.org/geo/1.0/reverse'; // Added for better location name detection
+    const WEATHER_API_URL = 'https://api.openweathermap.org/data/2.5/weather';
+    const FORECAST_API_URL = 'https://api.openweathermap.org/data/2.5/forecast';
+    const AIR_POLLUTION_API_URL = 'https://api.openweathermap.org/data/2.5/air_pollution';
+
+    // Weather detail icons
+    const DETAIL_ICONS = {
+        feels_like: 'https://cdn-icons-png.flaticon.com/512/1684/1684375.png',
+        humidity: 'https://cdn-icons-png.flaticon.com/512/728/728093.png',
+        pressure: 'https://cdn-icons-png.flaticon.com/512/1585/1585400.png',
+        wind: 'https://cdn-icons-png.flaticon.com/512/959/959711.png',
+        sunrise: 'https://cdn-icons-png.flaticon.com/512/3222/3222800.png',
+        sunset: 'https://cdn-icons-png.flaticon.com/512/3222/3222693.png',
+        visibility: 'https://cdn-icons-png.flaticon.com/512/709/709612.png',
+        rain: 'https://cdn-icons-png.flaticon.com/512/3351/3351979.png',
+        uv: 'https://cdn-icons-png.flaticon.com/512/869/869869.png',
+        aqi: 'https://cdn-icons-png.flaticon.com/512/4743/4743124.png'
+    };
+
+    // Store original card heights to maintain consistency
+    let cardHeights = {
+        hourlyForecast: null,
+        forecast: null,
+        currentWeather: null,
+        astronomicalInfo: null,
+        weatherFacts: null,
+        turkishCities: null
+    };
+
+    // Turkish cities list
+    const TURKISH_CITIES = [
+        "Adana", "Adıyaman", "Afyonkarahisar", "Ağrı", "Amasya", "Ankara", "Antalya", "Artvin",
+        "Aydın", "Balıkesir", "Bilecik", "Bingöl", "Bitlis", "Bolu", "Burdur", "Bursa", "Çanakkale",
+        "Çankırı", "Çorum", "Denizli", "Diyarbakır", "Edirne", "Elazığ", "Erzincan", "Erzurum",
+        "Eskişehir", "Gaziantep", "Giresun", "Gümüşhane", "Hakkari", "Hatay", "Isparta", "Mersin",
+        "İstanbul", "İzmir", "Kars", "Kastamonu", "Kayseri", "Kırklareli", "Kırşehir", "Kocaeli",
+        "Konya", "Kütahya", "Malatya", "Manisa", "Kahramanmaraş", "Mardin", "Muğla", "Muş", "Nevşehir",
+        "Niğde", "Ordu", "Rize", "Sakarya", "Samsun", "Siirt", "Sinop", "Sivas", "Tekirdağ", "Tokat",
+        "Trabzon", "Tunceli", "Şanlıurfa", "Uşak", "Van", "Yozgat", "Zonguldak", "Aksaray", "Bayburt",
+        "Karaman", "Kırıkkale", "Batman", "Şırnak", "Bartın", "Ardahan", "Iğdır", "Yalova", "Karabük",
+        "Kilis", "Osmaniye", "Düzce"
+    ];
+
+    // Collection of weather facts
+    const WEATHER_FACTS = [
+        "Yıldırım dünya atmosferinde saniyede yaklaşık 44 kez çakar.",
+        "Dünyanın en yağışlı yeri Hindistan'daki Mawsynram'dır, yıllık ortalama 11.872 mm yağış alır.",
+        "Kar taneleri her zaman altıgen şeklindedir.",
+        "Şimşek havayı yaklaşık 30.000 derece Celsius'a kadar ısıtabilir.",
+        "Dünya üzerindeki en düşük sıcaklık -89.2°C ile Antarktika'da kaydedilmiştir.",
+        "Gökkuşağı her zaman güneşin karşı tarafında oluşur.",
+        "Bulutlar, ortalama bir fil ağırlığında (yaklaşık 4 ton) su içerir.",
+        "Tornado rüzgarları saatte 450 km'ye ulaşabilir.",
+        "Hava durumu tahmini, modern bilgisayar teknolojisinin ilk kullanım alanlarından biridir.",
+        "Atmosferin %78'i azot, %21'i oksijen ve %1'i diğer gazlardan oluşur.",
+        "Şimşek sıcaklığı güneş yüzeyinden daha sıcak olabilir.",
+        "Dünyada her gün yaklaşık 2.000 gök gürültülü fırtına gerçekleşir.",
+        "Everest Dağı'nın zirvesindeki atmosfer basıncı, deniz seviyesindekinin yaklaşık üçte biridir.",
+        "Dünyanın en rüzgarlı yeri Antarktika'daki Commonwealth Körfezi'dir.",
+        "Bulutlar ortalama olarak saatte 48 km hızla hareket eder."
+    ];
+
+    // Seasonal backgrounds
+    function getSeasonalElements() {
+        const month = new Date().getMonth(); // 0-11 (Jan-Dec)
+
+        // Spring (March-May)
+        if (month >= 2 && month <= 4) {
+            return {
+                name: "İlkbahar",
+                color: "#98FB98", // Pale green
+                emoji: "🌸"
+            };
+        }
+        // Summer (June-August)
+        else if (month >= 5 && month <= 7) {
+            return {
+                name: "Yaz",
+                color: "#FFFF00", // Yellow
+                emoji: "☀️"
+            };
+        }
+        // Fall (September-November)
+        else if (month >= 8 && month <= 10) {
+            return {
+                name: "Sonbahar",
+                color: "#FF8C00", // Dark orange
+                emoji: "🍂"
+            };
+        }
+        // Winter (December-February)
+        else {
+            return {
+                name: "Kış",
+                color: "#87CEEB", // Sky blue
+                emoji: "❄️"
+            };
+        }
+    }
+
+    async function fetchWithApiKey(url) {
+        try {
+            const response = await fetch(`${url}&appid=${currentApiKey}`);
+
+            // If we get an error (rate limit, unauthorized, etc.)
+            if (response.status !== 200) {
+                // Try the next API key
+                currentApiKeyIndex = (currentApiKeyIndex + 1) % apiKeys.length;
+                currentApiKey = apiKeys[currentApiKeyIndex];
+                console.log(`Switching to API key: ${currentApiKeyIndex + 1}`);
+
+                // Retry with the new API key
+                return await fetch(`${url}&appid=${currentApiKey}`);
+            }
+            return response;
+        } catch (error) {
+            // If there's a network or other error, try the next API key
+            currentApiKeyIndex = (currentApiKeyIndex + 1) % apiKeys.length;
+            currentApiKey = apiKeys[currentApiKeyIndex];
+            console.log(`Error occurred, switching to API key: ${currentApiKeyIndex + 1}`);
+
+            // Retry with the new API key
+            return await fetch(`${url}&appid=${currentApiKey}`);
+        }
+    }
+
+    // Konum arama ve öneriler
+    async function fetchSuggestions(query) {
+        if (query.length < 2) {
+            document.getElementById('suggestions').classList.add('hidden');
+            return;
+        }
+        try {
+            const response = await fetchWithApiKey(`${GEO_API_URL}?q=${query}&limit=5`);
+            const data = await response.json();
+            const suggestions = document.getElementById('suggestions');
+            suggestions.innerHTML = '';
+            if (data.length > 0) {
+                data.forEach(city => {
+                    const div = document.createElement('div');
+                    div.className = 'p-2 hover:bg-gray-200 cursor-pointer';
+                    div.textContent = `${city.name}, ${city.country}`;
+                    div.onclick = () => selectCity(city.lat, city.lon, `${city.name}, ${city.country}`);
+                    suggestions.appendChild(div);
+                });
+                suggestions.classList.remove('hidden');
+            } else {
+                suggestions.classList.add('hidden');
+            }
+        } catch (error) {
+            showError('Konum önerileri alınamadı.');
+        }
+    }
+
+    async function selectCity(lat, lon, cityName) {
+        document.getElementById('suggestions').classList.add('hidden');
+        document.getElementById('locationInput').value = cityName;
+
+        // Save current card heights before changing content
+        saveCardHeights();
+
+        await fetchWeather(lat, lon, cityName);
+        await fetchForecast(lat, lon);
+        await fetchHourlyForecast(lat, lon);
+        await fetchAirQuality(lat, lon);
+
+        // Show weather facts after loading main data
+        showWeatherFacts();
+
+        // Restore card heights after content is loaded
+        setTimeout(restoreCardHeights, 100);
+    }
+
+    function saveCardHeights() {
+        // Save current heights of cards if they exist and are visible
+        Object.keys(cardHeights).forEach(id => {
+            const element = document.getElementById(id);
+            if (element && !element.classList.contains('hidden')) {
+                cardHeights[id] = element.offsetHeight;
+            }
+        });
+    }
+
+    function restoreCardHeights() {
+        // Restore previously saved heights for consistency
+        Object.keys(cardHeights).forEach(id => {
+            const element = document.getElementById(id);
+            if (element && !element.classList.contains('hidden') && cardHeights[id]) {
+                // Only set height if we have a previous value
+                element.style.height = `${cardHeights[id]}px`;
+            }
+        });
+    }
+
+    // Function to get accurate city name from coordinates
+    async function getLocationName(lat, lon) {
+        try {
+            const response = await fetchWithApiKey(`${REVERSE_GEO_API_URL}?lat=${lat}&lon=${lon}&limit=1`);
+            const data = await response.json();
+
+            if (data && data.length > 0) {
+                const location = data[0];
+                // Try to create a more complete location name
+                let locationName = location.name;
+
+                // If there's a state/province, add it
+                if (location.state) {
+                    locationName += `, ${location.state}`;
+                }
+
+                // Add country code
+                locationName += `, ${location.country}`;
+
+                return locationName;
+            }
+
+            // Fallback to coordinates if no location data
+            return `Konum (${lat.toFixed(2)}, ${lon.toFixed(2)})`;
+        } catch (error) {
+            console.error("Error getting location name:", error);
+            return `Konum (${lat.toFixed(2)}, ${lon.toFixed(2)})`;
+        }
+    }
+
+    async function fetchWeather(lat, lon, cityName) {
+        try {
+            // If cityName is not provided or equals "Bilinmeyen Konum", try to get a proper name
+            if (!cityName || cityName === 'Bilinmeyen Konum') {
+                cityName = await getLocationName(lat, lon);
+            }
+
+            const response = await fetchWithApiKey(`${WEATHER_API_URL}?lat=${lat}&lon=${lon}&units=metric&lang=tr`);
+            const data = await response.json();
+            if (data.cod === 200) {
+                const sunrise = new Date(data.sys.sunrise * 1000).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+                const sunset = new Date(data.sys.sunset * 1000).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+                const windDirection = getWindDirection(data.wind.deg);
+                const now = new Date();
+                const dateTimeStr = now.toLocaleString('tr-TR', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric',
+                    weekday: 'long',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    timeZone: 'Europe/Istanbul'
+                });
+                const weatherType = data.weather[0].main.toLowerCase();
+                let cardBg = 'glass-card';
+                if (weatherType.includes('rain')) cardBg = 'bg-current-rainy';
+                else if (weatherType.includes('snow')) cardBg = 'bg-current-snowy';
+                else if (weatherType.includes('clear')) cardBg = 'bg-current-sunny';
+                else if (weatherType.includes('cloud')) cardBg = 'bg-current-cloudy';
+                else if (weatherType.includes('thunderstorm')) cardBg = 'bg-current-stormy';
+
+                const currentWeather = document.getElementById('currentWeather');
+                currentWeather.className = `${cardBg} p-6 rounded-lg shadow-modern weather-card`;
+                currentWeather.innerHTML = `
+                    <h2 class="text-2xl font-semibold text-light mb-4 drop-shadow">Şu Anki Hava Durumu</h2>
+                    <div class="flex flex-col md-flex-row items-center justify-between mb-4">
+                        <div class="flex items-center mb-2 md-mb-0">
+                            <img src="http://openweathermap.org/img/wn/${data.weather[0].icon}@2x.png" class="w-12 h-12 mr-2 weather-icon">
+                            <div>
+                                <p class="text-light font-medium text-xl">${cityName}</p>
+                                <p class="text-light text-sm">Enlem ${lat.toFixed(2)}, Boylam ${lon.toFixed(2)}</p>
+                            </div>
+                        </div>
+                        <div class="text-center">
+                            <p class="text-light text-sm mb-2">${dateTimeStr}</p>
+                            <div class="flex items-center justify-center">
+                                <p class="text-4xl font-bold text-light">${Math.round(data.main.temp)}°C</p>
+                            </div>
+                            <p class="text-light">${data.weather[0].description.charAt(0).toUpperCase() + data.weather[0].description.slice(1)}</p>
+                        </div>
+                    </div>
+                    <div class="weather-details-grid">
+                        <div class="weather-detail-item">
+                            <img src="${DETAIL_ICONS.feels_like}" alt="Hissedilen" class="detail-icon">
+                            <span>Hissedilen: ${Math.round(data.main.feels_like)}°C</span>
+                        </div>
+                        <div class="weather-detail-item">
+                            <img src="${DETAIL_ICONS.humidity}" alt="Nem" class="detail-icon">
+                            <span>Nem: ${data.main.humidity}%</span>
+                        </div>
+                        <div class="weather-detail-item">
+                            <img src="${DETAIL_ICONS.pressure}" alt="Basınç" class="detail-icon">
+                            <span>Basınç: ${data.main.pressure} hPa</span>
+                        </div>
+                        <div class="weather-detail-item">
+                            <img src="${DETAIL_ICONS.wind}" alt="Rüzgar" class="detail-icon">
+                            <span>Rüzgar: ${data.wind.speed} m/s <span class="compass" style="--wind-deg: ${data.wind.deg}deg;"></span></span>
+                        </div>
+                        <div class="weather-detail-item">
+                            <img src="${DETAIL_ICONS.sunrise}" alt="Gün Doğumu" class="detail-icon">
+                            <span>Gün Doğumu: ${sunrise}</span>
+                        </div>
+                        <div class="weather-detail-item">
+                            <img src="${DETAIL_ICONS.sunset}" alt="Gün Batımı" class="detail-icon">
+                            <span>Gün Batımı: ${sunset}</span>
+                        </div>
+                        <div class="weather-detail-item">
+                            <img src="${DETAIL_ICONS.visibility}" alt="Görüş" class="detail-icon">
+                            <span>Görüş: ${data.visibility / 1000} km</span>
+                        </div>
+                        <div class="weather-detail-item">
+                            <img src="${DETAIL_ICONS.rain}" alt="Yağış" class="detail-icon">
+                            <span>Yağış Olasılığı: ${data.rain ? Math.round(data.rain['1h'] * 100) : 0}%</span>
+                        </div>
+                    </div>
+                `;
+
+                updateBackgroundEffect(data.weather[0].main);
+                fetchAstronomicalInfo(data.sys.sunrise, data.sys.sunset, lat, lon);
+                document.getElementById('error').classList.add('hidden');
+
+                // Update panels layout after content is loaded
+                document.querySelector('.weather-panels').classList.add('with-astronomical');
+
+                // Check for extreme weather and show alert
+                checkForWeatherAlerts(data);
+            } else {
+                showError('Hava durumu verileri alınamadı.');
+            }
+        } catch (error) {
+            showError('Hava durumu verileri alınamadı.');
+        }
+    }
+
+    // Weather alerts for extreme conditions
+    function checkForWeatherAlerts(weatherData) {
+        let alertMessage = null;
+
+        // Check temperature extremes
+        if (weatherData.main.temp > 35) {
+            alertMessage = "Dikkat: Aşırı sıcaklık! Bol su için ve doğrudan güneş ışığından kaçının.";
+        } else if (weatherData.main.temp < 0) {
+            alertMessage = "Dikkat: Dondurucu soğuk! Dışarı çıkarken kalın giyinin.";
+        }
+        // Check for severe weather conditions
+        else if (weatherData.weather[0].main.toLowerCase().includes('thunderstorm')) {
+            alertMessage = "Dikkat: Fırtına! Açık alanlardan ve ağaçlardan uzak durun.";
+        } else if (weatherData.wind.speed > 15) {
+            alertMessage = "Dikkat: Kuvvetli rüzgar! Uçuşabilecek nesnelere dikkat edin.";
+        }
+
+        if (alertMessage) {
+            showWeatherAlert(alertMessage);
+        }
+    }
+
+    function showWeatherAlert(message) {
+        // Remove any existing alerts
+        const existingAlert = document.querySelector('.weather-alert');
+        if (existingAlert) {
+            existingAlert.remove();
+        }
+
+        // Create and append the alert
+        const alertDiv = document.createElement('div');
+        alertDiv.className = 'weather-alert';
+        alertDiv.textContent = message;
+        document.body.appendChild(alertDiv);
+
+        // Remove alert after animation completes
+        setTimeout(() => {
+            if (alertDiv.parentNode) {
+                alertDiv.parentNode.removeChild(alertDiv);
+            }
+        }, 5500);
+    }
+
+    async function fetchAirQuality(lat, lon) {
+        try {
+            const response = await fetchWithApiKey(`${AIR_POLLUTION_API_URL}?lat=${lat}&lon=${lon}`);
+            const data = await response.json();
+            if (data.list && data.list.length > 0) {
+                const aqi = data.list[0].main.aqi;
+                const aqiText = ['İyi', 'Orta', 'Hassas', 'Kötü', 'Çok Kötü', 'Tehlikeli'][aqi - 1] || 'Bilinmiyor';
+                const aqiColor = aqi === 1 ? 'bg-aqi-good' : aqi === 2 ? 'bg-aqi-moderate' : aqi === 3 ? 'bg-aqi-unhealthy' : 'bg-aqi-bad';
+
+                const detailsGrid = document.querySelector('.weather-details-grid');
+                if (detailsGrid) {
+                    const airQualityDiv = document.createElement('div');
+                    airQualityDiv.className = 'weather-detail-item';
+                    airQualityDiv.innerHTML = `
+                        <img src="${DETAIL_ICONS.aqi}" alt="Hava Kalitesi" class="detail-icon">
+                        <span>Hava Kalitesi: <span class="inline-block px-2 py-1 rounded text-black ${aqiColor}">${aqiText}</span></span>
+                    `;
+                    detailsGrid.appendChild(airQualityDiv);
+                }
+            }
+        } catch (error) {
+            console.log('Hava kalitesi verisi alınamadı.');
+        }
+    }
+
+    async function fetchHourlyForecast(lat, lon) {
+        try {
+            const response = await fetchWithApiKey(`${FORECAST_API_URL}?lat=${lat}&lon=${lon}&units=metric&lang=tr`);
+            const data = await response.json();
+            if (data.cod === '200') {
+                const hourlyTable = document.getElementById('hourlyTable');
+                hourlyTable.innerHTML = '';
+                const hourlyData = data.list.slice(0, 8);
+
+                // IMPROVEMENT 2: Update hourly forecast cards to match city cards style
+                hourlyData.forEach(hour => {
+                    const time = new Date(hour.dt * 1000).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+                    const div = document.createElement('div');
+                    div.className = 'hourly-card';
+                    div.innerHTML = `
+                        <div class="forecast-date">${time}</div>
+                        <img src="http://openweathermap.org/img/wn/${hour.weather[0].icon}@2x.png" class="forecast-icon weather-icon mx-auto">
+                        <div class="forecast-temp">${Math.round(hour.main.temp)}°C</div>
+                        <div class="forecast-details">
+                            <div>${hour.weather[0].description.charAt(0).toUpperCase() + hour.weather[0].description.slice(1)}</div>
+                            <div>Nem: ${hour.main.humidity}%</div>
+                            <div>Rüzgar: ${hour.wind.speed} m/s</div>
+                        </div>
+                    `;
+                    hourlyTable.appendChild(div);
+                });
+
+                document.getElementById('hourlyForecast').classList.remove('hidden');
+
+                // Initialize card height if it's the first load
+                if (!cardHeights.hourlyForecast) {
+                    setTimeout(() => {
+                        cardHeights.hourlyForecast = document.getElementById('hourlyForecast').offsetHeight;
+                    }, 100);
+                }
+            }
+        } catch (error) {
+            showError('Saatlik tahmin verileri alınamadı.');
+        }
+    }
+
+    async function fetchForecast(lat, lon) {
+        try {
+            const response = await fetchWithApiKey(`${FORECAST_API_URL}?lat=${lat}&lon=${lon}&units=metric&lang=tr`);
+            const data = await response.json();
+            if (data.cod === '200') {
+                const forecastTable = document.getElementById('forecastTable');
+                forecastTable.innerHTML = '';
+                const dailyData = data.list.filter(reading => reading.dt_txt.includes('12:00:00')).slice(0, 7);
+                const today = new Date(2025, 4, 26);
+
+                // IMPROVEMENT 2: Update 7-day forecast cards to match city cards style
+                dailyData.forEach((day, index) => {
+                    const date = new Date(today);
+                    date.setDate(today.getDate() + index);
+                    const dayName = date.toLocaleDateString('tr-TR', { weekday: 'long' });
+                    const dayShortName = dayName.slice(0, 3).toUpperCase();
+                    const monthShort = date.toLocaleDateString('tr-TR', { month: 'short' }).slice(0, 3);
+                    const isHighlighted = index === 0; // Highlight today
+
+                    // Create forecast card with matching style to city cards
+                    const div = document.createElement('div');
+                    div.className = `forecast-card ${isHighlighted ? 'bg-highlight-card' : ''}`;
+                    div.innerHTML = `
+                        <div class="forecast-date">${isHighlighted ? 'Bugün' : ''} ${date.getDate()} ${monthShort} ${dayShortName}</div>
+                        <img src="http://openweathermap.org/img/wn/${day.weather[0].icon}@2x.png" class="forecast-icon weather-icon mx-auto">
+                        <div class="forecast-temp">${Math.round(day.main.temp)}°C</div>
+                        <div class="temperature-range">
+                            <span class="min-temp">${Math.round(day.main.temp_min - 2)}°</span>
+                            <span class="max-temp">${Math.round(day.main.temp_max)}°</span>
+                        </div>
+                        <div class="forecast-details">
+                            <div>${day.weather[0].description.charAt(0).toUpperCase() + day.weather[0].description.slice(1)}</div>
+                            <div>Nem: ${day.main.humidity}%</div>
+                            <div>Yağış: ${Math.round(day.pop * 100)}%</div>
+                            <div>Rüzgar: ${day.wind.speed} m/s</div>
+                        </div>
+                    `;
+                    forecastTable.appendChild(div);
+                });
+
+                // Initialize card height if it's the first load
+                if (!cardHeights.forecast) {
+                    setTimeout(() => {
+                        cardHeights.forecast = document.getElementById('forecast').offsetHeight;
+                    }, 100);
+                }
+            } else {
+                showError('Tahmin verileri alınamadı.');
+            }
+        } catch (error) {
+            showError('Tahmin verileri alınamadı.');
+        }
+    }
+
+    // Fetch weather data for Turkish cities
+    async function fetchTurkishCitiesWeather() {
+        const citiesGrid = document.getElementById('citiesGrid');
+        citiesGrid.innerHTML = '<div class="loading-container"><span class="spinner"></span><p class="loading-text">İl verileri yükleniyor...</p></div>';
+
+        try {
+            // Process cities in smaller batches to avoid rate limiting
+            const batchSize = 10;
+            const batches = [];
+
+            for (let i = 0; i < TURKISH_CITIES.length; i += batchSize) {
+                batches.push(TURKISH_CITIES.slice(i, i + batchSize));
+            }
+
+            citiesGrid.innerHTML = '';
+
+            for (const batch of batches) {
+                const promises = batch.map(async (cityName) => {
+                    try {
+                        // First, get coordinates for the city
+                        const geoResponse = await fetchWithApiKey(`${GEO_API_URL}?q=${cityName},TR&limit=1`);
+                        const geoData = await geoResponse.json();
+
+                        if (geoData.length > 0) {
+                            const { lat, lon } = geoData[0];
+
+                            // Then get weather data for the coordinates
+                            const weatherResponse = await fetchWithApiKey(`${WEATHER_API_URL}?lat=${lat}&lon=${lon}&units=metric&lang=tr`);
+                            const weatherData = await weatherResponse.json();
+
+                            if (weatherData.cod === 200) {
+                                return { cityName, weatherData };
+                            }
+                        }
+                        return null;
+                    } catch (error) {
+                        console.error(`Error fetching data for ${cityName}:`, error);
+                        return null;
+                    }
+                });
+
+                const results = await Promise.all(promises);
+
+                // Add cities to grid
+                results.forEach(result => {
+                    if (result) {
+                        const { cityName, weatherData } = result;
+                        const weatherType = weatherData.weather[0].main.toLowerCase();
+                        let cardBg = '';
+
+                        if (weatherType.includes('rain')) cardBg = 'bg-rainy-bg';
+                        else if (weatherType.includes('snow')) cardBg = 'bg-snowy-bg';
+                        else if (weatherType.includes('clear')) cardBg = 'bg-sunny-bg';
+                        else if (weatherType.includes('cloud')) cardBg = 'bg-cloudy-bg';
+                        else if (weatherType.includes('thunderstorm')) cardBg = 'bg-stormy-bg';
+
+                        const cityCard = document.createElement('div');
+                        cityCard.className = `city-card ${cardBg}`;
+                        cityCard.innerHTML = `
+                            <div class="city-name">${cityName}</div>
+                            <img src="http://openweathermap.org/img/wn/${weatherData.weather[0].icon}.png" class="city-icon weather-icon">
+                            <div class="city-temp">${Math.round(weatherData.main.temp)}°C</div>
+                            <div class="city-details">
+                                <div>${weatherData.weather[0].description.charAt(0).toUpperCase() + weatherData.weather[0].description.slice(1)}</div>
+                                <div>Nem: ${weatherData.main.humidity}%</div>
+                                <div>Rüzgar: ${weatherData.wind.speed} m/s</div>
+                            </div>
+                        `;
+
+                        // Add click event to show full details
+                        cityCard.addEventListener('click', () => {
+                            selectCity(weatherData.coord.lat, weatherData.coord.lon, cityName);
+                        });
+
+                        citiesGrid.appendChild(cityCard);
+                    }
+                });
+
+                // Small delay between batches to avoid rate limiting
+                await new Promise(resolve => setTimeout(resolve, 300));
+            }
+
+            // If no cities were added (all requests failed)
+            if (citiesGrid.children.length === 0) {
+                citiesGrid.innerHTML = '<p class="text-center text-light">İl verileri yüklenemedi. Lütfen daha sonra tekrar deneyin.</p>';
+            }
+
+        } catch (error) {
+            citiesGrid.innerHTML = '<p class="text-center text-light">İl verileri yüklenemedi. Lütfen daha sonra tekrar deneyin.</p>';
+            console.error('Error fetching Turkish cities weather:', error);
+        }
+    }
+
+    function fetchAstronomicalInfo(sunrise, sunset, lat, lon) {
+        const moonPhase = getMoonPhase(new Date(2025, 4, 26));
+        const dayLength = calculateDayLength(sunrise, sunset);
+        const astronomicalTable = document.getElementById('astronomicalTable');
+        astronomicalTable.innerHTML = `
+            <div class="weather-detail-item">
+                <img src="${DETAIL_ICONS.sunrise}" alt="Gün Doğumu" class="detail-icon">
+                <span>Gün Doğumu: ${new Date(sunrise * 1000).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</span>
+            </div>
+            <div class="weather-detail-item">
+                <img src="${DETAIL_ICONS.sunset}" alt="Gün Batımı" class="detail-icon">
+                <span>Gün Batımı: ${new Date(sunset * 1000).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</span>
+            </div>
+            <div class="weather-detail-item">
+                <img src="https://cdn-icons-png.flaticon.com/512/3388/3388746.png" alt="Ay Evresi" class="detail-icon">
+                <span>Ay Evresi: ${moonPhase}</span>
+            </div>
+            <div class="weather-detail-item">
+                <img src="https://cdn-icons-png.flaticon.com/512/2919/2919508.png" alt="Gün Uzunluğu" class="detail-icon">
+                <span>Gün Uzunluğu: ${dayLength}</span>
+            </div>
+        `;
+
+        // Update moon phase visualization
+        updateMoonPhaseVisual(moonPhase);
+
+        // Update sun position
+        updateSunPosition(sunrise, sunset);
+
+        document.getElementById('astronomicalInfo').classList.remove('hidden');
+
+        // Initialize card height if it's the first load
+        if (!cardHeights.astronomicalInfo) {
+            setTimeout(() => {
+                cardHeights.astronomicalInfo = document.getElementById('astronomicalInfo').offsetHeight;
+            }, 100);
+        }
+    }
+
+    // Show random weather facts
+    function showWeatherFacts() {
+        // Randomly select 4 facts from the array without repeating
+        const selectedFacts = [];
+        const factsCopy = [...WEATHER_FACTS];
+
+        for (let i = 0; i < 4; i++) {
+            if (factsCopy.length === 0) break;
+            const randomIndex = Math.floor(Math.random() * factsCopy.length);
+            selectedFacts.push(factsCopy[randomIndex]);
+            factsCopy.splice(randomIndex, 1);
+        }
+
+        const factsContainer = document.getElementById('factsContainer');
+        factsContainer.innerHTML = '';
+
+        selectedFacts.forEach(fact => {
+            const factDiv = document.createElement('div');
+            factDiv.className = 'weather-detail-item';
+            factDiv.innerHTML = `
+                <img src="https://cdn-icons-png.flaticon.com/512/3815/3815448.png" alt="Bilgi" class="detail-icon">
+                <span>${fact}</span>
+            `;
+            factsContainer.appendChild(factDiv);
+        });
+
+        // Show the weather facts section
+        document.getElementById('weatherFacts').classList.remove('hidden');
+
+        // Initialize card height if it's the first load
+        if (!cardHeights.weatherFacts) {
+            setTimeout(() => {
+                cardHeights.weatherFacts = document.getElementById('weatherFacts').offsetHeight;
+            }, 100);
+        }
+    }
+
+    function updateMoonPhaseVisual(phaseName) {
+        const moonShadow = document.querySelector('.moon-shadow');
+
+        switch(phaseName) {
+            case 'Yeni Ay':
+                moonShadow.style.clipPath = 'circle(50% at center)';
+                break;
+            case 'Hilal (Büyüyen)':
+                moonShadow.style.clipPath = 'polygon(0 0, 70% 0, 70% 100%, 0 100%)';
+                break;
+            case 'İlk Dördün':
+                moonShadow.style.clipPath = 'polygon(0 0, 50% 0, 50% 100%, 0 100%)';
+                break;
+            case 'Büyüyen Ay':
+                moonShadow.style.clipPath = 'polygon(0 0, 30% 0, 30% 100%, 0 100%)';
+                break;
+            case 'Dolunay':
+                moonShadow.style.clipPath = 'circle(0% at center)';
+                break;
+            case 'Küçülen Ay':
+                moonShadow.style.clipPath = 'polygon(70% 0, 100% 0, 100% 100%, 70% 100%)';
+                break;
+            case 'Son Dördün':
+                moonShadow.style.clipPath = 'polygon(50% 0, 100% 0, 100% 100%, 50% 100%)';
+                break;
+            case 'Hilal (Küçülen)':
+                moonShadow.style.clipPath = 'polygon(30% 0, 100% 0, 100% 100%, 30% 100%)';
+                break;
+            default:
+                moonShadow.style.clipPath = 'circle(50% at center)';
+        }
+    }
+
+    function updateSunPosition(sunrise, sunset) {
+        const now = new Date();
+        const sunriseTime = new Date(sunrise * 1000);
+        const sunsetTime = new Date(sunset * 1000);
+
+        const totalDayTime = (sunsetTime - sunriseTime) / 1000; // Total day time in seconds
+        const timePassedSinceSunrise = (now - sunriseTime) / 1000; // Time passed since sunrise in seconds
+
+        let sunPositionPercent = 0;
+
+        if (now < sunriseTime) {
+            // Before sunrise
+            sunPositionPercent = 0;
+        } else if (now > sunsetTime) {
+            // After sunset
+            sunPositionPercent = 100;
+        } else {
+            // During day
+            sunPositionPercent = (timePassedSinceSunrise / totalDayTime) * 100;
+        }
+
+        const sunElement = document.querySelector('.sun');
+        const sunPositionElement = document.querySelector('.sun-position');
+
+        if (sunElement && sunPositionElement) {
+            const width = sunPositionElement.offsetWidth;
+            const height = sunPositionElement.offsetHeight;
+
+            // Calculate x position (0% to 100% of width)
+            const xPos = (width * sunPositionPercent) / 100;
+
+            // Calculate y position (follows a parabola, lowest at noon)
+            // When sunPositionPercent is 50% (noon), y should be at its lowest (highest in the sky)
+            const yPercent = 100 - 4 * Math.pow(sunPositionPercent - 50, 2) / 25;
+            const yPos = height - (height * yPercent) / 100;
+
+            sunElement.style.left = `${xPos}px`;
+            sunElement.style.top = `${yPos}px`;
+        }
+    }
+
+    function getMoonPhase(date) {
+        const cycleLength = 29.53;
+        const knownNewMoon = new Date('2025-01-29T00:00:00Z').getTime();
+        const daysSinceNewMoon = (date.getTime() - knownNewMoon) / (1000 * 60 * 60 * 24);
+        const phase = (daysSinceNewMoon % cycleLength) / cycleLength;
+        if (phase < 0.0625 || phase >= 0.9375) return 'Yeni Ay';
+        if (phase < 0.1875) return 'Hilal (Büyüyen)';
+        if (phase < 0.3125) return 'İlk Dördün';
+        if (phase < 0.4375) return 'Büyüyen Ay';
+        if (phase < 0.5625) return 'Dolunay';
+        if (phase < 0.6875) return 'Küçülen Ay';
+        if (phase < 0.8125) return 'Son Dördün';
+        return 'Hilal (Küçülen)';
+    }
+
+    function calculateDayLength(sunrise, sunset) {
+        const sunriseTime = new Date(sunrise * 1000);
+        const sunsetTime = new Date(sunset * 1000);
+        const diff = (sunsetTime - sunriseTime) / (1000 * 60 * 60);
+        return `${Math.floor(diff)} saat ${Math.round((diff % 1) * 60)} dakika`;
+    }
+
+    function showError(message) {
+        const errorDiv = document.getElementById('error');
+        errorDiv.textContent = message;
+        errorDiv.classList.remove('hidden');
+        document.getElementById('currentWeather').innerHTML = `
+            <div class="loading-container">
+                <span class="spinner"></span>
+                <p class="loading-text">Veriler yükleniyor...</p>
+            </div>
+        `;
+        document.getElementById('hourlyForecast').classList.add('hidden');
+        document.getElementById('astronomicalInfo').classList.add('hidden');
+        document.getElementById('weatherFacts').classList.add('hidden');
+    }
+
+    async function getUserLocation() {
+        if (navigator.geolocation) {
+            try {
+                const position = await new Promise((resolve, reject) => {
+                    navigator.geolocation.getCurrentPosition(resolve, reject, {
+                        enableHighAccuracy: true,
+                        timeout: 5000,
+                        maximumAge: 0
+                    });
+                });
+                const { latitude, longitude } = position.coords;
+
+                // Get accurate location name
+                const locationName = await getLocationName(latitude, longitude);
+
+                await fetchWeather(latitude, longitude, locationName);
+                await fetchForecast(latitude, longitude);
+                await fetchHourlyForecast(latitude, longitude);
+                await fetchAirQuality(latitude, longitude);
+
+                // Show weather facts
+                showWeatherFacts();
+
+                // Fetch Turkish cities weather data
+                fetchTurkishCitiesWeather();
+
+                // Initialize card heights on first load
+                setTimeout(initializeCardHeights, 200);
+            } catch (error) {
+                // Fallback to default location
+                const cityName = 'İstanbul, TR';
+                await fetchWeather(41.01, 28.95, cityName);
+                await fetchForecast(41.01, 28.95);
+                await fetchHourlyForecast(41.01, 28.95);
+                await fetchAirQuality(41.01, 28.95);
+
+                // Show weather facts
+                showWeatherFacts();
+
+                // Fetch Turkish cities weather data
+                fetchTurkishCitiesWeather();
+
+                // Initialize card heights on first load
+                setTimeout(initializeCardHeights, 200);
+            }
+        } else {
+            // Fallback if geolocation is not supported
+            const cityName = 'İstanbul, TR';
+            await fetchWeather(41.01, 28.95, cityName);
+            await fetchForecast(41.01, 28.95);
+            await fetchHourlyForecast(41.01, 28.95);
+            await fetchAirQuality(41.01, 28.95);
+
+            // Show weather facts
+            showWeatherFacts();
+
+            // Fetch Turkish cities weather data
+            fetchTurkishCitiesWeather();
+
+            // Initialize card heights on first load
+            setTimeout(initializeCardHeights, 200);
+        }
+    }
+
+    function initializeCardHeights() {
+        // Set initial heights for cards
+        Object.keys(cardHeights).forEach(id => {
+            const element = document.getElementById(id);
+            if (element && !element.classList.contains('hidden')) {
+                cardHeights[id] = element.offsetHeight;
+            }
+        });
+
+        // Apply consistent heights to all cards
+        enforceConsistentCardHeights();
+    }
+
+    function enforceConsistentCardHeights() {
+        // Ensure hourly and forecast cards have consistent heights
+        // This prevents layout shifts when changing locations
+        const hourlyCard = document.getElementById('hourlyForecast');
+        const forecastCard = document.getElementById('forecast');
+
+        if (hourlyCard && !hourlyCard.classList.contains('hidden') &&
+            forecastCard && !forecastCard.classList.contains('hidden')) {
+
+            // Calculate natural heights
+            hourlyCard.style.height = 'auto';
+            forecastCard.style.height = 'auto';
+
+            // Allow elements to render with their natural height
+            setTimeout(() => {
+                // Get current heights
+                const hourlyHeight = hourlyCard.offsetHeight;
+                const forecastHeight = forecastCard.offsetHeight;
+
+                // Save these heights for consistency
+                cardHeights.hourlyForecast = hourlyHeight;
+                cardHeights.forecast = forecastHeight;
+
+                // Apply the heights
+                hourlyCard.style.height = `${hourlyHeight}px`;
+                forecastCard.style.height = `${forecastHeight}px`;
+            }, 50);
+        }
+    }
+
+    function getWindDirection(deg) {
+        const directions = ['Kuzey', 'Kuzeydoğu', 'Doğu', 'Güneydoğu', 'Güney', 'Güneybatı', 'Batı', 'Kuzeybatı'];
+        const index = Math.round(deg / 45) % 8;
+        return directions[index];
+    }
+
+    // Back to top button functionality
+    const backToTopButton = document.getElementById('backToTop');
+    const scrollableArea = document.querySelector('.scrollable-area');
+
+    if (scrollableArea) {
+        scrollableArea.addEventListener('scroll', function() {
+            if (scrollableArea.scrollTop > 300) {
+                backToTopButton.classList.add('visible');
+            } else {
+                backToTopButton.classList.remove('visible');
+            }
+        });
+    }
+
+    backToTopButton.addEventListener('click', function() {
+        scrollableArea.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+        });
+    });
+
+    // Add resize event listener
+    window.addEventListener('resize', () => {
+        // Reset card heights on window resize
+        Object.keys(cardHeights).forEach(id => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.style.height = 'auto';
+            }
+        });
+
+        // Reinitialize heights after a brief delay to allow DOM to update
+        setTimeout(initializeCardHeights, 200);
+    });
+
+    // p5.js ile gökyüzümsü arka plan efektleri
+    let effect = 'sky';
+    let particles = [];
+    let clouds = [];
+    let stars = [];
+    let lightning = false;
+    let lightningTimer = 0;
+
+    function setup() {
+        let canvas = createCanvas(windowWidth, windowHeight);
+        canvas.parent('weatherCanvas');
+        noStroke();
+
+        // Initialize particles for rain/snow effects
+        for (let i = 0; i < 300; i++) {
+            particles.push({
+                x: random(width),
+                y: random(height),
+                speed: random(1, 4),
+                size: random(1, 4),
+                glow: random(50, 150)
+            });
+        }
+
+        // Initialize clouds
+        for (let i = 0; i < 8; i++) {
+            clouds.push({
+                x: random(width),
+                y: random(height * 0.1, height * 0.5),
+                speed: random(0.2, 0.8),
+                size: random(100, 250),
+                opacity: random(150, 220)
+            });
+        }
+
+        // Initialize stars for night sky
+        for (let i = 0; i < 200; i++) {
+            stars.push({
+                x: random(width),
+                y: random(height),
+                size: random(1, 3),
+                twinkle: random(0.3, 1),
+                twinkleSpeed: random(0.01, 0.05)
+            });
+        }
+    }
+
+    function windowResized() {
+        resizeCanvas(windowWidth, windowHeight);
+    }
+
+    function draw() {
+        clear();
+
+        if (effect === 'rain') {
+            background(70, 130, 180, 200);
+            drawClouds(true);
+            drawRain();
+        } else if (effect === 'snow') {
+            background(173, 216, 230, 200);
+            drawClouds(false);
+            drawSnow();
+        } else if (effect === 'lightning') {
+            background(106, 90, 205, 200);
+            drawClouds(true);
+            drawLightning();
+            drawRain();
+        } else if (effect === 'clear-day') {
+            background(135, 206, 235, 200);
+            drawSun();
+            drawClouds(false, 2);
+        } else if (effect === 'clear-night') {
+            background(25, 25, 112, 220);
+            drawStars();
+            drawMoon();
+            drawClouds(false, 1);
+        } else if (effect === 'cloudy') {
+            background(176, 196, 222, 200);
+            drawClouds(true);
+        } else {
+            // Default sky
+            background(135, 206, 235, 200);
+            drawSun();
+            drawClouds(false, 3);
+        }
+    }
+
+    function drawRain() {
+        particles.forEach(p => {
+            fill(200, 200, 255, p.glow);
+            rect(p.x, p.y, 1, p.size * 3);
+            p.y += p.speed * 2;
+            p.x -= p.speed * 0.3; // Wind effect
+            if (p.y > height) {
+                p.y = -10;
+                p.x = random(width);
+            }
+        });
+    }
+
+    function drawSnow() {
+        particles.forEach(p => {
+            fill(255, p.glow);
+            ellipse(p.x, p.y, p.size, p.size);
+            p.y += p.speed * 0.5;
+            p.x += sin(frameCount * 0.01 + p.x) * 0.5;
+            if (p.y > height) {
+                p.y = -10;
+                p.x = random(width);
+            }
+        });
+    }
+
+    function drawLightning() {
+        // Decrease timer and randomly create lightning
+        lightningTimer--;
+
+        if (lightningTimer <= 0 && random(100) < 2) {
+            lightning = true;
+            lightningTimer = random(5, 20);
+        }
+
+        if (lightning) {
+            // Flash the screen
+            fill(255, 255, 200, random(50, 150));
+            rect(0, 0, width, height);
+
+            // Draw lightning bolt
+            stroke(255, 255, 200);
+            strokeWeight(random(2, 5));
+
+            let x = random(width);
+            let y = 0;
+            let prevX = x;
+            let prevY = y;
+
+            while (y < height * 0.7) {
+                let nextX = prevX + random(-50, 50);
+                let nextY = prevY + random(20, 50);
+                line(prevX, prevY, nextX, nextY);
+                prevX = nextX;
+                prevY = nextY;
+                y = nextY;
+            }
+
+            noStroke();
+            lightning = false;
+        }
+    }
+
+    function drawSun() {
+        // Create gradient for sun glow
+        let sunX = width * 0.75;
+        let sunY = height * 0.2;
+        let sunSize = min(width, height) * 0.15;
+
+        // Outer glow
+        for (let i = 8; i > 0; i--) {
+            let alpha = 255 - i * 30;
+            fill(255, 215, 0, alpha);
+            ellipse(sunX, sunY, sunSize + i * 15);
+        }
+
+        // Sun
+        fill(255, 215, 0);
+        ellipse(sunX, sunY, sunSize);
+
+        // Sun rays
+        stroke(255, 215, 0, 150);
+        strokeWeight(3);
+        for (let i = 0; i < 12; i++) {
+            let angle = i * (TWO_PI / 12);
+            let rayLength = sunSize * 0.8;
+            let x1 = sunX + cos(angle) * (sunSize / 2);
+            let y1 = sunY + sin(angle) * (sunSize / 2);
+            let x2 = sunX + cos(angle) * (sunSize / 2 + rayLength);
+            let y2 = sunY + sin(angle) * (sunSize / 2 + rayLength);
+            line(x1, y1, x2, y2);
+        }
+        noStroke();
+    }
+
+    function drawMoon() {
+        let moonX = width * 0.8;
+        let moonY = height * 0.2;
+        let moonSize = min(width, height) * 0.1;
+
+        // Moon glow
+        for (let i = 5; i > 0; i--) {
+            fill(200, 200, 255, 50 - i * 8);
+            ellipse(moonX, moonY, moonSize + i * 15);
+        }
+
+        // Moon
+        fill(230, 230, 250);
+        ellipse(moonX, moonY, moonSize);
+
+        // Craters
+        fill(200, 200, 220);
+        ellipse(moonX - moonSize * 0.2, moonY - moonSize * 0.1, moonSize * 0.15);
+        ellipse(moonX + moonSize * 0.25, moonY + moonSize * 0.2, moonSize * 0.1);
+        ellipse(moonX - moonSize * 0.1, moonY + moonSize * 0.3, moonSize * 0.08);
+    }
+
+    function drawStars() {
+        stars.forEach(s => {
+            let twinkle = sin(frameCount * s.twinkleSpeed) * s.twinkle;
+            fill(255, 255, 255, 150 + twinkle * 100);
+            ellipse(s.x, s.y, s.size + twinkle);
+        });
+    }
+
+    function drawClouds(dense = false, count = 5) {
+        let visibleClouds = dense ? clouds : clouds.slice(0, count);
+
+        visibleClouds.forEach(c => {
+            // Draw a puffy cloud
+            fill(255, 255, 255, c.opacity);
+            ellipse(c.x, c.y, c.size, c.size * 0.6);
+            ellipse(c.x + c.size * 0.4, c.y - c.size * 0.1, c.size * 0.8, c.size * 0.5);
+            ellipse(c.x - c.size * 0.4, c.y - c.size * 0.05, c.size * 0.7, c.size * 0.5);
+
+            // Move cloud
+            c.x += c.speed;
+
+            // Wrap around when off-screen
+            if (c.x > width + c.size) {
+                c.x = -c.size;
+                c.y = random(height * 0.1, height * 0.5);
+            }
+        });
+    }
+
+    function updateBackgroundEffect(weather) {
+        const body = document.body;
+        const weatherType = weather.toLowerCase();
+        const hour = new Date().getHours();
+        const isNight = hour < 6 || hour > 19;
+
+        if (weatherType.includes('rain')) {
+            effect = 'rain';
+            body.style.background = 'linear-gradient(to bottom, #4682B4, #1E3A8A)';
+        } else if (weatherType.includes('snow')) {
+            effect = 'snow';
+            body.style.background = 'linear-gradient(to bottom, #ADD8E6, #E6F0FA)';
+        } else if (weatherType.includes('thunderstorm')) {
+            effect = 'lightning';
+            body.style.background = 'linear-gradient(to bottom, #6A5ACD, #483D8B)';
+        } else if (weatherType.includes('clear')) {
+            effect = isNight ? 'clear-night' : 'clear-day';
+            body.style.background = isNight
+                ? 'linear-gradient(to bottom, #191970, #000033)'
+                : 'linear-gradient(to bottom, #87CEEB, #1E90FF)';
+        } else if (weatherType.includes('cloud')) {
+            effect = 'cloudy';
+            body.style.background = 'linear-gradient(to bottom, #B0C4DE, #778899)';
+        } else {
+            effect = 'sky';
+            body.style.background = 'linear-gradient(to bottom, #87CEEB, #1E90FF)';
+        }
+    }
+
+    document.getElementById('locationInput').addEventListener('input', (e) => {
+        fetchSuggestions(e.target.value);
+    });
+
+    document.getElementById('locationInput').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && e.target.value.length > 2) {
+            document.getElementById('suggestions').classList.add('hidden');
+            fetchSuggestions(e.target.value);
+        }
+    });
+
+    // Close suggestions when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('#suggestions') && !e.target.closest('#locationInput')) {
+            document.getElementById('suggestions').classList.add('hidden');
+        }
+    });
+
+    // Load weather on page load
+    window.onload = getUserLocation;
+</script>
+</body>
+</html>

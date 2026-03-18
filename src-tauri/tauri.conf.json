@@ -1,0 +1,47 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "BELGESELSEMOFLIX",
+  "version": "1.0.0",
+  "identifier": "com.vesvese55x.belgeselsemoflix",
+  "build": {
+    "frontendDist": "../desktop-shell"
+  },
+  "app": {
+    "security": {
+      "csp": null
+    },
+    "windows": []
+  },
+  "bundle": {
+    "active": true,
+    "category": "Entertainment",
+    "copyright": "BELGESELSEMOFLIX",
+    "createUpdaterArtifacts": false,
+    "externalBin": [],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.png",
+      "icons/icon.ico",
+      "icons/icon.icns"
+    ],
+    "linux": {
+      "appimage": {},
+      "deb": {},
+      "rpm": {}
+    },
+    "macOS": {
+      "minimumSystemVersion": "10.13"
+    },
+    "resources": [
+      "../webapp/**/*",
+      "../run.sh",
+      "../run.command",
+      "../run.bat"
+    ],
+    "shortDescription": "BELGESELSEMOFLIX 1.0",
+    "targets": "all",
+    "windows": {}
+  }
+}

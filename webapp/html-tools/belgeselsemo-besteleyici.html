@@ -1,0 +1,2895 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>BELGESELSEMO BESTELEYİCİ</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            font-family: monospace;
+        }
+
+        body {
+            background-color: #141414;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 10px;
+            overflow: hidden;
+        }
+
+        .container {
+            background-color: #1f1f1f;
+            border: 3px solid #e50914;
+            border-radius: 12px;
+            padding: 15px;
+            width: 100%;
+            max-width: 350px;
+            box-shadow: 0 0 24px rgba(229, 9, 20, 0.25), 0 6px 20px rgba(0,0,0,0.7);
+            max-height: 95vh;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #e50914, #b20710);
+            color: #fff;
+            text-align: center;
+            padding: 8px 5px;
+            margin-bottom: 10px;
+            border-radius: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(229,9,20,0.4);
+        }
+
+        .header h2 {
+            width: 100%;
+            text-align: center;
+            font-size: 14px;
+            letter-spacing: 2px;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+        }
+
+        .screen {
+            background-color: #0a0a0a;
+            border: 3px solid #e50914;
+            height: 120px;
+            position: relative;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            overflow: hidden;
+            display: flex;
+            box-shadow: inset 0 0 12px rgba(0,0,0,0.8), 0 0 8px rgba(229,9,20,0.15);
+        }
+
+        .note-display {
+            height: 100%;
+            width: calc(100% - 30px);
+            position: relative;
+            overflow: auto;
+        }
+
+        .tempo-control {
+            width: 30px;
+            height: 100%;
+            background-color: #1a1a1a;
+            position: relative;
+            border-left: 2px solid #e50914;
+        }
+
+        .tempo-slider {
+            position: absolute;
+            width: 20px;
+            height: 10px;
+            background-color: #e50914;
+            right: 2px;
+            border-radius: 3px;
+            border: 1px solid #ff4444;
+            cursor: ns-resize;
+            box-shadow: 0 0 6px rgba(229,9,20,0.6);
+        }
+
+        .tempo-scale {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 5px;
+            width: 1px;
+            background: linear-gradient(to bottom,
+                transparent 10%, #e50914 10%, #e50914 12%,
+                transparent 12%, transparent 20%, #e50914 20%, #e50914 22%,
+                transparent 22%, transparent 30%, #e50914 30%, #e50914 32%,
+                transparent 32%, transparent 40%, #e50914 40%, #e50914 42%,
+                transparent 42%, transparent 50%, #e50914 50%, #e50914 52%,
+                transparent 52%, transparent 60%, #e50914 60%, #e50914 62%,
+                transparent 62%, transparent 70%, #e50914 70%, #e50914 72%,
+                transparent 72%, transparent 80%, #e50914 80%, #e50914 82%,
+                transparent 82%, transparent 90%, #e50914 90%, #e50914 92%);
+            opacity: 0.5;
+        }
+
+        .tempo-value {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            color: #e50914;
+            font-size: 8px;
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 1px;
+            border-radius: 2px;
+        }
+
+        .note-grid {
+            position: absolute;
+            width: 5000px;
+            height: 100%;
+            display: grid;
+            grid-template-rows: repeat(8, 1fr);
+        }
+
+        .note-grid-line {
+            border-bottom: 1px dashed #2a2a2a;
+            position: relative;
+        }
+
+        .note-grid-line:last-child {
+            border-bottom: none;
+        }
+
+        .note-marker {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background-color: #e50914;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 4px rgba(229,9,20,0.7);
+        }
+
+        .cursor {
+            position: absolute;
+            width: 2px;
+            height: 100%;
+            background-color: #e50914;
+            animation: blink 1s infinite;
+            z-index: 5;
+            box-shadow: 0 0 6px rgba(229,9,20,0.8);
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        button {
+            padding: 5px;
+            background-color: #2a2a2a;
+            border: 2px solid #e50914;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+            color: #fff;
+            font-family: monospace;
+            transition: all 0.15s ease;
+        }
+
+        button:hover {
+            background-color: #e50914;
+            color: #fff;
+        }
+
+        button:active {
+            background-color: #b20710;
+            transform: scale(0.96);
+        }
+
+        .keypad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        .key {
+            height: 40px;
+            background-color: #2a2a2a;
+            border: 2px solid #444;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            cursor: pointer;
+            color: #b3b3b3;
+            font-family: monospace;
+            font-size: 12px;
+            transition: all 0.15s ease;
+        }
+
+        .key:hover {
+            background-color: #333;
+            border-color: #e50914;
+            color: #fff;
+            transform: translateY(-2px);
+        }
+
+        .key:active {
+            background-color: #e50914;
+            color: #fff;
+            transform: scale(0.95);
+        }
+
+        .key-octave {
+            background-color: #1a2a2a;
+            border-color: #2a6060;
+            color: #7ecece;
+        }
+
+        .key-octave:hover {
+            border-color: #7ecece;
+            background-color: #1f3535;
+        }
+
+        .key-length {
+            background-color: #2a1a2a;
+            border-color: #602a60;
+            color: #ce7ece;
+        }
+
+        .key-length:hover {
+            border-color: #ce7ece;
+            background-color: #351f35;
+        }
+
+        .status {
+            margin-top: 10px;
+            display: flex;
+            justify-content: space-between;
+            background-color: #0a0a0a;
+            color: #b3b3b3;
+            padding: 5px;
+            border-radius: 4px;
+            border: 1px solid #2a2a2a;
+            font-size: 12px;
+        }
+
+        .length-indicator, .octave-indicator {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.85);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background-color: #1f1f1f;
+            border: 2px solid #e50914;
+            border-radius: 12px;
+            padding: 15px;
+            width: 80%;
+            max-width: 300px;
+            max-height: 80vh;
+            overflow-y: auto;
+            color: #fff;
+            box-shadow: 0 0 30px rgba(229,9,20,0.3);
+        }
+
+        .modal-content h3 {
+            color: #e50914;
+            margin-bottom: 10px;
+            font-size: 14px;
+            letter-spacing: 1px;
+        }
+
+        .save-container, .load-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .save-container label, .load-container label {
+            color: #b3b3b3;
+            font-size: 12px;
+        }
+
+        .save-container input[type="text"] {
+            padding: 6px;
+            background: #0a0a0a;
+            border: 1px solid #444;
+            border-radius: 4px;
+            color: #fff;
+            font-family: monospace;
+        }
+
+        .save-container input[type="text"]:focus {
+            outline: none;
+            border-color: #e50914;
+        }
+
+        .compositions-list {
+            max-height: 150px;
+            overflow-y: auto;
+            background-color: #0a0a0a;
+            border: 1px solid #333;
+            border-radius: 4px;
+            padding: 5px;
+        }
+
+        .composition-item {
+            padding: 5px;
+            border-bottom: 1px solid #2a2a2a;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: #b3b3b3;
+            font-size: 12px;
+        }
+
+        .composition-item:hover {
+            background-color: #1a1a1a;
+            color: #fff;
+        }
+
+        .composition-item:last-child {
+            border-bottom: none;
+        }
+
+        .composition-actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .action-btn {
+            background-color: #2a2a2a;
+            border: 1px solid #e50914;
+            border-radius: 3px;
+            padding: 2px 5px;
+            font-size: 10px;
+            cursor: pointer;
+            color: #fff;
+            font-family: monospace;
+        }
+
+        .action-btn:hover {
+            background-color: #e50914;
+        }
+
+        .modal-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 15px;
+        }
+
+        .note-tooltip {
+            position: absolute;
+            background-color: rgba(229, 9, 20, 0.85);
+            color: white;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-size: 10px;
+            z-index: 10;
+            pointer-events: none;
+            display: none;
+            font-family: monospace;
+        }
+
+        /* Yeniden Tasarlanmış Yardım Modal */
+        .help-modal-content {
+            display: flex;
+            flex-direction: column;
+            max-height: 80vh;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        .help-header {
+            background: linear-gradient(135deg, #e50914, #b20710);
+            color: white;
+            padding: 10px;
+            font-weight: bold;
+            border-top-left-radius: 4px;
+            border-top-right-radius: 4px;
+            position: sticky;
+            top: 0;
+            z-index: 5;
+        }
+
+        .help-header h3 {
+            font-size: 12px;
+            letter-spacing: 1px;
+        }
+
+        .help-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+            color: #b3b3b3;
+        }
+
+        .help-footer {
+            background-color: #0a0a0a;
+            padding: 10px;
+            border-bottom-left-radius: 4px;
+            border-bottom-right-radius: 4px;
+            position: sticky;
+            bottom: 0;
+            z-index: 5;
+            text-align: center;
+            border-top: 1px solid #2a2a2a;
+        }
+
+        .help-footer button {
+            width: 100%;
+            background-color: #e50914;
+            color: white;
+            border: none;
+        }
+
+        .help-footer button:hover {
+            background-color: #b20710;
+        }
+
+        .help-section {
+            margin-bottom: 15px;
+        }
+
+        .help-section h4 {
+            margin-bottom: 8px;
+            border-bottom: 1px solid #e50914;
+            padding-bottom: 3px;
+            color: #e50914;
+            font-size: 12px;
+        }
+
+        .help-section p {
+            margin-bottom: 5px;
+            line-height: 1.4;
+            font-size: 11px;
+        }
+
+        .key-combo {
+            background-color: #2a2a2a;
+            border: 1px solid #444;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-family: monospace;
+            color: #e50914;
+            font-size: 10px;
+        }
+
+        /* Yeni Eklenen Stiller */
+        .demo-section {
+            margin-top: 10px;
+        }
+
+        .demo-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-top: 5px;
+        }
+
+        .demo-btn {
+            background-color: #2a2a2a;
+            color: #b3b3b3;
+            border: 1px solid #444;
+            padding: 5px;
+            border-radius: 4px;
+            font-size: 11px;
+            text-align: center;
+            cursor: pointer;
+            font-family: monospace;
+            transition: all 0.15s;
+        }
+
+        .demo-btn:hover {
+            background-color: #e50914;
+            border-color: #e50914;
+            color: #fff;
+        }
+
+        .export-options {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .export-option {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .export-option input[type="radio"] {
+            margin: 0;
+            accent-color: #e50914;
+        }
+
+        .export-option label {
+            font-size: 12px;
+            color: #b3b3b3;
+        }
+
+        .instrument-selector {
+            margin-top: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .instrument-selector label {
+            color: #b3b3b3;
+            font-size: 12px;
+        }
+
+        .instrument-selector select, .instrument-selector select option {
+            padding: 5px;
+            border: 1px solid #444;
+            border-radius: 4px;
+            background-color: #0a0a0a;
+            color: #fff;
+            font-family: monospace;
+        }
+
+        .instrument-selector select:focus {
+            outline: none;
+            border-color: #e50914;
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            height: 6px;
+            background-color: #2a2a2a;
+            border-radius: 3px;
+            margin-top: 10px;
+            overflow: hidden;
+            display: none;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #e50914, #ff4444);
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        .visualizer-container {
+            height: 40px;
+            background-color: #0a0a0a;
+            margin-top: 10px;
+            border-radius: 4px;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid #1a1a1a;
+        }
+
+        .visualizer-bar {
+            position: absolute;
+            bottom: 0;
+            background-color: #e50914;
+            width: 3px;
+            height: 5px;
+            margin: 0 1px;
+            transition: height 0.1s ease;
+            opacity: 0.8;
+        }
+
+        .tabs {
+            display: flex;
+            margin-bottom: 10px;
+            border: 1px solid #333;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .tab {
+            flex: 1;
+            text-align: center;
+            padding: 6px 5px;
+            background-color: #1a1a1a;
+            border: none;
+            cursor: pointer;
+            color: #808080;
+            font-family: monospace;
+            font-size: 11px;
+            transition: all 0.15s;
+        }
+
+        .tab:not(:last-child) {
+            border-right: 1px solid #333;
+        }
+
+        .tab.active {
+            background-color: #e50914;
+            color: white;
+        }
+
+        .tab:hover:not(.active) {
+            background-color: #2a2a2a;
+            color: #fff;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .tab-content h3 {
+            color: #e50914;
+            font-size: 13px;
+            margin-bottom: 5px;
+            letter-spacing: 1px;
+        }
+
+        .tab-content p {
+            color: #808080;
+        }
+
+        .effects-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .effect-btn {
+            background-color: #2a2a2a;
+            border: 1px solid #444;
+            border-radius: 4px;
+            padding: 5px;
+            font-size: 11px;
+            text-align: center;
+            cursor: pointer;
+            color: #b3b3b3;
+            font-family: monospace;
+            transition: all 0.15s;
+        }
+
+        .effect-btn:hover {
+            border-color: #e50914;
+            color: #fff;
+        }
+
+        .effect-btn.active {
+            background-color: #e50914;
+            border-color: #e50914;
+            color: white;
+        }
+
+        .notification {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(229, 9, 20, 0.9);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            z-index: 1000;
+            display: none;
+            font-family: monospace;
+            font-size: 12px;
+            border: 1px solid #ff4444;
+        }
+
+        /* Ses Animasyon Göstergesi */
+        .sound-wave {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 30px;
+            margin-top: 10px;
+            background-color: #0a0a0a;
+            border-radius: 4px;
+            padding: 0 5px;
+            overflow: hidden;
+            border: 1px solid #1a1a1a;
+        }
+
+        .sound-wave-bar {
+            width: 3px;
+            height: 5px;
+            background-color: #e50914;
+            margin: 0 1px;
+            border-radius: 1px;
+            transition: height 0.1s ease;
+        }
+
+        /* Aktif çalma animasyonu */
+        @keyframes playingAnimation {
+            0% { box-shadow: 0 0 0 0 rgba(229, 9, 20, 0.7); }
+            70% { box-shadow: 0 0 0 8px rgba(229, 9, 20, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(229, 9, 20, 0); }
+        }
+
+        .playing {
+            animation: playingAnimation 1.5s infinite;
+            background-color: #e50914 !important;
+        }
+
+        /* Nota tuşları için aktif efekti */
+        .key.active-key {
+            background-color: #e50914;
+            color: white;
+            transform: scale(0.95);
+            border-color: #ff4444;
+        }
+
+        /* Download için eklenen stiller */
+        .download-progress {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(20, 20, 20, 0.95);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            z-index: 1000;
+            text-align: center;
+            display: none;
+            border: 1px solid #e50914;
+            font-family: monospace;
+        }
+
+        .download-success {
+            border-color: #4caf50 !important;
+        }
+
+        .download-error {
+            border-color: #f44336 !important;
+        }
+
+        .note-tooltip {
+            position: absolute;
+            background-color: rgba(229, 9, 20, 0.85);
+            color: white;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-size: 10px;
+            z-index: 10;
+            pointer-events: none;
+            display: none;
+            font-family: monospace;
+        }
+
+        .note-context-menu {
+            position: absolute;
+            background-color: #1f1f1f;
+            border: 1px solid #e50914;
+            border-radius: 4px;
+            width: 130px;
+            z-index: 20;
+            display: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.8);
+        }
+
+        .context-menu-item {
+            padding: 6px 10px;
+            border-bottom: 1px solid #2a2a2a;
+            cursor: pointer;
+            color: #b3b3b3;
+            font-size: 11px;
+            font-family: monospace;
+            transition: all 0.1s;
+        }
+
+        .context-menu-item:hover {
+            background-color: #e50914;
+            color: #fff;
+        }
+
+        .context-menu-item:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h2>🎬 BELGESELSEMOFLIX — BESTELEYİCİ</h2>
+    </div>
+
+    <div class="tabs">
+        <div class="tab active" data-tab="composer">Besteleyici</div>
+        <div class="tab" data-tab="demos">Demolar</div>
+        <div class="tab" data-tab="effects">Efektler</div>
+    </div>
+
+    <div class="tab-content active" id="composer-tab">
+        <div class="screen">
+            <div class="note-display">
+                <div class="note-grid">
+                    <div class="note-grid-line" data-note="8"></div>
+                    <div class="note-grid-line" data-note="7"></div>
+                    <div class="note-grid-line" data-note="6"></div>
+                    <div class="note-grid-line" data-note="5"></div>
+                    <div class="note-grid-line" data-note="4"></div>
+                    <div class="note-grid-line" data-note="3"></div>
+                    <div class="note-grid-line" data-note="2"></div>
+                    <div class="note-grid-line" data-note="1"></div>
+                </div>
+                <div class="cursor" id="cursor"></div>
+                <div class="note-tooltip" id="note-tooltip"></div>
+            </div>
+            <div class="tempo-control">
+                <div class="tempo-scale"></div>
+                <div class="tempo-slider" id="tempo-slider"></div>
+                <div class="tempo-value" id="tempo-value">120</div>
+            </div>
+        </div>
+
+        <div class="visualizer-container" id="visualizer-container"></div>
+        <div class="sound-wave" id="sound-wave"></div>
+
+        <div class="controls">
+            <button id="play">▶ Çal</button>
+            <button id="save">💾 Kaydet</button>
+            <button id="load">📂 Yükle</button>
+            <button id="clear">🗑️ Temizle</button>
+            <button id="export">📤 Dışa Aktar</button>
+            <button id="help">❓ Yardım</button>
+        </div>
+
+        <div class="keypad">
+            <div class="key" data-note="1">1<br>DO</div>
+            <div class="key" data-note="2">2<br>RE</div>
+            <div class="key" data-note="3">3<br>Mİ</div>
+            <div class="key" data-note="4">4<br>FA</div>
+            <div class="key" data-note="5">5<br>SOL</div>
+            <div class="key" data-note="6">6<br>LA</div>
+            <div class="key" data-note="7">7<br>Sİ</div>
+            <div class="key" data-note="8">8<br>DO+</div>
+            <div class="key" data-note="0">0<br>Sus</div>
+            <div class="key key-length" id="length-key">Uzunluk<br><span id="length-display">1/4</span></div>
+            <div class="key key-octave" id="octave-key">Oktav<br><span id="octave-display">4</span></div>
+            <div class="key" data-action="delete">🗑️ Sil</div>
+        </div>
+
+        <div class="status">
+            <div class="length-indicator">
+                Uzunluk: <span id="length-value">1/4</span>
+            </div>
+            <div class="octave-indicator">
+                Oktav: <span id="octave-value">4</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-content" id="demos-tab">
+        <h3>Demo Besteler</h3>
+        <p style="font-size: 12px; margin-bottom: 10px;">Hazır demo bestelerden birini seçin:</p>
+        <div class="demo-grid">
+            <div class="demo-btn" data-demo="demo1">Neşeli Melodi</div>
+            <div class="demo-btn" data-demo="demo2">Hüzünlü Vals</div>
+            <div class="demo-btn" data-demo="demo3">Türk Ezgisi</div>
+            <div class="demo-btn" data-demo="demo4">Klasik Tema</div>
+            <div class="demo-btn" data-demo="demo5">Pop Ritmi</div>
+            <div class="demo-btn" data-demo="demo6">Çocuk Şarkısı</div>
+            <div class="demo-btn" data-demo="demo7">Film Müziği</div>
+            <div class="demo-btn" data-demo="demo8">Oyun Melodisi</div>
+            <div class="demo-btn" data-demo="demo9">Doğu Ezgisi</div>
+            <div class="demo-btn" data-demo="demo10">Elektronik Beat</div>
+        </div>
+        <div class="instrument-selector">
+            <label for="instrument-select">Enstrüman Seçin:</label>
+            <select id="instrument-select">
+                <option value="piano">Piyano</option>
+                <option value="synth">Synthesizer</option>
+                <option value="guitar">Gitar</option>
+                <option value="flute">Flüt</option>
+                <option value="violin">Keman</option>
+                <option value="music-box">Müzik Kutusu</option>
+                <option value="organ">Org</option>
+                <option value="bass">Bas</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="tab-content" id="effects-tab">
+        <h3>Ses Efektleri</h3>
+        <p style="font-size: 12px; margin-bottom: 10px;">Bestenize efekt ekleyin:</p>
+        <div class="effects-container">
+            <div class="effect-btn" data-effect="reverb">Yankı</div>
+            <div class="effect-btn" data-effect="delay">Gecikme</div>
+            <div class="effect-btn" data-effect="chorus">Koro</div>
+            <div class="effect-btn" data-effect="distortion">Distorsiyon</div>
+            <div class="effect-btn" data-effect="tremolo">Tremolo</div>
+            <div class="effect-btn" data-effect="vibrato">Vibrato</div>
+            <div class="effect-btn" data-effect="phaser">Fazlayıcı</div>
+            <div class="effect-btn" data-effect="flanger">Flanşör</div>
+            <div class="effect-btn" data-effect="bitcrusher">Piksel Ses</div>
+            <div class="effect-btn" data-effect="wahwah">Vah-Vah</div>
+        </div>
+
+        <div class="instrument-selector">
+            <label for="quality-select">MP3 Kalitesi:</label>
+            <select id="quality-select">
+                <option value="128">128 kbps (Standart)</option>
+                <option value="192">192 kbps (Yüksek)</option>
+                <option value="256">256 kbps (Çok Yüksek)</option>
+                <option value="320" selected>320 kbps (En Yüksek)</option>
+            </select>
+        </div>
+
+        <div class="progress-bar-container" id="progress-container">
+            <div class="progress-bar" id="progress-bar"></div>
+        </div>
+    </div>
+</div>
+
+<div class="modal" id="save-modal">
+    <div class="modal-content">
+        <h3>Besteyi Kaydet</h3>
+        <div class="save-container">
+            <label for="composition-name">Beste Adı:</label>
+            <input type="text" id="composition-name" placeholder="Bestenizin adını girin">
+        </div>
+        <div class="modal-buttons">
+            <button id="save-confirm">Kaydet</button>
+            <button id="save-cancel">İptal</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal" id="load-modal">
+    <div class="modal-content">
+        <h3>Beste Yükle</h3>
+        <div class="load-container">
+            <div class="compositions-list" id="compositions-list">
+                <!-- Kaydedilmiş besteler buraya eklenecek -->
+            </div>
+        </div>
+        <div class="modal-buttons">
+            <button id="load-cancel">Kapat</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal" id="export-modal">
+    <div class="modal-content">
+        <h3>Besteyi Dışa Aktar</h3>
+        <div class="load-container">
+            <div class="compositions-list" id="export-list">
+                <!-- Kaydedilmiş besteler buraya eklenecek -->
+            </div>
+            <div class="export-options">
+                <div class="export-option">
+                    <input type="radio" id="export-mp3" name="export-format" value="mp3" checked>
+                    <label for="export-mp3">MP3 Olarak İndir (Ses Dosyası)</label>
+                </div>
+                <div class="export-option">
+                    <input type="radio" id="export-json" name="export-format" value="json">
+                    <label for="export-json">Nota Olarak İndir (JSON)</label>
+                </div>
+            </div>
+        </div>
+        <div class="modal-buttons">
+            <button id="export-cancel">Kapat</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal" id="help-modal">
+    <div class="modal-content help-modal-content">
+        <div class="help-header">
+            <h3>BELGESELSEMO BESTELEYİCİ YARDIM</h3>
+        </div>
+
+        <div class="help-body">
+            <div class="help-section">
+                <h4>Temel Kullanım</h4>
+                <p>- Tuşlar ile nota ekleyebilirsiniz (1-7 notalar, 8 üst oktav, 0 sus)</p>
+                <p>- Ok tuşları veya ekrana tıklayarak melodi içinde hareket edebilirsiniz</p>
+                <p>- Tempoyu sağdaki mavi kaydırıcı ile ayarlayabilirsiniz</p>
+                <p>- Nota tuşlarına bastığınızda o notanın sesini duyabilirsiniz</p>
+            </div>
+
+            <div class="help-section">
+                <h4>Nota Özellikleri</h4>
+                <p>- <span class="key-combo">Uzunluk</span> tuşu ile nota uzunluğunu değiştirebilirsiniz (1/1, 1/2, 1/4,  <span class="key-combo">Uzunluk</span> tuşu ile nota uzunluğunu değiştirebilirsiniz (1/1, 1/2, 1/4, 1/8, 1/16)</p>
+                <p>- <span class="key-combo">Oktav</span> tuşu ile notanın oktavını değiştirebilirsiniz (2-6 arası)</p>
+                <p>- Notaya sağ tıklayarak özellikleri düzenleyebilirsiniz</p>
+            </div>
+
+            <div class="help-section">
+                <h4>Besteleme</h4>
+                <p>- <span class="key-combo">Çal</span> tuşu ile besteyi dinleyebilirsiniz</p>
+                <p>- <span class="key-combo">Kaydet</span> tuşu ile besteyi isim vererek kaydedebilirsiniz</p>
+                <p>- <span class="key-combo">Yükle</span> tuşu ile kayıtlı bestelerinizi açabilirsiniz</p>
+                <p>- <span class="key-combo">Dışa Aktar</span> tuşu ile bestelerinizi MP3 veya nota olarak indirebilirsiniz</p>
+            </div>
+
+            <div class="help-section">
+                <h4>Yeni Özellikler</h4>
+                <p>- <span class="key-combo">Demolar</span> sekmesinden 1-2 dakikalık hazır besteler yükleyebilirsiniz</p>
+                <p>- <span class="key-combo">Efektler</span> sekmesinden bestenize ses efektleri ekleyebilirsiniz</p>
+                <p>- Farklı enstrümanlar ile bestenizi çalabilirsiniz</p>
+                <p>- Bestenizi yüksek kalitede MP3 olarak dışa aktarabilirsiniz</p>
+                <p>- Görsel ses analizörü ile bestenizi görselleştirebilirsiniz</p>
+                <p>- Dinamik olarak uzayan nota çizgileri ile daha uzun besteler yapabilirsiniz</p>
+            </div>
+
+            <div class="help-section">
+                <h4>Klavye Kısayolları</h4>
+                <p>- <span class="key-combo">1-8, 0</span>: Nota ekleme</p>
+                <p>- <span class="key-combo">Sol/Sağ Ok</span>: Cursor hareketi</p>
+                <p>- <span class="key-combo">Yukarı/Aşağı Ok</span>: Oktav değiştirme</p>
+                <p>- <span class="key-combo">+/-</span>: Nota uzunluğunu değiştirme</p>
+                <p>- <span class="key-combo">Space</span>: Çal/Durdur</p>
+                <p>- <span class="key-combo">Delete/Backspace</span>: Nota sil</p>
+            </div>
+        </div>
+
+        <div class="help-footer">
+            <button id="help-close">KAPAT</button>
+        </div>
+    </div>
+</div>
+
+<div class="note-context-menu" id="note-context-menu">
+    <div class="context-menu-item" data-action="change-length">Uzunluk Değiştir</div>
+    <div class="context-menu-item" data-action="change-octave">Oktav Değiştir</div>
+    <div class="context-menu-item" data-action="delete-note">Sil</div>
+</div>
+
+<div class="notification" id="notification"></div>
+
+<!-- İndirme İşlemi için İlerleme Göstergesi -->
+<div class="download-progress" id="download-progress">
+    <p id="download-message">İndiriliyor...</p>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Ana uygulama değişkenleri
+        let composition = [];
+        let currentPosition = 0;
+        let isPlaying = false;
+        let noteLength = 0.25; // 1/4 nota varsayılan
+        let currentOctave = 4;
+        let tempo = 120; // BPM
+        let audioContext = null;
+        let oscillator = null;
+        let selectedNoteIndex = -1;
+        let draggingTempo = false;
+        let activeEffects = [];
+        let currentInstrument = 'piano';
+        let visualizerActive = false;
+        let visualizerBars = [];
+        let soundWaveBars = [];
+        let analyser = null;
+        let audioWorkletNode = null;
+        let mp3Encoder = null;
+        let mp3Quality = 320; // kbps
+        let recordingBuffer = [];
+        let isRecording = false;
+        let maxNotePosition = 0; // Dinamik nota çizgisi için
+        let isDownloading = false; // İndirme işlemi için bayrak
+
+        // DOM elementlerini seçelim
+        const noteDisplay = document.querySelector('.note-display');
+        const cursor = document.getElementById('cursor');
+        const lengthValue = document.getElementById('length-value');
+        const lengthDisplay = document.getElementById('length-display');
+        const octaveValue = document.getElementById('octave-value');
+        const octaveDisplay = document.getElementById('octave-display');
+        const saveModal = document.getElementById('save-modal');
+        const loadModal = document.getElementById('load-modal');
+        const exportModal = document.getElementById('export-modal');
+        const helpModal = document.getElementById('help-modal');
+        const tempoSlider = document.getElementById('tempo-slider');
+        const tempoValue = document.getElementById('tempo-value');
+        const noteTooltip = document.getElementById('note-tooltip');
+        const noteContextMenu = document.getElementById('note-context-menu');
+        const visualizerContainer = document.getElementById('visualizer-container');
+        const soundWave = document.getElementById('sound-wave');
+        const progressContainer = document.getElementById('progress-container');
+        const progressBar = document.getElementById('progress-bar');
+        const notification = document.getElementById('notification');
+        const noteGrid = document.querySelector('.note-grid');
+        const downloadProgress = document.getElementById('download-progress');
+        const downloadMessage = document.getElementById('download-message');
+
+        // Ses dalga göstergesi oluştur
+        function createSoundWave() {
+            soundWave.innerHTML = '';
+            soundWaveBars = [];
+
+            for (let i = 0; i < 20; i++) {
+                const bar = document.createElement('div');
+                bar.className = 'sound-wave-bar';
+                soundWave.appendChild(bar);
+                soundWaveBars.push(bar);
+            }
+        }
+
+        createSoundWave();
+
+        // İndirme işlemi göstergesini göster/gizle
+        function showDownloadProgress(message, isError = false, isSuccess = false) {
+            downloadMessage.textContent = message;
+            downloadProgress.style.display = 'block';
+
+            // Hata veya başarı durumuna göre stil ekle
+            if (isError) {
+                downloadProgress.classList.add('download-error');
+                downloadProgress.classList.remove('download-success');
+            } else if (isSuccess) {
+                downloadProgress.classList.add('download-success');
+                downloadProgress.classList.remove('download-error');
+            } else {
+                downloadProgress.classList.remove('download-error', 'download-success');
+            }
+
+            // 3 saniye sonra otomatik kapat (başarı veya hata mesajları için)
+            if (isError || isSuccess) {
+                setTimeout(() => {
+                    hideDownloadProgress();
+                }, 3000);
+            }
+        }
+
+        function hideDownloadProgress() {
+            downloadProgress.style.display = 'none';
+            downloadProgress.classList.remove('download-error', 'download-success');
+        }
+
+        // Sekme değiştirme işlevselliği
+        const tabs = document.querySelectorAll('.tab');
+        const tabContents = document.querySelectorAll('.tab-content');
+
+        tabs.forEach(tab => {
+            tab.addEventListener('click', function() {
+                const tabId = this.getAttribute('data-tab');
+
+                // Aktif sekmeyi değiştir
+                tabs.forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+
+                // İçeriği değiştir
+                tabContents.forEach(content => {
+                    content.classList.remove('active');
+                    if (content.id === tabId + '-tab') {
+                        content.classList.add('active');
+                    }
+                });
+            });
+        });
+
+        // Audio context'i başlatalım
+        function initAudioContext() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                setupVisualizer();
+            }
+        }
+
+        // Görselleştirici kurulumu
+        function setupVisualizer() {
+            if (!audioContext) return;
+
+            analyser = audioContext.createAnalyser();
+            analyser.fftSize = 256;
+            const bufferLength = analyser.frequencyBinCount;
+
+            // Görselleştirici çubuklarını oluştur
+            visualizerContainer.innerHTML = '';
+            visualizerBars = [];
+
+            const barWidth = visualizerContainer.clientWidth / bufferLength;
+
+            for (let i = 0; i < bufferLength; i++) {
+                const bar = document.createElement('div');
+                bar.className = 'visualizer-bar';
+                bar.style.left = i * (barWidth + 1) + 'px';
+                bar.style.width = barWidth + 'px';
+                visualizerContainer.appendChild(bar);
+                visualizerBars.push(bar);
+            }
+        }
+
+        // Görselleştiriciyi güncelle
+        function updateVisualizer() {
+            if (!analyser || !visualizerActive) return;
+
+            const dataArray = new Uint8Array(analyser.frequencyBinCount);
+            analyser.getByteFrequencyData(dataArray);
+
+            for (let i = 0; i < visualizerBars.length; i++) {
+                const value = dataArray[i];
+                const percent = value / 255;
+                const height = percent * 40;
+                visualizerBars[i].style.height = height + 'px';
+            }
+
+            // Ses dalga göstergesini de güncelle
+            for (let i = 0; i < soundWaveBars.length; i++) {
+                const index = Math.floor(i * (dataArray.length / soundWaveBars.length));
+                const value = dataArray[index];
+                const percent = value / 255;
+                const height = 5 + percent * 25;
+                soundWaveBars[i].style.height = height + 'px';
+            }
+
+            if (isPlaying) {
+                requestAnimationFrame(updateVisualizer);
+            }
+        }
+
+        // Notaları ses frekanslarına çevirelim
+        function getNoteFrequency(note, octave) {
+            if (note === 0) return 0; // Sus
+
+            const baseFrequencies = {
+                1: 261.63, // C (Do)
+                2: 293.66, // D (Re)
+                3: 329.63, // E (Mi)
+                4: 349.23, // F (Fa)
+                5: 392.00, // G (Sol)
+                6: 440.00, // A (La)
+                7: 493.88, // B (Si)
+                8: 523.25  // C (Do+)
+            };
+
+            const baseOctave = 4;
+            const octaveDiff = octave - baseOctave;
+            return baseFrequencies[note] * Math.pow(2, octaveDiff);
+        }
+
+        // Enstrüman dalga formunu al
+        function getWaveform(instrument) {
+            switch(instrument) {
+                case 'piano': return 'triangle';
+                case 'synth': return 'sawtooth';
+                case 'guitar': return 'square';
+                case 'flute': return 'sine';
+                case 'violin': return 'triangle';
+                case 'music-box': return 'sine';
+                case 'organ': return 'sawtooth';
+                case 'bass': return 'square';
+                default: return 'sine';
+            }
+        }
+
+        // Efekt zincirini oluştur
+        function createEffectChain(audioContext, destination) {
+            let chain = [];
+
+            if (activeEffects.includes('reverb')) {
+                const convolver = audioContext.createConvolver();
+                // Basit bir reverb impulse response oluştur
+                const impulseLength = audioContext.sampleRate * 2; // 2 saniyelik
+                const impulse = audioContext.createBuffer(2, impulseLength, audioContext.sampleRate);
+
+                for (let channel = 0; channel < 2; channel++) {
+                    const impulseData = impulse.getChannelData(channel);
+                    for (let i = 0; i < impulseLength; i++) {
+                        impulseData[i] = (Math.random() * 2 - 1) * Math.exp(-i / (impulseLength / 3));
+                    }
+                }
+
+                convolver.buffer = impulse;
+                chain.push(convolver);
+            }
+
+            if (activeEffects.includes('delay')) {
+                const delay = audioContext.createDelay();
+                delay.delayTime.value = 0.3;
+                const feedback = audioContext.createGain();
+                feedback.gain.value = 0.4;
+
+                delay.connect(feedback);
+                feedback.connect(delay);
+
+                chain.push(delay);
+            }
+
+            if (activeEffects.includes('distortion')) {
+                const distortion = audioContext.createWaveShaper();
+                function makeDistortionCurve(amount) {
+                    const k = typeof amount === 'number' ? amount : 50;
+                    const n_samples = 44100;
+                    const curve = new Float32Array(n_samples);
+                    const deg = Math.PI / 180;
+
+                    for (let i = 0; i < n_samples; i++) {
+                        const x = i * 2 / n_samples - 1;
+                        curve[i] = (3 + k) * x * 20 * deg / (Math.PI + k * Math.abs(x));
+                    }
+                    return curve;
+                }
+
+                distortion.curve = makeDistortionCurve(400);
+                distortion.oversample = '4x';
+                chain.push(distortion);
+            }
+
+            if (activeEffects.includes('chorus')) {
+                // Basit bir chorus efekti için delay ve modülasyon
+                const chorus1 = audioContext.createDelay();
+                chorus1.delayTime.value = 0.03;
+                const chorus2 = audioContext.createDelay();
+                chorus2.delayTime.value = 0.05;
+
+                const chorusMix = audioContext.createGain();
+                chorusMix.gain.value = 0.5;
+
+                chain.push(chorus1);
+                chain.push(chorus2);
+                chain.push(chorusMix);
+            }
+
+            // Tremolo ve vibrato efektleri için LFO kullan
+            if (activeEffects.includes('tremolo') || activeEffects.includes('vibrato')) {
+                const lfo = audioContext.createOscillator();
+                lfo.frequency.value = 5; // 5 Hz
+                lfo.type = 'sine';
+
+                const lfoGain = audioContext.createGain();
+                lfoGain.gain.value = activeEffects.includes('tremolo') ? 0.5 : 0.01;
+
+                lfo.connect(lfoGain);
+                lfo.start();
+
+                if (activeEffects.includes('tremolo')) {
+                    const tremoloGain = audioContext.createGain();
+                    tremoloGain.gain.value = 1.0;
+                    lfoGain.connect(tremoloGain.gain);
+                    chain.push(tremoloGain);
+                }
+
+                if (activeEffects.includes('vibrato')) {
+                    // Vibrato için delay modülasyonu kullan
+                    const vibrato = audioContext.createDelay();
+                    vibrato.delayTime.value = 0.002;
+                    lfoGain.connect(vibrato.delayTime);
+                    chain.push(vibrato);
+                }
+            }
+
+            // Yeni eklenen efektler
+            if (activeEffects.includes('phaser')) {
+                const phaser = audioContext.createBiquadFilter();
+                phaser.type = 'allpass';
+                phaser.frequency.value = 1000;
+                phaser.Q.value = 10;
+
+                const lfo = audioContext.createOscillator();
+                lfo.type = 'sine';
+                lfo.frequency.value = 0.5;
+
+                const lfoGain = audioContext.createGain();
+                lfoGain.gain.value = 800;
+
+                lfo.connect(lfoGain);
+                lfoGain.connect(phaser.frequency);
+                lfo.start();
+
+                chain.push(phaser);
+            }
+
+            if (activeEffects.includes('flanger')) {
+                const flanger = audioContext.createDelay();
+                flanger.delayTime.value = 0.005;
+
+                const lfo = audioContext.createOscillator();
+                lfo.type = 'sine';
+                lfo.frequency.value = 0.25;
+
+                const lfoGain = audioContext.createGain();
+                lfoGain.gain.value = 0.004;
+
+                lfo.connect(lfoGain);
+                lfoGain.connect(flanger.delayTime);
+                lfo.start();
+
+                chain.push(flanger);
+            }
+
+            if (activeEffects.includes('bitcrusher')) {
+                // Basit bir bitcrusher efekti
+                const bitcrusher = audioContext.createScriptProcessor(4096, 1, 1);
+                bitcrusher.bits = 4; // 4-bit
+                bitcrusher.onaudioprocess = function(e) {
+                    const input = e.inputBuffer.getChannelData(0);
+                    const output = e.outputBuffer.getChannelData(0);
+
+                    for (let i = 0; i < input.length; i++) {
+                        // Bit derinliğini azalt
+                        const step = Math.pow(0.5, bitcrusher.bits);
+                        output[i] = Math.floor(input[i] / step) * step;
+                    }
+                };
+
+                chain.push(bitcrusher);
+            }
+
+            if (activeEffects.includes('wahwah')) {
+                const filter = audioContext.createBiquadFilter();
+                filter.type = 'bandpass';
+                filter.frequency.value = 1000;
+                filter.Q.value = 5;
+
+                const lfo = audioContext.createOscillator();
+                lfo.type = 'sine';
+                lfo.frequency.value = 0.5;
+
+                const lfoGain = audioContext.createGain();
+                lfoGain.gain.value = 1500;
+
+                lfo.connect(lfoGain);
+                lfoGain.connect(filter.frequency);
+                lfo.start();
+
+                chain.push(filter);
+            }
+
+            // Efekt zincirini bağla
+            if (chain.length > 0) {
+                let currentNode = chain[0];
+                for (let i = 1; i < chain.length; i++) {
+                    currentNode.connect(chain[i]);
+                    currentNode = chain[i];
+                }
+
+                // Son efekti analizöre ve hedefe bağla
+                if (analyser) {
+                    currentNode.connect(analyser);
+                    analyser.connect(destination);
+                } else {
+                    currentNode.connect(destination);
+                }
+
+                return chain[0]; // İlk efekti döndür
+            } else {
+                // Efekt yoksa doğrudan analizöre ve hedefe bağla
+                if (analyser) {
+                    analyser.connect(destination);
+                    return analyser;
+                } else {
+                    return destination;
+                }
+            }
+        }
+
+        // Tek bir nota çalalım
+        function playNote(note, octave, duration, startTime) {
+            if (!audioContext) initAudioContext();
+            if (audioContext.state === 'suspended') audioContext.resume();
+
+            // startTime verilmemişse hemen çal
+            if (startTime === undefined) {
+                startTime = audioContext.currentTime + 0.01;
+            }
+
+            const freq = getNoteFrequency(note, octave);
+            if (freq === 0) return null; // Sus
+
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+
+            oscillator.type = getWaveform(currentInstrument);
+            oscillator.frequency.setValueAtTime(freq, startTime);
+
+            // ADSR zarf
+            const attackTime = 0.05;
+            const decayTime = 0.1;
+            const sustainLevel = 0.7;
+            const releaseTime = Math.min(0.2, duration * 0.3);
+
+            gainNode.gain.setValueAtTime(0, startTime);
+            gainNode.gain.linearRampToValueAtTime(1, startTime + attackTime);
+            gainNode.gain.linearRampToValueAtTime(sustainLevel, startTime + attackTime + decayTime);
+            gainNode.gain.setValueAtTime(sustainLevel, startTime + duration - releaseTime);
+            gainNode.gain.linearRampToValueAtTime(0, startTime + duration);
+
+            // Efekt zincirini oluştur
+            const effectInput = createEffectChain(audioContext, audioContext.destination);
+
+            oscillator.connect(gainNode);
+            gainNode.connect(effectInput);
+
+            oscillator.start(startTime);
+            oscillator.stop(startTime + duration);
+
+            return { oscillator, gainNode };
+        }
+
+        // Ses dalga animasyonu
+        function animateSoundWave() {
+            // Rastgele dalga hareketi oluştur
+            for (let i = 0; i < soundWaveBars.length; i++) {
+                const height = 5 + Math.random() * 25;
+                soundWaveBars[i].style.height = height + 'px';
+
+                // Animasyonu sıfırla
+                setTimeout(() => {
+                    if (!isPlaying) {
+                        soundWaveBars[i].style.height = '5px';
+                    }
+                }, 300);
+            }
+        }
+
+        // Besteyi çalalım - Web Audio API zamanlayıcısı ile doğru ton ve zamanlama
+        let playbackTimeouts = [];
+
+        function stopPlayback() {
+            isPlaying = false;
+            document.getElementById('play').innerHTML = "▶ Çal";
+            document.getElementById('play').classList.remove('playing');
+            visualizerActive = false;
+            playbackTimeouts.forEach(t => clearTimeout(t));
+            playbackTimeouts = [];
+            soundWaveBars.forEach(bar => { bar.style.height = '5px'; });
+            updateDisplay();
+        }
+
+        function playComposition() {
+            if (isPlaying) {
+                stopPlayback();
+                return;
+            }
+
+            const validNotes = composition.filter(n => n);
+            if (validNotes.length === 0) return;
+
+            isPlaying = true;
+            document.getElementById('play').innerHTML = "⏹ Durdur";
+            document.getElementById('play').classList.add('playing');
+            initAudioContext();
+
+            // AudioContext askıya alınmışsa devam ettir (tarayıcı politikası)
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+
+            visualizerContainer.style.display = 'block';
+            visualizerActive = true;
+            updateVisualizer();
+
+            const beatDuration = 60 / tempo; // saniye cinsinden bir vuruş
+            const startTime = audioContext.currentTime + 0.05; // küçük bir gecikme ile başla
+            let offset = 0; // saniye cinsinden birikimli zaman
+
+            for (let i = 0; i < composition.length; i++) {
+                const note = composition[i];
+                if (!note) continue;
+
+                const noteDuration = note.length * beatDuration * 4;
+                const noteStartTime = startTime + offset;
+
+                if (note.note !== 0) {
+                    // Sesi Web Audio API zamanlayıcısıyla planla — setTimeout değil
+                    playNote(note.note, note.octave, noteDuration, noteStartTime);
+                }
+
+                // UI güncelleme için setTimeout (görsel amaçlı, ses için değil)
+                const uiDelay = offset * 1000;
+                const idx = i;
+                const t = setTimeout(() => {
+                    if (!isPlaying) return;
+                    highlightNote(idx);
+                    animateSoundWave();
+                }, uiDelay);
+                playbackTimeouts.push(t);
+
+                offset += noteDuration;
+            }
+
+            // Çalma bitince temizle
+            const endT = setTimeout(() => {
+                stopPlayback();
+                if (isRecording) {
+                    isRecording = false;
+                    progressContainer.style.display = 'none';
+                }
+            }, offset * 1000 + 200);
+            playbackTimeouts.push(endT);
+        }
+
+        // MP3 olarak dışa aktar
+        function exportToMp3(comp) {
+            return new Promise((resolve, reject) => {
+                try {
+                    if (isDownloading) {
+                        showNotification("Bir indirme işlemi zaten devam ediyor");
+                        reject(new Error("Bir indirme işlemi zaten devam ediyor"));
+                        return;
+                    }
+
+                    isDownloading = true;
+
+                    // Kullanıcıya bildirim göster
+                    showDownloadProgress("MP3 oluşturuluyor...");
+
+                    // İlerleme çubuğunu göster
+                    progressContainer.style.display = 'block';
+                    progressBar.style.width = '0%';
+
+                    // Yeni bir AudioContext oluştur
+                    const offlineCtx = new OfflineAudioContext({
+                        numberOfChannels: 2,
+                        length: 44100 * 60, // 60 saniyelik buffer
+                        sampleRate: 44100
+                    });
+
+                    // Besteyi çal ve kaydet
+                    let currentTime = 0;
+                    let maxTime = 0;
+                    const beatDuration = 60 / comp.tempo; // bir vuruş süresi
+
+                    // Tüm notaları oluştur
+                    comp.composition.forEach(note => {
+                        if (!note) return;
+
+                        const noteDuration = note.length * beatDuration * 4;
+                        const noteTime = note.position * beatDuration * 4;
+
+                        if (note.note !== 0) { // Sus değilse
+                            const freq = getNoteFrequency(note.note, note.octave);
+
+                            const oscillator = offlineCtx.createOscillator();
+                            const gainNode = offlineCtx.createGain();
+
+                            oscillator.type = getWaveform(currentInstrument);
+                            oscillator.frequency.value = freq;
+
+                            // ADSR zarf
+                            const attackTime = 0.05;
+                            const decayTime = 0.1;
+                            const sustainLevel = 0.7;
+                            const releaseTime = 0.2;
+
+                            gainNode.gain.setValueAtTime(0, noteTime);
+                            gainNode.gain.linearRampToValueAtTime(1, noteTime + attackTime);
+                            gainNode.gain.linearRampToValueAtTime(sustainLevel, noteTime + attackTime + decayTime);
+                            gainNode.gain.setValueAtTime(sustainLevel, noteTime + noteDuration - releaseTime);
+                            gainNode.gain.linearRampToValueAtTime(0, noteTime + noteDuration);
+
+                            oscillator.connect(gainNode);
+                            gainNode.connect(offlineCtx.destination);
+
+                            oscillator.start(noteTime);
+                            oscillator.stop(noteTime + noteDuration);
+
+                            maxTime = Math.max(maxTime, noteTime + noteDuration);
+                        }
+                    });
+
+                    // Offline rendering başlat
+                    offlineCtx.startRendering().then(renderedBuffer => {
+                        // MP3 kodlama için lamejs kullan
+                        const mp3Encoder = new lamejs.Mp3Encoder(2, 44100, mp3Quality);
+                        const mp3Data = [];
+
+                        // Stereo kanalları al
+                        const leftChannel = renderedBuffer.getChannelData(0);
+                        const rightChannel = renderedBuffer.getChannelData(1);
+
+                        // Ses verisini 16-bit PCM'e dönüştür
+                        const sampleBlockSize = 1152; // LAME için standart
+                        const totalSamples = Math.min(leftChannel.length, maxTime * 44100 + 44100); // Sadece gerekli kısmı al
+
+                        for (let i = 0; i < totalSamples; i += sampleBlockSize) {
+                            const leftChunk = new Int16Array(sampleBlockSize);
+                            const rightChunk = new Int16Array(sampleBlockSize);
+
+                            for (let j = 0; j < sampleBlockSize; j++) {
+                                if (i + j < totalSamples) {
+                                    // Float32 -> Int16 dönüşümü
+                                    leftChunk[j] = leftChannel[i + j] * 32767;
+                                    rightChunk[j] = rightChannel[i + j] * 32767;
+                                }
+                            }
+
+                            // MP3 kodla
+                            const mp3buf = mp3Encoder.encodeBuffer(leftChunk, rightChunk);
+                            if (mp3buf.length > 0) {
+                                mp3Data.push(mp3buf);
+                            }
+
+                            // İlerleme çubuğunu güncelle
+                            const progress = Math.min(100, Math.round((i / totalSamples) * 100));
+                            progressBar.style.width = progress + '%';
+
+                            // İlerleme mesajını güncelle
+                            if (progress % 10 === 0) {
+                                showDownloadProgress(`MP3 oluşturuluyor... %${progress}`);
+                            }
+                        }
+
+                        // Kodlamayı bitir
+                        const mp3buf = mp3Encoder.flush();
+                        if (mp3buf.length > 0) {
+                            mp3Data.push(mp3buf);
+                        }
+
+                        // MP3 verisini Blob'a dönüştür
+                        const blob = new Blob(mp3Data, { type: 'audio/mp3' });
+
+                        // İlerleme çubuğunu gizle
+                        progressContainer.style.display = 'none';
+
+                        // Başarı bildirimi göster
+                        showDownloadProgress("MP3 oluşturuldu!", false, true);
+
+                        isDownloading = false;
+                        resolve(blob);
+                    }).catch(err => {
+                        console.error("Rendering error:", err);
+                        progressContainer.style.display = 'none';
+                        showDownloadProgress("MP3 oluşturulurken hata oluştu!", true);
+                        isDownloading = false;
+                        reject(err);
+                    });
+                } catch (err) {
+                    console.error("Export error:", err);
+                    progressContainer.style.display = 'none';
+                    showDownloadProgress("MP3 oluşturulurken hata oluştu!", true);
+                    isDownloading = false;
+                    reject(err);
+                }
+            });
+        }
+
+        // Bildirim göster
+        function showNotification(message, duration = 3000) {
+            notification.textContent = message;
+            notification.style.display = 'block';
+
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, duration);
+        }
+
+        // Notayı vurgulayarak gösterelim
+        function highlightNote(position) {
+            currentPosition = position;
+            updateDisplay();
+        }
+
+        // Ekranı güncelleyelim
+        function updateDisplay() {
+            // Önce tüm notaları temizle
+            const oldNotes = document.querySelectorAll('.note-marker');
+            oldNotes.forEach(note => note.remove());
+
+            // Notaları ekrana yerleştir
+            composition.forEach((note, index) => {
+                if (!note) return;
+
+                const noteMarker = document.createElement('div');
+                noteMarker.className = 'note-marker';
+                noteMarker.dataset.index = index;
+
+                // Notanın yüksekliğini hesapla (8-note.note yani ters çevir, yüksek nota yukarıda)
+                const rowPosition = note.note === 0 ? 7 : 8 - note.note;
+                const lineHeight = noteDisplay.clientHeight / 8;
+
+                noteMarker.style.top = `${rowPosition * lineHeight + lineHeight/2 - 4}px`;
+                noteMarker.style.left = `${index * 20 + 10}px`;
+
+                // Nota uzunluğuna göre boyutu değiştir
+                let noteSize = 8;
+                let noteColor = "#000";
+
+                if (note.length === 1) {
+                    noteSize = 10;
+                } else if (note.length === 0.5) {
+                    noteSize = 9;
+                } else if (note.length === 0.125) {
+                    noteSize = 7;
+                } else if (note.length === 0.0625) {
+                    noteSize = 6;
+                }
+
+                // Oktava göre renk değiştir
+                if (note.octave < 4) {
+                    noteColor = "#4fc3f7"; // Açık mavi (düşük oktavlar)
+                } else if (note.octave > 4) {
+                    noteColor = "#ff7043"; // Turuncu (yüksek oktavlar)
+                } else {
+                    noteColor = "#e50914"; // Kırmızı (orta oktav)
+                }
+
+                noteMarker.style.width = `${noteSize}px`;
+                noteMarker.style.height = `${noteSize}px`;
+                noteMarker.style.backgroundColor = noteColor;
+
+                // Sus için farklı stiller
+                if (note.note === 0) {
+                    noteMarker.style.backgroundColor = "#555";
+                    noteMarker.style.borderRadius = "2px";
+                    noteMarker.style.boxShadow = "none";
+                }
+
+                noteDisplay.appendChild(noteMarker);
+
+                // Nota olay dinleyicilerini ekle
+                noteMarker.addEventListener('click', function(e) {
+                    currentPosition = parseInt(this.dataset.index);
+                    updateDisplay();
+                    e.stopPropagation();
+                });
+
+                noteMarker.addEventListener('contextmenu', function(e) {
+                    e.preventDefault();
+                    selectedNoteIndex = parseInt(this.dataset.index);
+                    showContextMenu(e.clientX, e.clientY);
+                });
+
+                noteMarker.addEventListener('mouseover', function(e) {
+                    const idx = parseInt(this.dataset.index);
+                    const note = composition[idx];
+                    if (!note) return;
+
+                    const noteName = getNoteName(note.note);
+                    const noteInfo = `${noteName}${note.octave}, ${getNoteText(note.length)}`;
+
+                    noteTooltip.textContent = noteInfo;
+                    noteTooltip.style.display = 'block';
+                    noteTooltip.style.left = `${e.clientX + 10}px`;
+                    noteTooltip.style.top = `${e.clientY + 10}px`;
+                });
+
+                noteMarker.addEventListener('mouseout', function() {
+                    noteTooltip.style.display = 'none';
+                });
+
+                // Maksimum nota pozisyonunu güncelle (dinamik çizgi için)
+                maxNotePosition = Math.max(maxNotePosition, index);
+            });
+
+            // İmleci konumlandır
+            const cursorPosition = currentPosition * 20 + 10;
+            cursor.style.left = `${cursorPosition}px`;
+
+            // Otomatik kaydırma
+            if (cursorPosition > noteDisplay.clientWidth - 50) {
+                noteDisplay.scrollLeft = cursorPosition - noteDisplay.clientWidth + 50;
+            } else if (cursorPosition < noteDisplay.scrollLeft + 50) {
+                noteDisplay.scrollLeft = Math.max(0, cursorPosition - 50);
+            }
+
+            // Durum göstergelerini güncelle
+            lengthValue.textContent = getNoteText(noteLength);
+            lengthDisplay.textContent = getNoteText(noteLength);
+            octaveValue.textContent = currentOctave;
+            octaveDisplay.textContent = currentOctave;
+
+            // Nota çizgilerinin genişliğini dinamik olarak ayarla
+            const gridWidth = Math.max(1000, (maxNotePosition + 20) * 20);
+            noteGrid.style.width = `${gridWidth}px`;
+        }
+
+        // Nota uzunluğunu metne çevirelim
+        function getNoteText(length) {
+            if (length === 1) return "1/1";
+            if (length === 0.5) return "1/2";
+            if (length === 0.25) return "1/4";
+            if (length === 0.125) return "1/8";
+            if (length === 0.0625) return "1/16";
+            return length.toString();
+        }
+
+        // Nota numarasını isme çevirelim
+        function getNoteName(noteNum) {
+            const notes = {
+                0: "Sus",
+                1: "Do",
+                2: "Re",
+                3: "Mi",
+                4: "Fa",
+                5: "Sol",
+                6: "La",
+                7: "Si",
+                8: "Do"
+            };
+
+            return notes[noteNum] || "?";
+        }
+
+        // Nota uzunluğunu döngüsel olarak değiştir
+        function cycleNoteLength() {
+            const lengths = [1, 0.5, 0.25, 0.125, 0.0625];
+            const currentIndex = lengths.indexOf(noteLength);
+            const nextIndex = (currentIndex + 1) % lengths.length;
+            noteLength = lengths[nextIndex];
+            updateDisplay();
+        }
+
+        // Oktavı döngüsel olarak değiştir
+        function cycleOctave() {
+            const octaves = [2, 3, 4, 5, 6];
+            const currentIndex = octaves.indexOf(currentOctave);
+            const nextIndex = (currentIndex + 1) % octaves.length;
+            currentOctave = octaves[nextIndex];
+            updateDisplay();
+        }
+
+        // Nota ekleyelim
+        function addNote(noteValue) {
+            if (isPlaying) return; // Çalma sırasında nota eklemeyi engelle
+
+            // Mevcut pozisyonda nota yoksa ekle
+            if (!composition[currentPosition]) {
+                composition[currentPosition] = {
+                    note: parseInt(noteValue),
+                    octave: currentOctave,
+                    length: noteLength
+                };
+
+                // Yeni pozisyona geç
+                currentPosition++;
+
+                // Gerekirse composition array'ini genişlet
+                if (currentPosition >= composition.length) {
+                    composition.length = currentPosition + 1;
+                }
+
+                updateDisplay();
+
+                // Yeni nota çal
+                if (parseInt(noteValue) !== 0) { // Sus değilse çal
+                    initAudioContext();
+                    if (audioContext.state === 'suspended') audioContext.resume();
+                    playNote(parseInt(noteValue), currentOctave, noteLength * (60/tempo) * 4);
+                }
+            } else {
+                // Zaten bir nota varsa, onu değiştir
+                composition[currentPosition].note = parseInt(noteValue);
+                composition[currentPosition].octave = currentOctave;
+                composition[currentPosition].length = noteLength;
+
+                // Yeni pozisyona geç
+                currentPosition++;
+                if (currentPosition >= composition.length) {
+                    composition.length = currentPosition + 1;
+                }
+
+                updateDisplay();
+
+                // Yeni nota çal
+                if (parseInt(noteValue) !== 0) { // Sus değilse çal
+                    initAudioContext();
+                    if (audioContext.state === 'suspended') audioContext.resume();
+                    playNote(parseInt(noteValue), currentOctave, noteLength * (60/tempo) * 4);
+                }
+            }
+        }
+
+        // Not silme
+        function deleteNote() {
+            if (isPlaying) return; // Çalma sırasında silmeyi engelle
+
+            if (currentPosition > 0) {
+                composition[currentPosition - 1] = null;
+                currentPosition--;
+                updateDisplay();
+            }
+        }
+
+        // Seçili notayı silme
+        function deleteSelectedNote() {
+            if (selectedNoteIndex >= 0 && selectedNoteIndex < composition.length) {
+                composition[selectedNoteIndex] = null;
+                updateDisplay();
+            }
+            selectedNoteIndex = -1;
+        }
+
+        // Bağlam menüsünü göster
+        function showContextMenu(x, y) {
+            noteContextMenu.style.display = 'block';
+            noteContextMenu.style.left = `${x}px`;
+            noteContextMenu.style.top = `${y}px`;
+
+            // Menünün ekrandan taşmasını önle
+            const rect = noteContextMenu.getBoundingClientRect();
+            if (rect.right > window.innerWidth) {
+                noteContextMenu.style.left = `${x - rect.width}px`;
+            }
+            if (rect.bottom > window.innerHeight) {
+                noteContextMenu.style.top = `${y - rect.height}px`;
+            }
+        }
+
+        // Bağlam menüsünü gizle
+        function hideContextMenu() {
+            noteContextMenu.style.display = 'none';
+        }
+
+        // Seçili notanın uzunluğunu değiştir
+        function changeSelectedNoteLength() {
+            if (selectedNoteIndex >= 0 && selectedNoteIndex < composition.length && composition[selectedNoteIndex]) {
+                const note = composition[selectedNoteIndex];
+                const lengths = [1, 0.5, 0.25, 0.125, 0.0625];
+                const currentIndex = lengths.indexOf(note.length);
+                const nextIndex = (currentIndex + 1) % lengths.length;
+                note.length = lengths[nextIndex];
+                updateDisplay();
+            }
+        }
+
+        // Seçili notanın oktavını değiştir
+        function changeSelectedNoteOctave() {
+            if (selectedNoteIndex >= 0 && selectedNoteIndex < composition.length && composition[selectedNoteIndex]) {
+                const note = composition[selectedNoteIndex];
+                const octaves = [2, 3, 4, 5, 6];
+                const currentIndex = octaves.indexOf(note.octave);
+                const nextIndex = (currentIndex + 1) % octaves.length;
+                note.octave = octaves[nextIndex];
+                updateDisplay();
+            }
+        }
+
+        // Tempo kaydırıcısını ayarla
+        function setTempoSliderPosition() {
+            // Tempo aralığı: 60-240 BPM
+            const range = 240 - 60;
+            const percent = (tempo - 60) / range;
+            const sliderHeight = document.querySelector('.tempo-control').clientHeight - 12;
+            tempoSlider.style.top = `${(1 - percent) * sliderHeight}px`;
+            tempoValue.textContent = tempo;
+        }
+
+        // Tempo kaydırıcısı pozisyonundan tempo değerinş hesapla
+        function updateTempoFromSlider(y) {
+            const tempoControl = document.querySelector('.tempo-control');
+            const controlRect = tempoControl.getBoundingClientRect();
+            const sliderHeight = controlRect.height - 12;
+
+            const relativeY = Math.max(0, Math.min(sliderHeight, y - controlRect.top));
+            const percent = 1 - (relativeY / sliderHeight);
+
+            // Tempo aralığı: 60-240 BPM
+            tempo = Math.round(60 + percent * (240 - 60));
+            tempoValue.textContent = tempo;
+
+            tempoSlider.style.top = `${relativeY}px`;
+        }
+
+        // Besteyi kaydetme
+        function saveComposition() {
+            saveModal.style.display = 'flex';
+        }
+
+        // Besteyi isimle kaydetme
+        function saveCompositionWithName() {
+            const name = document.getElementById('composition-name').value.trim();
+            if (!name) {
+                alert('Lütfen beste için bir isim girin!');
+                return;
+            }
+
+            // Boş notaları filtrele
+            const cleanComposition = [];
+            for (let i = 0; i < composition.length; i++) {
+                if (composition[i]) {
+                    cleanComposition.push({...composition[i], position: i});
+                }
+            }
+
+            const saveData = {
+                name: name,
+                tempo: tempo,
+                composition: cleanComposition,
+                date: new Date().toISOString(),
+                instrument: currentInstrument,
+                effects: activeEffects
+            };
+
+            // Mevcut kayıtları al
+            let savedCompositions = JSON.parse(localStorage.getItem('besteleyiciCompositions') || '[]');
+
+            // Aynı isimde varsa güncelle, yoksa ekle
+            const existingIndex = savedCompositions.findIndex(c => c.name === name);
+            if (existingIndex >= 0) {
+                if (confirm(`"${name}" adlı beste zaten var. Üzerine yazmak istiyor musunuz?`)) {
+                    savedCompositions[existingIndex] = saveData;
+                } else {
+                    return;
+                }
+            } else {
+                savedCompositions.push(saveData);
+            }
+
+            localStorage.setItem('besteleyiciCompositions', JSON.stringify(savedCompositions));
+            saveModal.style.display = 'none';
+            showNotification(`"${name}" adlı beste kaydedildi!`);
+        }
+
+        // Besteyi yükleme
+        function loadComposition() {
+            // Kayıtlı besteleri al
+            const savedCompositions = JSON.parse(localStorage.getItem('besteleyiciCompositions') || '[]');
+
+            if (savedCompositions.length === 0) {
+                showNotification('Kaydedilmiş beste bulunamadı!');
+                return;
+            }
+
+            // Liste modalını göster
+            const compositionsList = document.getElementById('compositions-list');
+            compositionsList.innerHTML = '';
+
+            savedCompositions.forEach(comp => {
+                const date = new Date(comp.date);
+                const formattedDate = `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
+
+                const item = document.createElement('div');
+                item.className = 'composition-item';
+                item.innerHTML = `
+                    <div class="composition-info">
+                        <div>${comp.name}</div>
+                        <div style="font-size: 8px; color: #666;">${formattedDate}</div>
+                    </div>
+                    <div class="composition-actions">
+                        <button class="action-btn load-btn">Yükle</button>
+                        <button class="action-btn delete-btn">Sil</button>
+                    </div>
+                `;
+
+                compositionsList.appendChild(item);
+
+                // Yükleme düğmesi
+                item.querySelector('.load-btn').addEventListener('click', function() {
+                    loadSpecificComposition(comp);
+                    loadModal.style.display = 'none';
+                });
+
+                // Silme düğmesi
+                item.querySelector('.delete-btn').addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    if (confirm(`"${comp.name}" adlı besteyi silmek istediğinize emin misiniz?`)) {
+                        deleteComposition(comp.name);
+                        item.remove();
+                        if (compositionsList.children.length === 0) {
+                            loadModal.style.display = 'none';
+                        }
+                    }
+                });
+            });
+
+            loadModal.style.display = 'flex';
+        }
+
+        // Dışa aktarma
+        function exportComposition() {
+            // Kayıtlı besteleri al
+            const savedCompositions = JSON.parse(localStorage.getItem('besteleyiciCompositions') || '[]');
+
+            if (savedCompositions.length === 0) {
+                showNotification('Kaydedilmiş beste bulunamadı!');
+                return;
+            }
+
+            // Liste modalını göster
+            const exportList = document.getElementById('export-list');
+            exportList.innerHTML = '';
+
+            savedCompositions.forEach(comp => {
+                const date = new Date(comp.date);
+                const formattedDate = `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
+
+                const item = document.createElement('div');
+                item.className = 'composition-item';
+                item.innerHTML = `
+                    <div class="composition-info">
+                        <div>${comp.name}</div>
+                        <div style="font-size: 8px; color: #666;">${formattedDate}</div>
+                    </div>
+                    <div class="composition-actions">
+                        <button class="action-btn download-btn">İndir</button>
+                    </div>
+                `;
+
+                exportList.appendChild(item);
+
+                // İndirme düğmesi
+                item.querySelector('.download-btn').addEventListener('click', function() {
+                    const exportFormat = document.querySelector('input[name="export-format"]:checked').value;
+                    if (exportFormat === 'mp3') {
+                        // MP3 olarak dışa aktar
+                        mp3Quality = parseInt(document.getElementById('quality-select').value);
+                        exportToMp3(comp).then(blob => {
+                            // İndirme işlemini gerçekleştir
+                            const fileName = `${comp.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.mp3`;
+
+                            if (window.Android) {
+                                showDownloadProgress("MP3 dosyası indiriliyor...");
+
+                                // Blob'u URL'e dönüştür
+                                const url = URL.createObjectURL(blob);
+
+                                // Android ile indir (WebView)
+                                const a = document.createElement('a');
+                                a.href = url;
+                                a.download = fileName;
+                                document.body.appendChild(a);
+                                a.click();
+                                document.body.removeChild(a);
+                                URL.revokeObjectURL(url);
+
+                                showDownloadProgress("MP3 dosyası indirildi!", false, true);
+                            } else {
+                                // Normal tarayıcılar için indirme
+                                const url = URL.createObjectURL(blob);
+                                const a = document.createElement('a');
+                                a.href = url;
+                                a.download = fileName;
+                                document.body.appendChild(a);
+                                a.click();
+                                document.body.removeChild(a);
+                                URL.revokeObjectURL(url);
+
+                                showNotification("MP3 dosyası indirildi!");
+                            }
+                        }).catch(err => {
+                            console.error("MP3 export error:", err);
+                            showNotification("MP3 dışa aktarma hatası!");
+                        });
+                    } else {
+                        // JSON olarak dışa aktar
+                        downloadComposition(comp);
+                    }
+                });
+            });
+
+            exportModal.style.display = 'flex';
+        }
+
+        // Besteyi indir
+        function downloadComposition(comp) {
+            try {
+                if (isDownloading) {
+                    showNotification("Bir indirme işlemi zaten devam ediyor");
+                    return;
+                }
+
+                isDownloading = true;
+                showDownloadProgress("JSON dosyası hazırlanıyor...");
+
+                const fileName = `${comp.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.bestesemo`;
+                const content = JSON.stringify(comp, null, 2);
+
+                const blob = new Blob([content], {type: 'application/json'});
+
+                if (window.Android) {
+                    // Android WebView için
+                    showDownloadProgress("JSON dosyası indiriliyor...");
+
+                    // Blob'u URL'e dönüştür
+                    const url = URL.createObjectURL(blob);
+
+                    // Android ile indir
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = fileName;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+
+                    showDownloadProgress("JSON dosyası indirildi!", false, true);
+                } else {
+                    // Normal tarayıcılar için
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = fileName;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+
+                    showNotification("JSON dosyası indirildi!");
+                }
+
+                isDownloading = false;
+            } catch (error) {
+                console.error("JSON indirme hatası:", error);
+                showDownloadProgress("JSON indirme hatası!", true);
+                isDownloading = false;
+            }
+        }
+
+        // Belirli bir besteyi yükle
+        function loadSpecificComposition(comp) {
+            // Pozisyonları doğru bir şekilde geri yükleyelim
+            composition = [];
+
+            comp.composition.forEach(note => {
+                const position = note.position || 0;
+                composition[position] = {
+                    note: note.note,
+                    octave: note.octave,
+                    length: note.length
+                };
+            });
+
+            // En son pozisyondan sonra da yer ayıralım
+            const lastPosition = Math.max(...comp.composition.map(n => n.position || 0)) + 1;
+            if (composition.length <= lastPosition) {
+                composition.length = lastPosition + 1;
+            }
+
+            tempo = comp.tempo || 120;
+            currentPosition = 0;
+
+            // Enstrüman ve efektleri yükle
+            if (comp.instrument) {
+                currentInstrument = comp.instrument;
+                document.getElementById('instrument-select').value = currentInstrument;
+            }
+
+            if (comp.effects) {
+                activeEffects = comp.effects;
+                // Efekt butonlarını güncelle
+                document.querySelectorAll('.effect-btn').forEach(btn => {
+                    const effect = btn.getAttribute('data-effect');
+                    if (activeEffects.includes(effect)) {
+                        btn.classList.add('active');
+                    } else {
+                        btn.classList.remove('active');
+                    }
+                });
+            }
+
+            setTempoSliderPosition();
+            updateDisplay();
+            showNotification(`"${comp.name}" adlı beste yüklendi!`);
+        }
+
+        // Besteyi sil
+        function deleteComposition(name) {
+            let savedCompositions = JSON.parse(localStorage.getItem('besteleyiciCompositions') || '[]');
+            savedCompositions = savedCompositions.filter(c => c.name !== name);
+            localStorage.setItem('besteleyiciCompositions', JSON.stringify(savedCompositions));
+            showNotification(`"${name}" adlı beste silindi!`);
+        }
+
+        // Besteyi temizleme
+        function clearComposition() {
+            if (confirm('Besteyi temizlemek istediğinize emin misiniz?')) {
+                composition = [];
+                currentPosition = 0;
+                maxNotePosition = 0;
+                updateDisplay();
+                showNotification("Beste temizlendi!");
+            }
+        }
+
+        // Demo besteler - 1-2 dakikalık uzun versiyonlar
+        const demoCompositions = {
+            demo1: {
+                name: "Neşeli Melodi",
+                tempo: 120,
+                composition: generateLongDemo([
+                    {note: 1, octave: 4, length: 0.25},
+                    {note: 3, octave: 4, length: 0.25},
+                    {note: 5, octave: 4, length: 0.25},
+                    {note: 8, octave: 4, length: 0.5},
+                    {note: 5, octave: 4, length: 0.25},
+                    {note: 3, octave: 4, length: 0.25},
+                    {note: 1, octave: 4, length: 0.5},
+                    {note: 0, octave: 4, length: 0.25},
+                    {note: 1, octave: 4, length: 0.25},
+                    {note: 3, octave: 4, length: 0.25},
+                    {note: 5, octave: 4, length: 0.25},
+                    {note: 3, octave: 4, length: 0.5},
+                    {note: 1, octave: 4, length: 0.5}
+                ], 8)
+            },
+            demo2: {
+                name: "Hüzünlü Vals",
+                tempo: 90,
+                composition: generateLongDemo([
+                    {note: 6, octave: 3, length: 0.5},
+                    {note: 1, octave: 4, length: 0.25},
+                    {note: 3, octave: 4, length: 0.25},
+                    {note: 6, octave: 3, length: 0.5},
+                    {note: 1, octave: 4, length: 0.25},
+                    {note: 3, octave: 4, length: 0.25},
+                    {note: 5, octave: 3, length: 0.5},
+                    {note: 7, octave: 3, length: 0.25},
+                    {note: 2, octave: 4, length: 0.25},
+                    {note: 5, octave: 3, length: 0.5},
+                    {note: 7, octave: 3, length: 0.25},
+                    {note: 2, octave: 4, length: 0.25},
+                    {note: 6, octave: 3, length: 0.5},
+                    {note: 1, octave: 4, length: 0.25},
+                    {note: 3, octave: 4, length: 0.25},
+                    {note: 5, octave: 3, length: 0.5}
+                ], 6)
+            },
+            demo3: {
+                name: "Türk Ezgisi",
+                tempo: 100,
+                composition: generateLongDemo([
+                    {note: 5, octave: 4, length: 0.25},
+                    {note: 6, octave: 4, length: 0.25},
+                    {note: 5, octave: 4, length: 0.25},
+                    {note: 3, octave: 4, length: 0.25},
+                    {note: 2, octave: 4, length: 0.5},
+                    {note: 1, octave: 4, length: 0.5},
+                    {note: 2, octave: 4, length: 0.25},
+                    {note: 3, octave: 4, length: 0.25},
+                    {note: 2, octave: 4, length: 0.5},
+                    {note: 0, octave: 4, length: 0.25},
+                    {note: 5, octave: 3, length: 0.25},
+                    {note: 6, octave: 3, length: 0.25},
+                    {note: 1, octave: 4, length: 0.5},
+                    {note: 2, octave: 4, length: 0.25},
+                    {note: 3, octave: 4, length: 0.25},
+                    {note: 5, octave: 4, length: 0.5}
+                ], 7)
+            },
+            demo4: {
+                name: "Klasik Tema",
+                tempo: 110,
+                composition: generateLongDemo([
+                    {note: 1, octave: 4, length: 0.25},
+                    {note: 2, octave: 4, length: 0.25},
+                    {note: 3, octave: 4, length: 0.25},
+                    {note: 1, octave: 4, length: 0.25},
+                    {note: 3, octave: 4, length: 0.25},
+                    {note: 4, octave: 4, length: 0.25},
+                    {note: 5, octave: 4, length: 0.5},
+                    {note: 0, octave: 4, length: 0.25},
+                    {note: 5, octave: 4, length: 0.25},
+                    {note: 4, octave: 4, length: 0.25},
+                    {note: 3, octave: 4, length: 0.25},
+                    {note: 2, octave: 4, length: 0.25},
+                    {note: 1, octave: 4, length: 0.5},
+                    {note: 0, octave: 4, length: 0.25},
+                    {note: 5, octave: 3, length: 0.25},
+                    {note: 6, octave: 3, length: 0.25},
+                    {note: 7, octave: 3, length: 0.25},
+                    {note: 1, octave: 4, length: 0.5}
+                ], 6)
+            },
+            demo5: {
+                name: "Pop Ritmi",
+                tempo: 130,
+                composition: generateLongDemo([
+                    {note: 1, octave: 4, length: 0.125},
+                    {note: 1, octave: 4, length: 0.125},
+                    {note: 5, octave: 4, length: 0.25},
+                    {note: 3, octave: 4, length: 0.125},
+                    {note: 3, octave: 4, length: 0.125},
+                    {note: 5, octave: 4, length: 0.25},
+                    {note: 0, octave: 4, length: 0.125},
+                    {note: 5, octave: 4, length: 0.125},
+                    {note: 6, octave: 4, length: 0.25},
+                    {note: 5, octave: 4, length: 0.125},
+                    {note: 3, octave: 4, length: 0.125},
+                    {note: 1, octave: 4, length: 0.25},
+                    {note: 0, octave: 4, length: 0.125},
+                    {note: 1, octave: 4, length: 0.125},
+                    {note: 3, octave: 4, length: 0.125},
+                    {note: 5, octave: 4, length: 0.25}
+                ], 10)
+            },
+            demo6: {
+                name: "Çocuk Şarkısı",
+                tempo: 140,
+                composition: generateLongDemo([
+                    {note: 1, octave: 4, length: 0.25},
+                    {note: 1, octave: 4, length: 0.25},
+                    {note: 5, octave: 4, length: 0.25},
+                    {note: 5, octave: 4, length: 0.25},
+                    {note: 6, octave: 4, length: 0.25},
+                    {note: 6, octave: 4, length: 0.25},
+                    {note: 5, octave: 4, length: 0.5},
+                    {note: 4, octave: 4, length: 0.25},
+                    {note: 4, octave: 4, length: 0.25},
+                    {note: 3, octave: 4, length: 0.25},
+                    {note: 3, octave: 4, length: 0.25},
+                    {note: 2, octave: 4, length: 0.25},
+                    {note: 2, octave: 4, length: 0.25},
+                    {note: 1, octave: 4, length: 0.5}
+                ], 7)
+            },
+            demo7: {
+                name: "Film Müziği",
+                tempo: 80,
+                composition: generateLongDemo([
+                    {note: 5, octave: 3, length: 0.5},
+                    {note: 1, octave: 4, length: 0.5},
+                    {note: 2, octave: 4, length: 0.25},
+                    {note: 3, octave: 4, length: 0.75},
+                    {note: 0, octave: 4, length: 0.25},
+                    {note: 5, octave: 3, length: 0.5},
+                    {note: 1, octave: 4, length: 0.5},
+                    {note: 2, octave: 4, length: 0.25},
+                    {note: 1, octave: 4, length: 0.75},
+                    {note: 0, octave: 4, length: 0.25},
+                    {note: 3, octave: 4, length: 0.5},
+                    {note: 5, octave: 4, length: 0.5},
+                    {note: 3, octave: 4, length: 0.25},
+                    {note: 1, octave: 4, length: 0.75}
+                ], 6)
+            },
+            demo8: {
+                name: "Oyun Melodisi",
+                tempo: 150,
+                composition: generateLongDemo([
+                    {note: 1, octave: 5, length: 0.125},
+                    {note: 5, octave: 4, length: 0.125},
+                    {note: 3, octave: 4, length: 0.125},
+                    {note: 1, octave: 4, length: 0.125},
+                    {note: 1, octave: 5, length: 0.125},
+                    {note: 5, octave: 4, length: 0.125},
+                    {note: 3, octave: 4, length: 0.125},
+                    {note: 1, octave: 4, length: 0.125},
+                    {note: 7, octave: 4, length: 0.125},
+                    {note: 5, octave: 4, length: 0.125},
+                    {note: 3, octave: 4, length: 0.125},
+                    {note: 7, octave: 3, length: 0.125},
+                    {note: 7, octave: 4, length: 0.125},
+                    {note: 5, octave: 4, length: 0.125},
+                    {note: 3, octave: 4, length: 0.125},
+                    {note: 7, octave: 3, length: 0.125}
+                ], 12)
+            },
+            demo9: {
+                name: "Doğu Ezgisi",
+                tempo: 95,
+                composition: generateLongDemo([
+                    {note: 1, octave: 4, length: 0.25},
+                    {note: 2, octave: 4, length: 0.125},
+                    {note: 3, octave: 4, length: 0.125},
+                    {note: 2, octave: 4, length: 0.25},
+                    {note: 1, octave: 4, length: 0.25},
+                    {note: 6, octave: 3, length: 0.5},
+                    {note: 0, octave: 4, length: 0.25},
+                    {note: 6, octave: 3, length: 0.25},
+                    {note: 7, octave: 3, length: 0.125},
+                    {note: 1, octave: 4, length: 0.125},
+                    {note: 7, octave: 3, length: 0.25},
+                    {note: 6, octave: 3, length: 0.25},
+                    {note: 5, octave: 3, length: 0.5}
+                ], 8)
+            },
+            demo10: {
+                name: "Elektronik Beat",
+                tempo: 160,
+                composition: generateLongDemo([
+                    {note: 1, octave: 4, length: 0.125},
+                    {note: 0, octave: 4, length: 0.125},
+                    {note: 1, octave: 4, length: 0.125},
+                    {note: 0, octave: 4, length: 0.125},
+                    {note: 5, octave: 4, length: 0.125},
+                    {note: 0, octave: 4, length: 0.125},
+                    {note: 5, octave: 4, length: 0.125},
+                    {note: 0, octave: 4, length: 0.125},
+                    {note: 3, octave: 4, length: 0.125},
+                    {note: 0, octave: 4, length: 0.125},
+                    {note: 3, octave: 4, length: 0.125},
+                    {note: 0, octave: 4, length: 0.125},
+                    {note: 7, octave: 4, length: 0.125},
+                    {note: 0, octave: 4, length: 0.125},
+                    {note: 7, octave: 4, length: 0.125},
+                    {note: 0, octave: 4, length: 0.125}
+                ], 15)
+            }
+        };
+
+        // Uzun demo oluşturucu
+        function generateLongDemo(pattern, repetitions) {
+            const result = [];
+            let position = 0;
+
+            // Ana motifi tekrarla
+            for (let r = 0; r < repetitions; r++) {
+                // Motifi ekle
+                for (let i = 0; i < pattern.length; i++) {
+                    result.push({
+                        note: pattern[i].note,
+                        octave: pattern[i].octave,
+                        length: pattern[i].length,
+                        position: position++
+                    });
+                }
+
+                // Varyasyonlar ekle (her 2 tekrarda bir)
+                if (r % 2 === 1) {
+                    // Oktav değişimi
+                    for (let i = 0; i < Math.min(pattern.length, 8); i++) {
+                        const variation = {
+                            note: pattern[i].note,
+                            octave: pattern[i].octave + (Math.random() > 0.5 ? 1 : -1),
+                            length: pattern[i].length,
+                            position: position++
+                        };
+                        // Oktavı sınırla
+                        variation.octave = Math.max(2, Math.min(6, variation.octave));
+                        result.push(variation);
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        // Event Listeners
+        document.getElementById('play').addEventListener('click', playComposition);
+        document.getElementById('save').addEventListener('click', saveComposition);
+        document.getElementById('load').addEventListener('click', loadComposition);
+        document.getElementById('clear').addEventListener('click', clearComposition);
+        document.getElementById('export').addEventListener('click', exportComposition);
+        document.getElementById('help').addEventListener('click', function() {
+            helpModal.style.display = 'flex';
+        });
+
+        document.getElementById('save-confirm').addEventListener('click', saveCompositionWithName);
+
+        document.getElementById('save-cancel').addEventListener('click', function() {
+            saveModal.style.display = 'none';
+        });
+
+        document.getElementById('load-cancel').addEventListener('click', function() {
+            loadModal.style.display = 'none';
+        });
+
+        document.getElementById('export-cancel').addEventListener('click', function() {
+            exportModal.style.display = 'none';
+        });
+
+        document.getElementById('help-close').addEventListener('click', function() {
+            helpModal.style.display = 'none';
+        });
+
+        // Uzunluk ve oktav tuşları
+        document.getElementById('length-key').addEventListener('click', cycleNoteLength);
+        document.getElementById('octave-key').addEventListener('click', cycleOctave);
+
+        // Not kontekst menüsü eylemleri
+        document.getElementById('note-context-menu').addEventListener('click', function(e) {
+            const action = e.target.dataset.action;
+            if (action === 'change-length') {
+                changeSelectedNoteLength();
+            } else if (action === 'change-octave') {
+                changeSelectedNoteOctave();
+            } else if (action === 'delete-note') {
+                deleteSelectedNote();
+            }
+            hideContextMenu();
+        });
+
+        // Ekran tıklaması (imleç yerleştirmek için)
+        noteDisplay.addEventListener('click', function(e) {
+            // Fare tıklama pozisyonunu nota konumuna çevir
+            const rect = noteDisplay.getBoundingClientRect();
+            const clickX = e.clientX - rect.left + noteDisplay.scrollLeft;
+
+            // En yakın nota pozisyonunu hesapla (20px'lik grid)
+            const notePosition = Math.floor(clickX / 20);
+
+            // Geçerli bir pozisyon mu kontrol et
+            if (notePosition >= 0) {
+                currentPosition = notePosition;
+
+                // Gerekirse composition array'ini genişlet
+                if (currentPosition >= composition.length) {
+                    composition.length = currentPosition + 1;
+                }
+
+                updateDisplay();
+            }
+        });
+
+        // Bağlam menüsünü gizle
+        document.addEventListener('click', function(e) {
+            if (e.target.closest('#note-context-menu') === null) {
+                hideContextMenu();
+            }
+        });
+
+        // Tempo kaydırıcısı
+        tempoSlider.addEventListener('mousedown', function(e) {
+            e.preventDefault();
+            draggingTempo = true;
+        });
+
+        document.addEventListener('mousemove', function(e) {
+            if (draggingTempo) {
+                updateTempoFromSlider(e.clientY);
+            }
+        });
+
+        document.addEventListener('mouseup', function() {
+            draggingTempo = false;
+        });
+
+        // Tempo control tıklaması
+        document.querySelector('.tempo-control').addEventListener('click', function(e) {
+            updateTempoFromSlider(e.clientY);
+        });
+
+        // Tuş olayları
+        document.querySelectorAll('.key').forEach(key => {
+            key.addEventListener('click', function() {
+                const note = this.getAttribute('data-note');
+                const action = this.getAttribute('data-action');
+
+                if (note) {
+                    // Tuşa basıldığında görsel efekt
+                    this.classList.add('active-key');
+                    setTimeout(() => {
+                        this.classList.remove('active-key');
+                    }, 200);
+
+                    addNote(note);
+                } else if (action) {
+                    if (action === 'delete') {
+                        deleteNote();
+                    }
+                }
+            });
+
+            // Tuşa basıldığında ses çal (nota tuşları için)
+            if (key.getAttribute('data-note')) {
+                key.addEventListener('mousedown', function() {
+                    const noteValue = parseInt(this.getAttribute('data-note'));
+                    if (noteValue !== 0) { // Sus değilse
+                        if (!audioContext) initAudioContext();
+                        playNote(noteValue, currentOctave, 0.2);
+                    }
+                });
+            }
+        });
+
+        // Demo butonları
+        document.querySelectorAll('.demo-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const demoId = this.getAttribute('data-demo');
+                if (demoCompositions[demoId]) {
+                    if (confirm(`"${demoCompositions[demoId].name}" adlı demo besteyi yüklemek istiyor musunuz? Mevcut besteniz silinecektir.`)) {
+                        loadSpecificComposition(demoCompositions[demoId]);
+                        // Besteleyici sekmesine geç
+                        document.querySelector('.tab[data-tab="composer"]').click();
+                    }
+                }
+            });
+        });
+
+        // Efekt butonları
+        document.querySelectorAll('.effect-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const effect = this.getAttribute('data-effect');
+                if (effect) {
+                    if (activeEffects.includes(effect)) {
+                        // Efekti kaldır
+                        activeEffects = activeEffects.filter(e => e !== effect);
+                        this.classList.remove('active');
+                    } else {
+                        // Efekti ekle
+                        activeEffects.push(effect);
+                        this.classList.add('active');
+                    }
+                }
+            });
+        });
+
+        // Enstrüman seçimi
+        document.getElementById('instrument-select').addEventListener('change', function() {
+            currentInstrument = this.value;
+        });
+
+        // MP3 kalite seçimi
+        document.getElementById('quality-select').addEventListener('change', function() {
+            mp3Quality = parseInt(this.value);
+        });
+
+        // Klavye olayları
+        document.addEventListener('keydown', function(e) {
+            const key = e.key;
+
+            if (key >= '0' && key <= '8') {
+                // Tuşa basıldığında görsel efekt
+                const keyElement = document.querySelector(`.key[data-note="${key}"]`);
+                if (keyElement) {
+                    keyElement.classList.add('active-key');
+                    setTimeout(() => {
+                        keyElement.classList.remove('active-key');
+                    }, 200);
+                }
+
+                addNote(key);
+            } else if (key === 'ArrowLeft') {
+                if (currentPosition > 0) currentPosition--;
+                updateDisplay();
+            } else if (key === 'ArrowRight') {
+                currentPosition++;
+                if (currentPosition >= composition.length) {
+                    composition.length = currentPosition + 1;
+                }
+                updateDisplay();
+            } else if (key === 'ArrowUp') {
+                currentOctave = Math.min(6, currentOctave + 1);
+                updateDisplay();
+            } else if (key === 'ArrowDown') {
+                currentOctave = Math.max(2, currentOctave - 1);
+                updateDisplay();
+            } else if (key === '+' || key === '=') {
+                cycleNoteLength();
+            } else if (key === '-' || key === '_') {
+                // Ters yönde döngüsel olarak değiştir
+                const lengths = [1, 0.5, 0.25, 0.125, 0.0625];
+                const currentIndex = lengths.indexOf(noteLength);
+                const nextIndex = (currentIndex - 1 + lengths.length) % lengths.length;
+                noteLength = lengths[nextIndex];
+                updateDisplay();
+            } else if (key === 'Backspace' || key === 'Delete') {
+                deleteNote();
+            } else if (key === ' ') {
+                playComposition();
+                e.preventDefault(); // Sayfa kaydırmasını engelle
+            }
+        });
+
+        // MP3 kodlama için lamejs kütüphanesini yükle
+        function loadLameJS() {
+            return new Promise((resolve, reject) => {
+                if (window.lamejs) {
+                    resolve();
+                    return;
+                }
+
+                const script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/lamejs@1.2.0/lame.min.js';
+                script.onload = () => resolve();
+                script.onerror = () => reject(new Error('LameJS yüklenemedi'));
+                document.head.appendChild(script);
+            });
+        }
+
+        // Sayfa yüklendiğinde LameJS'i yükle
+        loadLameJS().then(() => {
+            console.log('LameJS yüklendi');
+        }).catch(err => {
+            console.error('LameJS yükleme hatası:', err);
+        });
+
+        // İlk görünüm ayarlamaları
+        setTempoSliderPosition();
+        updateDisplay();
+    });
+</script>
+</body>
+</html>

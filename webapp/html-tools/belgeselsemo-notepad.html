@@ -1,0 +1,2745 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>BELGESELSEMO NOTEPAD</title>
+    <style>
+        :root {
+            --primary-color: #3470e4;
+            --primary-light: #5690ff;
+            --primary-dark: #0d4dba;
+            --accent-color: #ff7700;
+            --accent-light: #ff9a44;
+            --accent-dark: #cc5f00;
+            --success-color: #4caf50;
+            --warning-color: #ffeb3b;
+            --error-color: #f44336;
+            --text-primary: #000000;
+            --text-secondary: #666666;
+            --text-tertiary: #999999;
+            --bg-primary: #ffffff;
+            --bg-secondary: #f5f5f5;
+            --bg-tertiary: #e0e0e0;
+            --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            --border-radius: 8px;
+            --transition: all 0.3s ease;
+            --spacing-xs: 4px;
+            --spacing-sm: 8px;
+            --spacing-md: 16px;
+            --spacing-lg: 24px;
+            --spacing-xl: 32px;
+            --font-family: 'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif;
+            --header-height: 56px;
+            --footer-height: 40px;
+        }
+
+        .dark-theme {
+            --primary-color: #e50914;
+            --primary-light: #f40612;
+            --primary-dark: #c50812;
+            --accent-color: #e50914;
+            --accent-light: #f40612;
+            --accent-dark: #c50812;
+            --text-primary: #ffffff;
+            --text-secondary: #b3b3b3;
+            --text-tertiary: #808080;
+            --bg-primary: #141414;
+            --bg-secondary: #1f1f1f;
+            --bg-tertiary: #2a2a2a;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-family);
+            background-color: var(--bg-secondary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            transition: var(--transition);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: var(--spacing-md) var(--spacing-sm);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            z-index: 10;
+            box-shadow: var(--shadow);
+            height: var(--header-height);
+        }
+
+        .dark-theme header {
+            background: linear-gradient(135deg, rgba(20, 20, 20, 0.98) 0%, rgba(40, 20, 20, 0.98) 100%);
+            box-shadow: 0 2px 8px rgba(229, 9, 20, 0.3);
+            border-bottom: 1px solid rgba(229, 9, 20, 0.3);
+        }
+
+        .logo {
+            font-size: 1.2rem;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            cursor: pointer;
+            /* Added cursor pointer to show it's clickable */
+        }
+
+        .header-actions {
+            display: flex;
+            gap: var(--spacing-xs);
+        }
+
+        .btn {
+            background-color: transparent;
+            border: none;
+            color: white;
+            cursor: pointer;
+            padding: var(--spacing-sm);
+            border-radius: var(--border-radius);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            transition: var(--transition);
+            min-height: 40px;
+            min-width: 40px;
+        }
+
+        .btn:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .btn i {
+            margin-right: var(--spacing-xs);
+        }
+
+        .btn.primary {
+            background-color: var(--primary-dark);
+        }
+
+        .btn.primary:hover {
+            background-color: var(--primary-light);
+        }
+
+        .btn.accent {
+            background-color: var(--accent-color);
+        }
+
+        .btn.accent:hover {
+            background-color: var(--accent-light);
+        }
+
+        main {
+            display: flex;
+            height: calc(100vh - var(--header-height) - var(--footer-height));
+            position: relative;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: 280px;
+            background-color: var(--bg-primary);
+            border-right: 1px solid var(--bg-tertiary);
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            z-index: 20;
+            position: absolute;
+            height: 100%;
+            transform: translateX(-100%);
+            /* Hidden by default */
+            left: 0;
+            top: 0;
+            overflow: hidden;
+        }
+
+        .dark-theme .sidebar {
+            background: linear-gradient(135deg, rgba(20, 20, 20, 0.98) 0%, rgba(40, 20, 20, 0.98) 100%);
+            border-right: 1px solid rgba(229, 9, 20, 0.3);
+            box-shadow: 2px 0 8px rgba(229, 9, 20, 0.2);
+        }
+
+        .dark-theme .sidebar-header {
+            border-bottom: 1px solid rgba(229, 9, 20, 0.3);
+        }
+
+        .dark-theme .search-box input {
+            background-color: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(229, 9, 20, 0.3);
+            color: white;
+        }
+
+        .dark-theme .search-box input:focus {
+            border-color: #e50914;
+            box-shadow: 0 0 0 2px rgba(229, 9, 20, 0.2);
+        }
+
+        .dark-theme .note-item {
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #b3b3b3;
+        }
+
+        .dark-theme .note-content-wrapper {
+            flex: 1;
+            overflow: hidden;
+            min-width: 0;
+        }
+
+        .delete-note-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1rem;
+            padding: 4px 8px;
+            margin-left: 8px;
+            opacity: 0;
+            transition: opacity 0.2s, color 0.2s;
+            color: var(--text-secondary);
+            border-radius: 4px;
+            flex-shrink: 0;
+        }
+
+        .note-item:hover .delete-note-btn {
+            opacity: 0.6;
+        }
+
+        .delete-note-btn:hover {
+            opacity: 1 !important;
+            color: var(--error-color);
+            background-color: rgba(244, 67, 54, 0.1);
+        }
+
+        .note-item:hover {
+            background-color: rgba(229, 9, 20, 0.1);
+            border-color: rgba(229, 9, 20, 0.3);
+            color: white;
+        }
+
+        .dark-theme .note-item.active {
+            background-color: rgba(229, 9, 20, 0.15);
+            border-color: #e50914;
+            border-left-width: 4px;
+            color: white;
+            box-shadow: 0 4px 12px rgba(229, 9, 20, 0.2);
+        }
+
+        .dark-theme .note-item.active .note-preview {
+            color: #cccccc;
+        }
+
+        .dark-theme .note-item.active .note-date {
+            color: #999999;
+        }
+
+        .sidebar-visible {
+            transform: translateX(0);
+            box-shadow: var(--shadow);
+        }
+
+        .sidebar-header {
+            padding: var(--spacing-md);
+            border-bottom: 1px solid var(--bg-tertiary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            min-height: 60px;
+        }
+
+        .sidebar-footer {
+            display: none;
+            /* Hidden by default, shown at mobile */
+        }
+
+        .dark-theme .sidebar-footer {
+            border-top: 1px solid rgba(229, 9, 20, 0.3);
+            color: #b3b3b3;
+        }
+
+        .search-box {
+            position: relative;
+            margin: var(--spacing-md);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: var(--spacing-sm) var(--spacing-md);
+            padding-left: 32px;
+            border: 1px solid var(--bg-tertiary);
+            border-radius: var(--border-radius);
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            height: 40px;
+        }
+
+        .search-box i {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-tertiary);
+        }
+
+        .notes-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: var(--spacing-sm);
+        }
+
+        .note-item {
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+            margin-bottom: var(--spacing-sm);
+            cursor: pointer;
+            transition: var(--transition);
+            background-color: var(--bg-primary);
+            border: 1px solid var(--bg-tertiary);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .note-content-wrapper {
+            flex: 1;
+            overflow: hidden;
+            min-width: 0;
+            /* Fix flex ellipsis issue */
+        }
+
+        .delete-note-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1rem;
+            padding: 4px;
+            margin-left: 8px;
+            opacity: 0;
+            /* Hidden by default */
+            transition: opacity 0.2s, color 0.2s;
+            color: var(--text-secondary);
+            border-radius: 4px;
+        }
+
+        .note-item:hover .delete-note-btn {
+            opacity: 0.6;
+        }
+
+        .delete-note-btn:hover {
+            opacity: 1 !important;
+            color: var(--error-color);
+            background-color: rgba(244, 67, 54, 0.1);
+        }
+
+        .note-item:hover {
+            background-color: var(--bg-secondary);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+
+        .note-item.active {
+            background-color: #e8f0fe;
+            color: var(--text-primary);
+            border-color: var(--primary-color);
+            border-left-width: 4px;
+        }
+
+        .note-item.active .note-preview {
+            color: var(--text-secondary);
+        }
+
+        .note-item.active .note-date {
+            color: var(--text-tertiary);
+        }
+
+        .note-title {
+            font-weight: bold;
+            margin-bottom: var(--spacing-xs);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .note-preview {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-height: 2.4em;
+        }
+
+        .note-date {
+            font-size: 0.75rem;
+            color: var(--text-tertiary);
+            margin-top: var(--spacing-xs);
+        }
+
+        .editor-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--bg-primary);
+            position: relative;
+            overflow: hidden;
+            width: 100%;
+            transition: margin-left 0.3s ease, width 0.3s ease;
+        }
+
+        .toolbar {
+            padding: var(--spacing-sm);
+            background-color: var(--bg-primary);
+            border-bottom: 1px solid var(--bg-tertiary);
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-xs);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            z-index: 2;
+            overflow: visible;
+        }
+
+        .toolbar-group {
+            display: flex;
+            gap: var(--spacing-xs);
+            border-right: 1px solid var(--bg-tertiary);
+            padding-right: var(--spacing-sm);
+            margin-right: var(--spacing-sm);
+            flex-wrap: nowrap;
+        }
+
+        .toolbar-group:last-child {
+            border-right: none;
+            padding-right: 0;
+            margin-right: 0;
+        }
+
+        .tool-btn {
+            background-color: transparent;
+            border: none;
+            color: var(--text-primary);
+            cursor: pointer;
+            min-width: 36px;
+            min-height: 36px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+            padding: var(--spacing-xs);
+        }
+
+        .tool-btn:hover {
+            background-color: var(--bg-secondary);
+        }
+
+        .tool-btn.active {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .dropdown {
+            position: relative;
+        }
+
+        .dropdown-toggle {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-xs);
+            padding: var(--spacing-xs) var(--spacing-sm);
+            border-radius: var(--border-radius);
+            background-color: var(--bg-primary);
+            border: 1px solid var(--bg-tertiary);
+            color: var(--text-primary);
+            cursor: pointer;
+            min-height: 36px;
+        }
+
+        .dropdown-menu {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            z-index: 1000;
+            min-width: 150px;
+            background-color: var(--bg-primary);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            display: none;
+            flex-direction: column;
+            padding: var(--spacing-xs);
+            border: 1px solid var(--bg-tertiary);
+            margin-top: 5px;
+        }
+
+        .dropdown-menu.show {
+            display: flex;
+        }
+
+        .dropdown-item {
+            padding: var(--spacing-sm) var(--spacing-md);
+            cursor: pointer;
+            border-radius: calc(var(--border-radius) - 2px);
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+
+        .dropdown-item:hover {
+            background-color: var(--bg-secondary);
+        }
+
+        .dropdown-divider {
+            height: 1px;
+            margin: var(--spacing-xs) 0;
+            background-color: var(--bg-tertiary);
+        }
+
+        .color-item {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+
+        .color-swatch {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 1px solid var(--bg-tertiary);
+        }
+
+        #editor {
+            flex: 1;
+            padding: var(--spacing-md);
+            overflow-y: auto;
+            outline: none;
+            background-repeat: repeat;
+            transition: background-image 0.3s ease;
+            color: var(--text-primary);
+        }
+
+        #editor.lined-paper {
+            background-image: linear-gradient(var(--bg-primary) 29px, var(--text-tertiary) 1px);
+            background-size: 100% 30px;
+            line-height: 30px;
+            padding-top: 4px;
+        }
+
+        .dark-theme #editor {
+            color: #ffffff;
+        }
+
+        /* SMART COLOR INVERSION */
+
+        /* Dark Theme: Black text becomes White */
+        .dark-theme #editor font[color="#000000"],
+        .dark-theme #editor font[color="black"],
+        .dark-theme #editor [style*="color: #000000"],
+        .dark-theme #editor [style*="color: black"],
+        .dark-theme #editor [style*="color: rgb(0, 0, 0)"],
+        .dark-theme #editor [style*="color:rgb(0, 0, 0)"] {
+            color: #ffffff !important;
+        }
+
+        /* Light Theme: White text becomes Black */
+        body:not(.dark-theme) #editor font[color="#ffffff"],
+        body:not(.dark-theme) #editor font[color="white"],
+        body:not(.dark-theme) #editor [style*="color: #ffffff"],
+        body:not(.dark-theme) #editor [style*="color: white"],
+        body:not(.dark-theme) #editor [style*="color: rgb(255, 255, 255)"],
+        body:not(.dark-theme) #editor [style*="color:rgb(255, 255, 255)"] {
+            color: #000000 !important;
+        }
+
+        /* Allow other custom colors to override default white in dark mode */
+        .dark-theme #editor font[color],
+        .dark-theme #editor span[style*="color"] {
+            /* No specific rule needed, inline styles will take precedence unless overridden above */
+        }
+
+        #editor.grid-paper {
+            background-size: 30px 30px;
+            background-image:
+                linear-gradient(var(--bg-tertiary) 1px, transparent 1px),
+                linear-gradient(90deg, var(--bg-tertiary) 1px, transparent 1px);
+        }
+
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            padding: var(--spacing-xs) var(--spacing-md);
+            background-color: var(--bg-primary);
+            border-top: 1px solid var(--bg-tertiary);
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        /* Footer */
+        footer {
+            height: var(--footer-height);
+            background-color: var(--primary-color);
+            color: white;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: var(--spacing-xs) var(--spacing-md);
+            font-size: 0.9rem;
+            z-index: 5;
+        }
+
+        .dark-theme footer {
+            background: linear-gradient(135deg, rgba(20, 20, 20, 0.98) 0%, rgba(40, 20, 20, 0.98) 100%);
+            color: #b3b3b3;
+            border-top: 1px solid rgba(229, 9, 20, 0.3);
+            box-shadow: 0 -2px 8px rgba(229, 9, 20, 0.2);
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: var(--transition);
+        }
+
+        .modal-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            background-color: var(--bg-primary);
+            border-radius: var(--border-radius);
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow);
+            transform: translateY(-20px);
+            transition: transform 0.3s ease;
+        }
+
+        .modal-overlay.show .modal {
+            transform: translateY(0);
+        }
+
+        .modal-header {
+            padding: var(--spacing-md);
+            border-bottom: 1px solid var(--bg-tertiary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text-tertiary);
+        }
+
+        .modal-body {
+            padding: var(--spacing-md);
+        }
+
+        .modal-footer {
+            padding: var(--spacing-md);
+            border-top: 1px solid var(--bg-tertiary);
+            display: flex;
+            justify-content: flex-end;
+            gap: var(--spacing-md);
+        }
+
+        .form-group {
+            margin-bottom: var(--spacing-md);
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: var(--spacing-xs);
+            font-weight: bold;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: var(--spacing-sm);
+            border: 1px solid var(--bg-tertiary);
+            border-radius: var(--border-radius);
+            font-family: inherit;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            height: 40px;
+        }
+
+        /* Toast notification */
+        .toast-container {
+            position: fixed;
+            bottom: var(--spacing-lg);
+            right: var(--spacing-lg);
+            z-index: 1100;
+        }
+
+        .toast {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+            margin-bottom: var(--spacing-sm);
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            transform: translateX(120%);
+            transition: transform 0.3s ease;
+            max-width: 300px;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast.success {
+            border-left: 4px solid var(--success-color);
+        }
+
+        .toast.error {
+            border-left: 4px solid var(--error-color);
+        }
+
+        .toast.warning {
+            border-left: 4px solid var(--warning-color);
+        }
+
+        .toast-icon {
+            font-size: 1.5rem;
+        }
+
+        .toast-content {
+            flex: 1;
+        }
+
+        .toast-title {
+            font-weight: bold;
+            margin-bottom: 2px;
+        }
+
+        .toast-close {
+            background: none;
+            border: none;
+            font-size: 1rem;
+            cursor: pointer;
+            color: var(--text-tertiary);
+        }
+
+        /* Floating Action Button */
+        .fab {
+            position: fixed;
+            bottom: calc(var(--spacing-lg) + var(--footer-height));
+            right: var(--spacing-lg);
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background-color: var(--accent-color);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--shadow);
+            cursor: pointer;
+            transition: var(--transition);
+            z-index: 900;
+        }
+
+        .fab:hover {
+            background-color: var(--accent-light);
+            transform: scale(1.05);
+        }
+
+        .fab i {
+            font-size: 1.5rem;
+        }
+
+
+        /* Language selector */
+        .language-selector {
+            position: relative;
+        }
+
+        .language-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background-color: var(--bg-primary);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            display: none;
+            z-index: 100;
+            min-width: 120px;
+            border: 1px solid var(--bg-tertiary);
+            margin-top: 5px;
+        }
+
+        .language-dropdown.show {
+            display: block;
+        }
+
+        .language-option {
+            padding: var(--spacing-sm) var(--spacing-md);
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            color: var(--text-primary);
+        }
+
+        .language-option:hover {
+            background-color: var(--bg-secondary);
+        }
+
+        /* Overlay for sidebar on mobile */
+        .sidebar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.3);
+            z-index: 15;
+            display: none;
+        }
+
+        .sidebar-overlay.show {
+            display: block;
+        }
+
+        /* Hide file input */
+        #file-input {
+            display: none;
+        }
+
+        /* Image upload modal */
+        .image-upload-tabs {
+            display: flex;
+            border-bottom: 1px solid var(--bg-tertiary);
+            margin-bottom: var(--spacing-md);
+        }
+
+        .image-upload-tab {
+            padding: var(--spacing-sm) var(--spacing-md);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+        }
+
+        .image-upload-tab.active {
+            border-bottom: 2px solid var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Override for larger screens to ensure color and style options are visible */
+        @media (min-width: 769px) {
+            .dropdown-toggle .btn-text {
+                display: inline-block;
+            }
+
+            .dropdown-menu {
+                position: absolute;
+                top: 100%;
+                left: 0;
+                transform: none;
+                bottom: auto;
+                width: auto;
+            }
+        }
+
+        /* Mobile responsiveness */
+        @media (max-width: 768px) {
+            .header-actions .btn-text {
+                display: none;
+            }
+
+            .logo span:last-child {
+                display: none;
+                /* Hide title in header on mobile */
+            }
+
+            footer {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            }
+
+            .sidebar {
+                width: 85%;
+                max-width: 300px;
+            }
+
+            .sidebar-footer {
+                display: block;
+                padding: var(--spacing-md);
+                border-top: 1px solid var(--bg-tertiary);
+                text-align: center;
+                font-size: 0.9rem;
+                color: var(--text-tertiary);
+            }
+
+            .toolbar {
+                padding: var(--spacing-xs);
+            }
+
+            .toolbar-group {
+                padding-right: var(--spacing-xs);
+                margin-right: var(--spacing-xs);
+            }
+
+            .tool-btn {
+                min-width: 32px;
+                min-height: 32px;
+                font-size: 0.9rem;
+            }
+
+            .dropdown-toggle {
+                padding: var(--spacing-xs);
+                font-size: 0.9rem;
+                min-height: 32px;
+            }
+
+            .dropdown-toggle .btn-text {
+                display: none;
+            }
+
+            /* Fix the dropdown menus to ensure they're visible */
+            .dropdown-menu {
+                position: fixed;
+                top: auto;
+                left: 50%;
+                transform: translateX(-50%);
+                bottom: calc(var(--footer-height) + var(--spacing-md));
+                width: 90%;
+                max-width: 300px;
+                max-height: 300px;
+                overflow-y: auto;
+            }
+
+            /* Make the color and style items bigger for touch */
+            .dropdown-item {
+                padding: var(--spacing-md);
+                min-height: 44px;
+            }
+
+            .color-swatch {
+                width: 24px;
+                height: 24px;
+            }
+
+            /* Add more space for editor on mobile */
+            #editor {
+                padding: var(--spacing-md) var(--spacing-sm);
+            }
+
+            /* Make modals full screen on mobile */
+            .modal {
+                width: 95%;
+                max-height: 80vh;
+            }
+
+            /* Bigger touch targets for form controls */
+            .form-control {
+                height: 44px;
+            }
+
+            /* Adjust toast position to avoid footer */
+            .toast-container {
+                bottom: calc(var(--footer-height) + var(--spacing-md));
+            }
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.3s ease forwards;
+        }
+
+        .slide-up {
+            animation: slideUp 0.3s ease forwards;
+        }
+    </style>
+</head>
+
+<body class="dark-theme">
+    <header>
+        <div class="logo" id="logo-btn">
+            <span>📝</span>
+            <span id="header-title">BELGESELSEMO NOTEPAD</span>
+        </div>
+        <div class="header-actions">
+            <button id="sidebar-toggle" class="btn" title="Notlar">
+                <span>📋</span>
+            </button>
+            <button id="save-btn" class="btn" title="Kaydet">
+                <span>💾</span>
+                <span class="btn-text">Kaydet</span>
+            </button>
+            <button id="export-btn" class="btn" title="Dışa Aktar">
+                <span>📤</span>
+                <span class="btn-text">Dışa Aktar</span>
+            </button>
+            <button id="theme-toggle" class="btn" title="Tema Değiştir">
+                <span>🌙</span>
+            </button>
+            <div class="language-selector">
+                <button id="language-toggle" class="btn" title="Dil Değiştir">
+                    <span>🌐</span>
+                </button>
+                <div class="language-dropdown" id="language-dropdown">
+                    <div class="language-option" data-lang="tr">
+                        <span>🇹🇷</span>
+                        <span>Türkçe</span>
+                    </div>
+                    <div class="language-option" data-lang="en">
+                        <span>🇬🇧</span>
+                        <span>English</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <!-- Sidebar overlay for mobile -->
+        <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h3 id="notes-title">Notlarım</h3>
+                <button id="new-note-btn" class="btn accent" title="Yeni Not">
+                    <span>➕</span>
+                </button>
+            </div>
+            <div class="search-box">
+                <span
+                    style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text-tertiary);">🔍</span>
+                <input type="text" id="search-notes" placeholder="Notlarda ara...">
+            </div>
+            <div id="notes-list" class="notes-list"></div>
+            <div class="sidebar-footer">
+                BELGESELSEMO NOTEPAD
+            </div>
+        </div>
+
+        <div class="editor-container">
+            <div class="toolbar">
+                <div class="toolbar-group">
+                    <button class="tool-btn" data-command="bold" title="Kalın">
+                        <span>𝐁</span>
+                    </button>
+                    <button class="tool-btn" data-command="italic" title="İtalik">
+                        <span>𝐼</span>
+                    </button>
+                    <button class="tool-btn" data-command="underline" title="Altı Çizili">
+                        <span>U̲</span>
+                    </button>
+                    <button class="tool-btn" data-command="strikeThrough" title="Üstü Çizili">
+                        <span>S̶</span>
+                    </button>
+                </div>
+
+                <div class="toolbar-group">
+                    <button class="tool-btn" data-command="justifyLeft" title="Sola Hizala">
+                        <span>☰⫷</span>
+                    </button>
+                    <button class="tool-btn" data-command="justifyCenter" title="Ortala">
+                        <span>☰</span>
+                    </button>
+                    <button class="tool-btn" data-command="justifyRight" title="Sağa Hizala">
+                        <span>⫸☰</span>
+                    </button>
+                </div>
+
+                <div class="toolbar-group">
+                    <button class="tool-btn" data-command="insertUnorderedList" title="Madde İşaretleri">
+                        <span>•</span>
+                    </button>
+                    <button class="tool-btn" data-command="insertOrderedList" title="Numaralı Liste">
+                        <span>1.</span>
+                    </button>
+                    <button class="tool-btn" data-command="indent" title="Girinti">
+                        <span>→</span>
+                    </button>
+                    <button class="tool-btn" data-command="outdent" title="Çıkıntı">
+                        <span>←</span>
+                    </button>
+                </div>
+
+                <div class="toolbar-group">
+                    <div class="dropdown">
+                        <button class="dropdown-toggle" id="fontColorBtn">
+                            <span>🎨</span>
+                            <span class="btn-text">Yazı Rengi</span>
+                        </button>
+                        <div class="dropdown-menu" id="colorDropdown">
+                            <div class="dropdown-item color-item" data-color="#000000" id="default-color-item">
+                                <span class="color-swatch" style="background-color: #000000;"></span>
+                                <span>Siyah</span>
+                            </div>
+                            <div class="dropdown-item color-item" data-color="#ff0000">
+                                <span class="color-swatch" style="background-color: #ff0000;"></span>
+                                <span>Kırmızı</span>
+                            </div>
+                            <div class="dropdown-item color-item" data-color="#0000ff">
+                                <span class="color-swatch" style="background-color: #0000ff;"></span>
+                                <span>Mavi</span>
+                            </div>
+                            <div class="dropdown-item color-item" data-color="#008000">
+                                <span class="color-swatch" style="background-color: #008000;"></span>
+                                <span>Yeşil</span>
+                            </div>
+                            <div class="dropdown-item color-item" data-color="#ffa500">
+                                <span class="color-swatch" style="background-color: #ffa500;"></span>
+                                <span>Turuncu</span>
+                            </div>
+                            <div class="dropdown-item color-item" data-color="#800080">
+                                <span class="color-swatch" style="background-color: #800080;"></span>
+                                <span>Mor</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="toolbar-group">
+                    <button class="tool-btn" id="insert-image" title="Resim Ekle">
+                        <span>🖼️</span>
+                    </button>
+                    <button class="tool-btn" id="insert-link" title="Bağlantı Ekle">
+                        <span>🔗</span>
+                    </button>
+                </div>
+
+                <div class="toolbar-group">
+                    <div class="dropdown">
+                        <button class="dropdown-toggle" id="paperStyleBtn">
+                            <span>📄</span>
+                            <span class="btn-text">Kağıt Stili</span>
+                        </button>
+                        <div class="dropdown-menu" id="paperStyleDropdown">
+                            <div class="dropdown-item" data-style="none">
+                                <span>📃</span>
+                                <span>Düz</span>
+                            </div>
+                            <div class="dropdown-item" data-style="lined-paper">
+                                <span>📑</span>
+                                <span>Çizgili</span>
+                            </div>
+                            <div class="dropdown-item" data-style="grid-paper">
+                                <span>📏</span>
+                                <span>Kareli</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="editor" contenteditable="true"></div>
+
+            <div class="status-bar">
+                <div id="word-count">Kelime: 0 | Karakter: 0</div>
+                <div id="last-saved">Henüz kaydedilmedi</div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-content">BELGESELSEMO NOTEPAD</div>
+    </footer>
+
+    <!-- Export Modal -->
+    <div class="modal-overlay" id="export-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title" id="export-modal-title">Notu Dışa Aktar</div>
+                <button class="modal-close" id="export-modal-close">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label" id="export-format-label">Dışa Aktarma Formatı</label>
+                    <select class="form-control" id="export-format">
+                        <option value="txt">Metin Dosyası (.txt)</option>
+                        <option value="doc">Word Belgesi (.doc)</option>
+                        <option value="pdf">PDF Belgesi (.pdf)</option>
+                        <option value="html">HTML Dosyası (.html)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" id="export-filename-label">Dosya Adı</label>
+                    <input type="text" class="form-control" id="export-filename" placeholder="Dosya adı girin">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" id="export-cancel">İptal</button>
+                <button class="btn primary" id="export-confirm">Dışa Aktar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Insert Link Modal -->
+    <div class="modal-overlay" id="link-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title" id="link-modal-title">Bağlantı Ekle</div>
+                <button class="modal-close" id="link-modal-close">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label" id="link-text-label">Bağlantı Metni</label>
+                    <input type="text" class="form-control" id="link-text" placeholder="Bağlantı metni girin">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" id="link-url-label">URL</label>
+                    <input type="url" class="form-control" id="link-url" placeholder="https://ornek.com">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" id="link-cancel">İptal</button>
+                <button class="btn primary" id="link-confirm">Ekle</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Image Modal -->
+    <div class="modal-overlay" id="image-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title" id="image-modal-title">Resim Ekle</div>
+                <button class="modal-close" id="image-modal-close">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="image-upload-tabs">
+                    <div class="image-upload-tab active" data-tab="url-tab" id="url-tab-btn">URL</div>
+                    <div class="image-upload-tab" data-tab="file-tab" id="file-tab-btn">Dosya Seç</div>
+                </div>
+
+                <div class="tab-content active" id="url-tab">
+                    <div class="form-group">
+                        <label class="form-label" id="image-url-label">Resim URL'si</label>
+                        <input type="url" class="form-control" id="image-url" placeholder="https://ornek.com/resim.jpg">
+                    </div>
+                </div>
+
+                <div class="tab-content" id="file-tab">
+                    <div class="form-group">
+                        <label class="form-label" id="image-file-label">Dosya Seçin</label>
+                        <input type="file" id="image-file" accept="image/*" class="form-control">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" id="image-cancel">İptal</button>
+                <button class="btn primary" id="image-confirm">Ekle</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Note Modal -->
+    <div class="modal-overlay" id="create-note-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title" id="create-note-modal-title">Yeni Not Oluştur</div>
+                <button class="modal-close" id="create-note-modal-close">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label" id="note-title-label">Not Başlığı</label>
+                    <input type="text" class="form-control" id="note-title" placeholder="Not başlığı girin">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" id="create-note-cancel">İptal</button>
+                <button class="btn primary" id="create-note-confirm">Oluştur</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div class="modal-overlay" id="confirm-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title" id="confirm-modal-title">Onay</div>
+                <button class="modal-close" id="confirm-modal-close">×</button>
+            </div>
+            <div class="modal-body">
+                <p id="confirm-message">Bu işlemi gerçekleştirmek istediğinizden emin misiniz?</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" id="confirm-cancel">İptal</button>
+                <button class="btn primary" id="confirm-ok">Tamam</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- Hidden file input for image upload -->
+    <input type="file" id="file-input" accept="image/*" style="display: none;">
+
+    <!-- Scripts -->
+    <script>
+        // Language translations
+        const translations = {
+            tr: {
+                // Header
+                headerTitle: "BELGESELSEMO NOTEPAD",
+                save: "Kaydet",
+                export: "Dışa Aktar",
+
+                // Sidebar
+                myNotes: "Notlarım",
+                newNote: "Yeni Not",
+                searchPlaceholder: "Notlarda ara...",
+
+                // Toolbar
+                bold: "Kalın",
+                italic: "İtalik",
+                underline: "Altı Çizili",
+                strikethrough: "Üstü Çizili",
+                alignLeft: "Sola Hizala",
+                alignCenter: "Ortala",
+                alignRight: "Sağa Hizala",
+                bulletList: "Madde İşaretleri",
+                numberedList: "Numaralı Liste",
+                indent: "Girinti",
+                outdent: "Çıkıntı",
+                textColor: "Yazı Rengi",
+                insertImage: "Resim Ekle",
+                insertLink: "Bağlantı Ekle",
+                paperStyle: "Kağıt Stili",
+
+                // Color names
+                // Color names
+                black: "Siyah",
+                white: "Beyaz",
+                red: "Kırmızı",
+                blue: "Mavi",
+                green: "Yeşil",
+                orange: "Turuncu",
+                purple: "Mor",
+
+                // Paper styles
+                plain: "Düz",
+                lined: "Çizgili",
+                grid: "Kareli",
+
+                // Status bar
+                words: "Kelime",
+                characters: "Karakter",
+                notSavedYet: "Henüz kaydedilmedi",
+                lastSaved: "Son kayıt",
+
+                // Export modal
+                exportNote: "Notu Dışa Aktar",
+                exportFormat: "Dışa Aktarma Formatı",
+                textFile: "Metin Dosyası (.txt)",
+                wordDocument: "Word Belgesi (.doc)",
+                pdfDocument: "PDF Belgesi (.pdf)",
+                htmlFile: "HTML Dosyası (.html)",
+                fileName: "Dosya Adı",
+                fileNamePlaceholder: "Dosya adı girin",
+
+                // Link modal
+                addLink: "Bağlantı Ekle",
+                linkText: "Bağlantı Metni",
+                linkTextPlaceholder: "Bağlantı metni girin",
+                url: "URL",
+                urlPlaceholder: "https://ornek.com",
+
+                // Create note modal
+                createNewNote: "Yeni Not Oluştur",
+                noteTitle: "Not Başlığı",
+                noteTitlePlaceholder: "Not başlığı girin",
+
+                // Image modal
+                insertImage: "Resim Ekle",
+                imageUrl: "Resim URL'si",
+                imageUrlPlaceholder: "https://ornek.com/resim.jpg",
+                imageFile: "Dosya Seçin",
+                fromUrl: "URL",
+                fromFile: "Dosya Seç",
+
+                // Confirm modal
+                confirm: "Onay",
+                confirmSaveNote: "Mevcut notu kaydetmek istiyor musunuz?",
+
+                // Buttons
+                cancel: "İptal",
+                create: "Oluştur",
+                add: "Ekle",
+                yes: "Evet",
+                no: "Hayır",
+                ok: "Tamam",
+
+                // Toast messages
+                noteSaved: "Not başarıyla kaydedildi",
+                newNoteCreated: "Yeni not oluşturuldu",
+                noteDeleted: "Not silindi",
+                enterNoteTitle: "Lütfen bir not başlığı girin",
+                createNoteFirst: "Lütfen önce bir not oluşturun ve kaydedin",
+                enterValidUrl: "Lütfen http:// veya https:// ile başlayan geçerli bir URL girin",
+                noteExported: "Not başarıyla dışa aktarıldı",
+                preparingPdf: "PDF indirme için hazırlanıyor...",
+
+                // Confirmation
+                confirmDelete: "Bu notu silmek istediğinizden emin misiniz?",
+
+                // Empty states
+                noNotes: "Not bulunamadı. Başlamak için yeni bir not oluşturun!",
+                noSearchResults: "Aramanızla eşleşen not bulunamadı."
+            },
+            en: {
+                // Header
+                headerTitle: "BELGESELSEMO NOTEPAD",
+                save: "Save",
+                export: "Export",
+
+                // Sidebar
+                myNotes: "My Notes",
+                newNote: "New Note",
+                searchPlaceholder: "Search notes...",
+
+                // Toolbar
+                bold: "Bold",
+                italic: "Italic",
+                underline: "Underline",
+                strikethrough: "Strikethrough",
+                alignLeft: "Align Left",
+                alignCenter: "Align Center",
+                alignRight: "Align Right",
+                bulletList: "Bullet List",
+                numberedList: "Numbered List",
+                indent: "Indent",
+                outdent: "Outdent",
+                textColor: "Text Color",
+                insertImage: "Insert Image",
+                insertLink: "Insert Link",
+                paperStyle: "Paper Style",
+
+                // Color names
+                // Color names
+                black: "Black",
+                white: "White",
+                red: "Red",
+                blue: "Blue",
+                green: "Green",
+                orange: "Orange",
+                purple: "Purple",
+
+                // Paper styles
+                plain: "Plain",
+                lined: "Lined",
+                grid: "Grid",
+
+                // Status bar
+                words: "Words",
+                characters: "Characters",
+                notSavedYet: "Not saved yet",
+                lastSaved: "Last saved",
+
+                // Export modal
+                exportNote: "Export Note",
+                exportFormat: "Export Format",
+                textFile: "Text File (.txt)",
+                wordDocument: "Word Document (.doc)",
+                pdfDocument: "PDF Document (.pdf)",
+                htmlFile: "HTML File (.html)",
+                fileName: "File Name",
+                fileNamePlaceholder: "Enter file name",
+
+                // Link modal
+                addLink: "Insert Link",
+                linkText: "Link Text",
+                linkTextPlaceholder: "Enter link text",
+                url: "URL",
+                urlPlaceholder: "https://example.com",
+
+                // Create note modal
+                createNewNote: "Create New Note",
+                noteTitle: "Note Title",
+                noteTitlePlaceholder: "Enter note title",
+
+                // Image modal
+                insertImage: "Insert Image",
+                imageUrl: "Image URL",
+                imageUrlPlaceholder: "https://example.com/image.jpg",
+                imageFile: "Choose File",
+                fromUrl: "URL",
+                fromFile: "File",
+
+                // Confirm modal
+                confirm: "Confirmation",
+                confirmSaveNote: "Would you like to save the current note?",
+
+                // Buttons
+                cancel: "Cancel",
+                create: "Create",
+                add: "Insert",
+                yes: "Yes",
+                no: "No",
+                ok: "OK",
+
+                // Toast messages
+                noteSaved: "Note saved successfully",
+                newNoteCreated: "New note created",
+                noteDeleted: "Note deleted",
+                enterNoteTitle: "Please enter a note title",
+                createNoteFirst: "Please create and save a note first",
+                enterValidUrl: "Please enter a valid URL starting with http:// or https://",
+                noteExported: "Note exported successfully",
+                preparingPdf: "Preparing PDF for download...",
+
+                // Confirmation
+                confirmDelete: "Are you sure you want to delete this note?",
+
+                // Empty states
+                noNotes: "No notes found. Create a new note to get started!",
+                noSearchResults: "No notes found matching your search."
+            }
+        };
+
+        let currentLanguage = 'tr'; // Default language is Turkish
+
+        // DOM Elements
+        const editor = document.getElementById('editor');
+        const notesList = document.getElementById('notes-list');
+        const saveBtn = document.getElementById('save-btn');
+        const exportBtn = document.getElementById('export-btn');
+        const newNoteBtn = document.getElementById('new-note-btn');
+        const logoBtn = document.getElementById('logo-btn'); // Added logo as a button
+        const sidebarToggle = document.getElementById('sidebar-toggle');
+        const sidebar = document.querySelector('.sidebar');
+        const sidebarOverlay = document.getElementById('sidebar-overlay');
+        const editorContainer = document.querySelector('.editor-container');
+        const themeToggle = document.getElementById('theme-toggle');
+        const searchInput = document.getElementById('search-notes');
+        const wordCountElement = document.getElementById('word-count');
+        const lastSavedElement = document.getElementById('last-saved');
+        const toolButtons = document.querySelectorAll('.tool-btn[data-command]');
+        const fontColorBtn = document.getElementById('fontColorBtn');
+        const colorDropdown = document.getElementById('colorDropdown');
+        const colorItems = document.querySelectorAll('.color-item');
+        const paperStyleBtn = document.getElementById('paperStyleBtn');
+        const paperStyleDropdown = document.getElementById('paperStyleDropdown');
+        const paperStyleItems = document.querySelectorAll('[data-style]');
+        const insertImageBtn = document.getElementById('insert-image');
+        const insertLinkBtn = document.getElementById('insert-link');
+        const languageToggle = document.getElementById('language-toggle');
+        const languageDropdown = document.getElementById('language-dropdown');
+        const languageOptions = document.querySelectorAll('.language-option');
+        const fileInput = document.getElementById('file-input');
+
+        // Modal Elements
+        const exportModal = document.getElementById('export-modal');
+        const exportModalTitle = document.getElementById('export-modal-title');
+        const exportModalClose = document.getElementById('export-modal-close');
+        const exportFormat = document.getElementById('export-format');
+        const exportFormatLabel = document.getElementById('export-format-label');
+        const exportFilename = document.getElementById('export-filename');
+        const exportFilenameLabel = document.getElementById('export-filename-label');
+        const exportCancel = document.getElementById('export-cancel');
+        const exportConfirm = document.getElementById('export-confirm');
+
+        const linkModal = document.getElementById('link-modal');
+        const linkModalTitle = document.getElementById('link-modal-title');
+        const linkModalClose = document.getElementById('link-modal-close');
+        const linkText = document.getElementById('link-text');
+        const linkTextLabel = document.getElementById('link-text-label');
+        const linkUrl = document.getElementById('link-url');
+        const linkUrlLabel = document.getElementById('link-url-label');
+        const linkCancel = document.getElementById('link-cancel');
+        const linkConfirm = document.getElementById('link-confirm');
+
+        const createNoteModal = document.getElementById('create-note-modal');
+        const createNoteModalTitle = document.getElementById('create-note-modal-title');
+        const createNoteModalClose = document.getElementById('create-note-modal-close');
+        const noteTitleInput = document.getElementById('note-title');
+        const noteTitleLabel = document.getElementById('note-title-label');
+        const createNoteCancel = document.getElementById('create-note-cancel');
+        const createNoteConfirm = document.getElementById('create-note-confirm');
+
+        const imageModal = document.getElementById('image-modal');
+        const imageModalTitle = document.getElementById('image-modal-title');
+        const imageModalClose = document.getElementById('image-modal-close');
+        const imageUrl = document.getElementById('image-url');
+        const imageFile = document.getElementById('image-file');
+        const urlTabBtn = document.getElementById('url-tab-btn');
+        const fileTabBtn = document.getElementById('file-tab-btn');
+        const urlTab = document.getElementById('url-tab');
+        const fileTab = document.getElementById('file-tab');
+        const imageCancel = document.getElementById('image-cancel');
+        const imageConfirm = document.getElementById('image-confirm');
+
+        const confirmModal = document.getElementById('confirm-modal');
+        const confirmModalTitle = document.getElementById('confirm-modal-title');
+        const confirmModalClose = document.getElementById('confirm-modal-close');
+        const confirmMessage = document.getElementById('confirm-message');
+        const confirmCancel = document.getElementById('confirm-cancel');
+        const confirmOk = document.getElementById('confirm-ok');
+
+        // Variables
+        let notes = [];
+        let currentNoteId = null;
+        let currentTextColor = "#000000"; // Default text color
+        let currentConfirmCallback = null;
+        const LOCAL_STORAGE_KEY = 'belgeselsemo_notes';
+
+        // Initialize the application
+        function init() {
+            loadNotes();
+            setupEventListeners();
+            updateWordCount();
+            checkTheme();
+            checkLanguage();
+        }
+
+        // Apply selected language
+        function applyLanguage(lang) {
+            currentLanguage = lang;
+            localStorage.setItem('belgeselsemo_language', lang);
+
+            const t = translations[lang];
+
+            // Header
+            document.getElementById('header-title').textContent = t.headerTitle;
+            document.querySelector('#save-btn .btn-text').textContent = t.save;
+            document.querySelector('#export-btn .btn-text').textContent = t.export;
+
+            // Footer
+            document.querySelector('.footer-content').textContent = t.headerTitle;
+
+            // Sidebar
+            document.getElementById('notes-title').textContent = t.myNotes;
+            searchInput.placeholder = t.searchPlaceholder;
+            document.querySelector('.sidebar-footer').textContent = t.headerTitle;
+
+            // Toolbar buttons
+            document.querySelector('[data-command="bold"]').setAttribute('title', t.bold);
+            document.querySelector('[data-command="italic"]').setAttribute('title', t.italic);
+            document.querySelector('[data-command="underline"]').setAttribute('title', t.underline);
+            document.querySelector('[data-command="strikeThrough"]').setAttribute('title', t.strikethrough);
+            document.querySelector('[data-command="justifyLeft"]').setAttribute('title', t.alignLeft);
+            document.querySelector('[data-command="justifyCenter"]').setAttribute('title', t.alignCenter);
+            document.querySelector('[data-command="justifyRight"]').setAttribute('title', t.alignRight);
+            document.querySelector('[data-command="insertUnorderedList"]').setAttribute('title', t.bulletList);
+            document.querySelector('[data-command="insertOrderedList"]').setAttribute('title', t.numberedList);
+            document.querySelector('[data-command="indent"]').setAttribute('title', t.indent);
+            document.querySelector('[data-command="outdent"]').setAttribute('title', t.outdent);
+
+            // Dropdown text
+            document.querySelector('#fontColorBtn .btn-text').textContent = t.textColor;
+            document.querySelector('#paperStyleBtn .btn-text').textContent = t.paperStyle;
+
+            // Color dropdown items
+            const isDark = document.body.classList.contains('dark-theme');
+            const defaultColorItem = document.getElementById('default-color-item');
+            if (defaultColorItem) {
+                defaultColorItem.querySelector('span:last-child').textContent = isDark ? t.white : t.black;
+            }
+            document.querySelector('[data-color="#ff0000"] span:last-child').textContent = t.red;
+            document.querySelector('[data-color="#0000ff"] span:last-child').textContent = t.blue;
+            document.querySelector('[data-color="#008000"] span:last-child').textContent = t.green;
+            document.querySelector('[data-color="#ffa500"] span:last-child').textContent = t.orange;
+            document.querySelector('[data-color="#800080"] span:last-child').textContent = t.purple;
+
+            // Paper style dropdown items
+            document.querySelector('[data-style="none"] span:last-child').textContent = t.plain;
+            document.querySelector('[data-style="lined-paper"] span:last-child').textContent = t.lined;
+            document.querySelector('[data-style="grid-paper"] span:last-child').textContent = t.grid;
+
+            // Tool buttons
+            document.getElementById('insert-image').setAttribute('title', t.insertImage);
+            document.getElementById('insert-link').setAttribute('title', t.insertLink);
+
+            // Status bar
+            updateWordCount();
+            updateLastSaved();
+
+            // Export modal
+            exportModalTitle.textContent = t.exportNote;
+            exportFormatLabel.textContent = t.exportFormat;
+            exportFilenameLabel.textContent = t.fileName;
+            exportFilename.placeholder = t.fileNamePlaceholder;
+            exportCancel.textContent = t.cancel;
+            exportConfirm.textContent = t.export;
+
+            // Update export format options
+            exportFormat.options[0].textContent = t.textFile;
+            exportFormat.options[1].textContent = t.wordDocument;
+            exportFormat.options[2].textContent = t.pdfDocument;
+            exportFormat.options[3].textContent = t.htmlFile;
+
+            // Link modal
+            linkModalTitle.textContent = t.addLink;
+            linkTextLabel.textContent = t.linkText;
+            linkText.placeholder = t.linkTextPlaceholder;
+            linkUrlLabel.textContent = t.url;
+            linkUrl.placeholder = t.urlPlaceholder;
+            linkCancel.textContent = t.cancel;
+            linkConfirm.textContent = t.add;
+
+            // Create note modal
+            createNoteModalTitle.textContent = t.createNewNote;
+            noteTitleLabel.textContent = t.noteTitle;
+            noteTitleInput.placeholder = t.noteTitlePlaceholder;
+            createNoteCancel.textContent = t.cancel;
+            createNoteConfirm.textContent = t.create;
+
+            // Image modal
+            imageModalTitle.textContent = t.insertImage;
+            document.getElementById('image-url-label').textContent = t.imageUrl;
+            imageUrl.placeholder = t.imageUrlPlaceholder;
+            document.getElementById('image-file-label').textContent = t.imageFile;
+            imageCancel.textContent = t.cancel;
+            imageConfirm.textContent = t.add;
+            urlTabBtn.textContent = t.fromUrl;
+            fileTabBtn.textContent = t.fromFile;
+
+            // Confirm modal
+            confirmModalTitle.textContent = t.confirm;
+            confirmCancel.textContent = t.cancel;
+            confirmOk.textContent = t.ok;
+
+            // Render notes list to update any displayed text
+            renderNotesList();
+        }
+
+        // Check saved language preference
+        function checkLanguage() {
+            const savedLanguage = localStorage.getItem('belgeselsemo_language');
+            if (savedLanguage && translations[savedLanguage]) {
+                currentLanguage = savedLanguage;
+            }
+            applyLanguage(currentLanguage);
+        }
+
+        // Load notes from local storage
+        function loadNotes() {
+            const savedNotes = localStorage.getItem(LOCAL_STORAGE_KEY);
+            if (savedNotes) {
+                notes = JSON.parse(savedNotes);
+                renderNotesList();
+
+                if (notes.length > 0) {
+                    loadNote(notes[0].id);
+                }
+            }
+        }
+
+        // Save notes to local storage
+        function saveNotesToStorage() {
+            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(notes));
+        }
+
+        // Render the list of notes
+        function renderNotesList() {
+            notesList.innerHTML = '';
+            const t = translations[currentLanguage];
+
+            if (notes.length === 0) {
+                const emptyMessage = document.createElement('div');
+                emptyMessage.textContent = t.noNotes;
+                emptyMessage.style.padding = 'var(--spacing-md)';
+                emptyMessage.style.textAlign = 'center';
+                emptyMessage.style.color = 'var(--text-tertiary)';
+                notesList.appendChild(emptyMessage);
+                return;
+            }
+
+            notes.forEach(note => {
+                const noteItem = document.createElement('div');
+                noteItem.classList.add('note-item');
+
+                if (note.id === currentNoteId) {
+                    noteItem.classList.add('active');
+                }
+
+                noteItem.innerHTML = `
+                    <div class="note-content-wrapper">
+                        <div class="note-title">${note.title}</div>
+                        <div class="note-preview">${getTextPreview(note.content)}</div>
+                        <div class="note-date">${formatDate(note.lastModified)}</div>
+                    </div>
+                    <button class="delete-note-btn" title="Sil">🗑️</button>
+                `;
+
+                noteItem.addEventListener('click', () => {
+                    loadNote(note.id);
+                    // On mobile, close sidebar after selecting a note
+                    if (window.innerWidth <= 768) {
+                        toggleSidebar();
+                    }
+                });
+
+                // Delete button event listener
+                const deleteBtn = noteItem.querySelector('.delete-note-btn');
+                deleteBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    deleteNote(note.id);
+                });
+
+                notesList.appendChild(noteItem);
+            });
+        }
+
+        // Get text preview from HTML content
+        function getTextPreview(html) {
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = html;
+            const textContent = tempDiv.textContent || tempDiv.innerText || '';
+            return textContent.substring(0, 50) + (textContent.length > 50 ? '...' : '');
+        }
+
+        // Format date based on current language
+        function formatDate(timestamp) {
+            const date = new Date(timestamp);
+            if (currentLanguage === 'tr') {
+                return `${date.toLocaleDateString('tr-TR')} ${date.toLocaleTimeString('tr-TR')}`;
+            } else {
+                return `${date.toLocaleDateString('en-US')} ${date.toLocaleTimeString('en-US')}`;
+            }
+        }
+
+        // Load note into editor
+        function loadNote(noteId) {
+            const note = notes.find(n => n.id === noteId);
+            if (!note) return;
+
+            currentNoteId = note.id;
+            editor.innerHTML = note.content;
+
+            // Reset paper style
+            editor.className = note.paperStyle || '';
+
+            renderNotesList();
+            updateLastSaved(note.lastModified);
+        }
+
+        // Check if current note has changes
+        function hasUnsavedChanges() {
+            if (!currentNoteId) return editor.innerHTML.trim() !== '';
+
+            const note = notes.find(n => n.id === currentNoteId);
+            if (!note) return false;
+
+            return note.content !== editor.innerHTML;
+        }
+
+        // Show save confirmation
+        function showSaveConfirmation(nextAction) {
+            if (!hasUnsavedChanges()) {
+                nextAction();
+                return;
+            }
+
+            const t = translations[currentLanguage];
+            confirmMessage.textContent = t.confirmSaveNote;
+            confirmModal.classList.add('show');
+
+            currentConfirmCallback = (result) => {
+                if (result) {
+                    saveCurrentNote();
+                    setTimeout(nextAction, 100); // Small delay to ensure save completes
+                } else {
+                    nextAction();
+                }
+            };
+        }
+
+        // Save current note
+        function saveCurrentNote() {
+            if (currentNoteId === null) {
+                showCreateNoteModal();
+                return;
+            }
+
+            const noteIndex = notes.findIndex(n => n.id === currentNoteId);
+            if (noteIndex !== -1) {
+                notes[noteIndex].content = editor.innerHTML;
+                notes[noteIndex].lastModified = Date.now();
+                notes[noteIndex].paperStyle = editor.className;
+
+                saveNotesToStorage();
+                renderNotesList();
+                updateLastSaved(notes[noteIndex].lastModified);
+                showToast(translations[currentLanguage].noteSaved, 'success');
+            }
+        }
+
+        // Create a new note
+        function createNewNote(title) {
+            const newNote = {
+                id: Date.now().toString(),
+                title: title,
+                content: '',
+                created: Date.now(),
+                lastModified: Date.now(),
+                paperStyle: ''
+            };
+
+            notes.unshift(newNote);
+            saveNotesToStorage();
+            loadNote(newNote.id);
+            showToast(translations[currentLanguage].newNoteCreated, 'success');
+        }
+
+        // Handle creating a new note
+        function handleNewNote() {
+            const createNew = () => {
+                showCreateNoteModal();
+            };
+
+            if (hasUnsavedChanges()) {
+                showSaveConfirmation(createNew);
+            } else {
+                createNew();
+            }
+        }
+
+        // Delete current note
+        // Delete note by ID
+        function deleteNote(id) {
+            const t = translations[currentLanguage];
+            if (confirm(t.confirmDelete)) {
+                notes = notes.filter(n => n.id !== id);
+                saveNotesToStorage();
+
+                if (id === currentNoteId) {
+                    if (notes.length > 0) {
+                        loadNote(notes[0].id);
+                    } else {
+                        currentNoteId = null;
+                        editor.innerHTML = '';
+                        lastSavedElement.textContent = t.notSavedYet;
+                    }
+                }
+
+                renderNotesList();
+                showToast(t.noteDeleted, 'success');
+            }
+        }
+
+
+        function deleteCurrentNote() {
+            if (!currentNoteId) return;
+
+            if (confirm(translations[currentLanguage].confirmDelete)) {
+                notes = notes.filter(n => n.id !== currentNoteId);
+                saveNotesToStorage();
+
+                if (notes.length > 0) {
+                    loadNote(notes[0].id);
+                } else {
+                    currentNoteId = null;
+                    editor.innerHTML = '';
+                    lastSavedElement.textContent = translations[currentLanguage].notSavedYet;
+                }
+
+                renderNotesList();
+                showToast(translations[currentLanguage].noteDeleted, 'success');
+            }
+        }
+
+        // Search notes
+        function searchNotes(query) {
+            const filteredNotes = notes.filter(note => {
+                const titleMatch = note.title.toLowerCase().includes(query.toLowerCase());
+                const contentMatch = note.content.toLowerCase().includes(query.toLowerCase());
+                return titleMatch || contentMatch;
+            });
+
+            notesList.innerHTML = '';
+            const t = translations[currentLanguage];
+
+            if (filteredNotes.length === 0) {
+                const emptyMessage = document.createElement('div');
+                emptyMessage.textContent = t.noSearchResults;
+                emptyMessage.style.padding = 'var(--spacing-md)';
+                emptyMessage.style.textAlign = 'center';
+                emptyMessage.style.color = 'var(--text-tertiary)';
+                notesList.appendChild(emptyMessage);
+                return;
+            }
+
+            filteredNotes.forEach(note => {
+                const noteItem = document.createElement('div');
+                noteItem.classList.add('note-item');
+
+                if (note.id === currentNoteId) {
+                    noteItem.classList.add('active');
+                }
+
+                noteItem.innerHTML = `
+                    <div class="note-content-wrapper">
+                        <div class="note-title">${note.title}</div>
+                        <div class="note-preview">${getTextPreview(note.content)}</div>
+                        <div class="note-date">${formatDate(note.lastModified)}</div>
+                    </div>
+                    <button class="delete-note-btn" title="Sil">🗑️</button>
+                `;
+
+                noteItem.addEventListener('click', () => {
+                    loadNote(note.id);
+                    // On mobile, close sidebar after selecting a note
+                    if (window.innerWidth <= 768) {
+                        toggleSidebar();
+                    }
+                });
+
+                notesList.appendChild(noteItem);
+            });
+        }
+
+        // Update word and character count
+        function updateWordCount() {
+            const text = editor.textContent || '';
+            const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+            const characters = text.length;
+            const t = translations[currentLanguage];
+            wordCountElement.textContent = `${t.words}: ${words} | ${t.characters}: ${characters}`;
+        }
+
+        // Update last saved timestamp
+        function updateLastSaved(timestamp) {
+            const t = translations[currentLanguage];
+
+            if (!timestamp) {
+                lastSavedElement.textContent = t.notSavedYet;
+                return;
+            }
+
+            const date = new Date(timestamp);
+            if (currentLanguage === 'tr') {
+                lastSavedElement.textContent = `${t.lastSaved}: ${date.toLocaleDateString('tr-TR')} ${date.toLocaleTimeString('tr-TR')}`;
+            } else {
+                lastSavedElement.textContent = `${t.lastSaved}: ${date.toLocaleDateString('en-US')} ${date.toLocaleTimeString('en-US')}`;
+            }
+        }
+
+        // Toggle theme
+        function toggleTheme() {
+            const isDarkTheme = document.body.classList.toggle('dark-theme');
+            themeToggle.innerHTML = isDarkTheme ? '<span>☀️</span>' : '<span>🌙</span>';
+            localStorage.setItem('belgeselsemo_dark_theme', isDarkTheme ? 'true' : 'false');
+            updateColorOptions(isDarkTheme);
+        }
+
+        // Update color options based on theme
+        function updateColorOptions(isDark) {
+            const defaultItem = document.getElementById('default-color-item');
+            if (!defaultItem) return;
+
+            const swatch = defaultItem.querySelector('.color-swatch');
+            const text = defaultItem.querySelector('span:last-child');
+            const t = translations[currentLanguage];
+
+            if (isDark) {
+                defaultItem.setAttribute('data-color', '#ffffff');
+                swatch.style.backgroundColor = '#ffffff';
+                text.textContent = t.white;
+            } else {
+                defaultItem.setAttribute('data-color', '#000000');
+                swatch.style.backgroundColor = '#000000';
+                text.textContent = t.black;
+            }
+        }
+
+        // Check and apply saved theme
+        function checkTheme() {
+            const isDarkTheme = localStorage.getItem('belgeselsemo_dark_theme') === 'true';
+            if (isDarkTheme) {
+                document.body.classList.add('dark-theme');
+                themeToggle.innerHTML = '<span>☀️</span>';
+            }
+            updateColorOptions(isDarkTheme);
+        }
+
+        // Show toast notification
+        function showToast(message, type = 'info') {
+            const toastContainer = document.getElementById('toast-container');
+
+            const toast = document.createElement('div');
+            toast.classList.add('toast');
+            toast.classList.add(type);
+
+            let icon = 'ℹ️';
+            if (type === 'success') icon = '✅';
+            if (type === 'error') icon = '❌';
+            if (type === 'warning') icon = '⚠️';
+
+            toast.innerHTML = `
+                <div class="toast-icon">
+                    ${icon}
+                </div>
+                <div class="toast-content">
+                    <div class="toast-message">${message}</div>
+                </div>
+                <button class="toast-close">×</button>
+            `;
+
+            toastContainer.appendChild(toast);
+
+            // Show toast with animation
+            setTimeout(() => {
+                toast.classList.add('show');
+            }, 10);
+
+            // Auto-remove after 3 seconds
+            const timeout = setTimeout(() => {
+                removeToast(toast);
+            }, 3000);
+
+            // Close button
+            const closeBtn = toast.querySelector('.toast-close');
+            closeBtn.addEventListener('click', () => {
+                clearTimeout(timeout);
+                removeToast(toast);
+            });
+        }
+
+        // Remove toast with animation
+        function removeToast(toast) {
+            toast.classList.remove('show');
+            setTimeout(() => {
+                toast.remove();
+            }, 300);
+        }
+
+        // Toggle sidebar
+        function toggleSidebar() {
+            sidebar.classList.toggle('sidebar-visible');
+            sidebarOverlay.classList.toggle('show');
+
+            // For accessibility - focus trap
+            if (sidebar.classList.contains('sidebar-visible')) {
+                document.getElementById('search-notes').focus();
+            } else {
+                editor.focus();
+            }
+        }
+
+        // Execute document command (for formatting)
+        function execCommand(command, value = null) {
+            document.execCommand(command, false, value);
+            editor.focus();
+
+            // If this is a color command, save the current color
+            if (command === 'foreColor') {
+                currentTextColor = value;
+            }
+        }
+
+        // Toggle dropdown
+        function toggleDropdown(dropdown) {
+            dropdown.classList.toggle('show');
+
+            // Close other dropdowns
+            document.querySelectorAll('.dropdown-menu, .language-dropdown').forEach(menu => {
+                if (menu !== dropdown && menu.classList.contains('show')) {
+                    menu.classList.remove('show');
+                }
+            });
+        }
+
+        // Close all dropdowns
+        function closeAllDropdowns() {
+            document.querySelectorAll('.dropdown-menu, .language-dropdown').forEach(menu => {
+                menu.classList.remove('show');
+            });
+        }
+
+        // Show export modal
+        function showExportModal() {
+            if (!currentNoteId) {
+                showToast(translations[currentLanguage].createNoteFirst, 'warning');
+                return;
+            }
+
+            const note = notes.find(n => n.id === currentNoteId);
+            if (note) {
+                exportFilename.value = note.title;
+                exportModal.classList.add('show');
+            }
+        }
+
+        // Hide export modal
+        function hideExportModal() {
+            exportModal.classList.remove('show');
+        }
+
+        // Show link modal
+        function showLinkModal() {
+            const selection = window.getSelection();
+            if (selection.toString()) {
+                linkText.value = selection.toString();
+            } else {
+                linkText.value = '';
+            }
+            linkUrl.value = 'https://';
+            linkModal.classList.add('show');
+            linkText.focus();
+        }
+
+        // Hide link modal
+        function hideLinkModal() {
+            linkModal.classList.remove('show');
+        }
+
+        // Show image modal
+        function showImageModal() {
+            // Reset fields
+            imageUrl.value = '';
+            imageFile.value = '';
+
+            // Set default active tab
+            setActiveTab('url-tab');
+
+            imageModal.classList.add('show');
+            imageUrl.focus();
+        }
+
+        // Hide image modal
+        function hideImageModal() {
+            imageModal.classList.remove('show');
+        }
+
+        // Set active tab in image modal
+        function setActiveTab(tabId) {
+            document.querySelectorAll('.image-upload-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+
+            document.querySelector(`[data-tab="${tabId}"]`).classList.add('active');
+            document.getElementById(tabId).classList.add('active');
+        }
+
+        // Show create note modal
+        function showCreateNoteModal() {
+            noteTitleInput.value = '';
+            createNoteModal.classList.add('show');
+            noteTitleInput.focus();
+        }
+
+        // Hide create note modal
+        function hideCreateNoteModal() {
+            createNoteModal.classList.remove('show');
+        }
+
+        // Show confirm modal
+        function showConfirmModal(message, callback) {
+            confirmMessage.textContent = message;
+            currentConfirmCallback = callback;
+            confirmModal.classList.add('show');
+        }
+
+        // Hide confirm modal
+        function hideConfirmModal() {
+            confirmModal.classList.remove('show');
+            currentConfirmCallback = null;
+        }
+
+        // Handle file upload for image
+        function handleImageFile(file) {
+            return new Promise((resolve, reject) => {
+                if (!file) {
+                    reject(new Error("No file selected"));
+                    return;
+                }
+
+                if (!file.type.startsWith('image/')) {
+                    reject(new Error("Selected file is not an image"));
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    resolve(event.target.result);
+                };
+                reader.onerror = () => {
+                    reject(new Error("Error reading file"));
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // Insert image from modal
+        function insertImageFromModal() {
+            const activeTab = document.querySelector('.image-upload-tab.active').getAttribute('data-tab');
+
+            if (activeTab === 'url-tab') {
+                const url = imageUrl.value.trim();
+                if (!url) return;
+
+                document.execCommand('insertHTML', false, `<img src="${url}" style="max-width: 100%;" />`);
+                hideImageModal();
+            } else {
+                const file = imageFile.files[0];
+                if (!file) {
+                    showToast('Please select an image file', 'warning');
+                    return;
+                }
+
+                handleImageFile(file)
+                    .then(dataUrl => {
+                        document.execCommand('insertHTML', false, `<img src="${dataUrl}" style="max-width: 100%;" />`);
+                        hideImageModal();
+                    })
+                    .catch(error => {
+                        showToast(error.message, 'error');
+                    });
+            }
+
+            editor.focus();
+        }
+
+        // Insert link from modal
+        function insertLink() {
+            const text = linkText.value.trim();
+            const url = linkUrl.value.trim();
+
+            if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                showToast(translations[currentLanguage].enterValidUrl, 'error');
+                return;
+            }
+
+            const linkHtml = `<a href="${url}" target="_blank">${text || url}</a>`;
+            document.execCommand('insertHTML', false, linkHtml);
+
+            hideLinkModal();
+            editor.focus();
+        }
+
+        // Export note
+        function exportNote() {
+            if (!currentNoteId) return;
+
+            const note = notes.find(n => n.id === currentNoteId);
+            if (!note) return;
+
+            const t = translations[currentLanguage];
+            const filename = exportFilename.value.trim() || note.title;
+            const format = exportFormat.value;
+
+            let content = note.content;
+            let mimeType;
+            let extension;
+
+            switch (format) {
+                case 'txt':
+                    content = note.content.replace(/<[^>]*>/g, ''); // Strip HTML
+                    mimeType = 'text/plain';
+                    extension = 'txt';
+                    break;
+
+                case 'doc':
+                    // Create a simple Word-compatible HTML document
+                    content = `
+                        <html xmlns:o="urn:schemas-microsoft-com:office:office" 
+                            xmlns:w="urn:schemas-microsoft-com:office:word" 
+                            xmlns="http://www.w3.org/TR/REC-html40">
+                        <head>
+                            <meta charset="utf-8">
+                            <title>${filename}</title>
+                        </head>
+                        <body>
+                            ${note.content}
+                        </body>
+                        </html>
+                    `;
+                    mimeType = 'application/msword';
+                    extension = 'doc';
+                    break;
+
+                case 'pdf':
+                    showToast(t.preparingPdf, 'info');
+                    // Create PDF using print media CSS
+                    const printWindow = window.open('', '_blank');
+                    printWindow.document.write(`
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                            <title>${filename}</title>
+                            <style>
+                                body {
+                                    font-family: Arial, sans-serif;
+                                    margin: 20mm;
+                                    line-height: 1.5;
+                                }
+                                @media print {
+                                    body {
+                                        width: 210mm;
+                                        height: 297mm;
+                                    }
+                                }
+                            </style>
+                        </head>
+                        <body>
+                            <h1>${note.title}</h1>
+                            ${note.content}
+                        </body>
+                        </html>
+                    `);
+
+                    printWindow.document.close();
+                    printWindow.focus();
+                    setTimeout(() => {
+                        printWindow.print();
+                        printWindow.close();
+                    }, 1000);
+
+                    hideExportModal();
+                    return;
+
+                case 'html':
+                    content = `
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                            <meta charset="utf-8">
+                            <title>${filename}</title>
+                            <style>
+                                body {
+                                    font-family: Arial, sans-serif;
+                                    line-height: 1.6;
+                                    margin: 20px;
+                                    max-width: 800px;
+                                    margin: 0 auto;
+                                    padding: 20px;
+                                }
+                            </style>
+                        </head>
+                        <body>
+                            <h1>${note.title}</h1>
+                            ${note.content}
+                        </body>
+                        </html>
+                    `;
+                    mimeType = 'text/html';
+                    extension = 'html';
+                    break;
+
+                default:
+                    mimeType = 'text/plain';
+                    extension = 'txt';
+            }
+
+            // Create download link
+            const blob = new Blob([content], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${filename}.${extension}`;
+            a.click();
+
+            // Clean up
+            setTimeout(() => {
+                URL.revokeObjectURL(url);
+            }, 100);
+
+            hideExportModal();
+            showToast(`${t.noteExported} (${extension.toUpperCase()})`, 'success');
+        }
+
+        // Setup all event listeners
+        function setupEventListeners() {
+            // Editor events
+            editor.addEventListener('input', () => {
+                updateWordCount();
+            });
+
+            // Add a focus event to maintain text color when continuing to type
+            editor.addEventListener('focus', () => {
+                document.execCommand('foreColor', false, currentTextColor);
+            });
+
+            editor.addEventListener('keydown', (e) => {
+                // Auto-save on Ctrl+S
+                if (e.ctrlKey && e.key === 's') {
+                    e.preventDefault();
+                    saveCurrentNote();
+                }
+            });
+
+            // Prevent losing focus when clicking buttons and dropdown items
+            document.querySelectorAll('.tool-btn, .dropdown-toggle, .dropdown-item').forEach(button => {
+                button.addEventListener('mousedown', (e) => {
+                    e.preventDefault();
+                });
+            });
+
+            // Enable CSS styling for execCommand
+            document.execCommand('styleWithCSS', false, true);
+
+            // Button events
+            saveBtn.addEventListener('click', saveCurrentNote);
+            exportBtn.addEventListener('click', showExportModal);
+            newNoteBtn.addEventListener('click', handleNewNote);
+            logoBtn.addEventListener('click', handleNewNote); // Logo clicks also trigger new note
+            sidebarToggle.addEventListener('click', toggleSidebar);
+            sidebarOverlay.addEventListener('click', toggleSidebar); // Close sidebar when clicking overlay
+            themeToggle.addEventListener('click', toggleTheme);
+            insertImageBtn.addEventListener('click', showImageModal);
+            insertLinkBtn.addEventListener('click', showLinkModal);
+
+            // File input change
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files && e.target.files[0]) {
+                    handleImageFile(e.target.files[0])
+                        .then(dataUrl => {
+                            document.execCommand('insertHTML', false, `<img src="${dataUrl}" style="max-width: 100%;" />`);
+                        })
+                        .catch(error => {
+                            showToast(error.message, 'error');
+                        });
+                }
+            });
+
+            // Formatting buttons
+            toolButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const command = button.getAttribute('data-command');
+                    execCommand(command);
+                });
+            });
+
+            // Dropdowns
+            fontColorBtn.addEventListener('click', () => toggleDropdown(colorDropdown));
+            paperStyleBtn.addEventListener('click', () => toggleDropdown(paperStyleDropdown));
+            languageToggle.addEventListener('click', () => toggleDropdown(languageDropdown));
+
+            // Color dropdown items
+            colorItems.forEach(item => {
+                item.addEventListener('click', () => {
+                    const color = item.getAttribute('data-color');
+                    currentTextColor = color; // Store the selected color
+                    execCommand('foreColor', color);
+                    closeAllDropdowns();
+                });
+            });
+
+            // Paper style dropdown items
+            paperStyleItems.forEach(item => {
+                item.addEventListener('click', () => {
+                    const style = item.getAttribute('data-style');
+                    editor.className = style === 'none' ? '' : style;
+                    closeAllDropdowns();
+                });
+            });
+
+            // Language options
+            languageOptions.forEach(option => {
+                option.addEventListener('click', () => {
+                    const lang = option.getAttribute('data-lang');
+                    applyLanguage(lang);
+                    closeAllDropdowns();
+                });
+            });
+
+            // Search
+            searchInput.addEventListener('input', (e) => {
+                const query = e.target.value.trim();
+                if (query) {
+                    searchNotes(query);
+                } else {
+                    renderNotesList();
+                }
+            });
+
+            // Close dropdowns when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.dropdown') && !e.target.closest('.language-selector')) {
+                    closeAllDropdowns();
+                }
+            });
+
+            // Export modal events
+            exportModalClose.addEventListener('click', hideExportModal);
+            exportCancel.addEventListener('click', hideExportModal);
+            exportConfirm.addEventListener('click', exportNote);
+
+            // Link modal events
+            linkModalClose.addEventListener('click', hideLinkModal);
+            linkCancel.addEventListener('click', hideLinkModal);
+            linkConfirm.addEventListener('click', insertLink);
+
+            // Image modal events
+            imageModalClose.addEventListener('click', hideImageModal);
+            imageCancel.addEventListener('click', hideImageModal);
+            imageConfirm.addEventListener('click', insertImageFromModal);
+
+            // Image tab events
+            urlTabBtn.addEventListener('click', () => setActiveTab('url-tab'));
+            fileTabBtn.addEventListener('click', () => setActiveTab('file-tab'));
+
+            // Create note modal events
+            createNoteModalClose.addEventListener('click', hideCreateNoteModal);
+            createNoteCancel.addEventListener('click', hideCreateNoteModal);
+
+            createNoteConfirm.addEventListener('click', () => {
+                const title = noteTitleInput.value.trim();
+                if (!title) {
+                    showToast(translations[currentLanguage].enterNoteTitle, 'warning');
+                    return;
+                }
+
+                createNewNote(title);
+                hideCreateNoteModal();
+            });
+
+            // Confirm modal events
+            confirmModalClose.addEventListener('click', () => {
+                hideConfirmModal();
+                if (currentConfirmCallback) {
+                    currentConfirmCallback(false);
+                }
+            });
+
+            confirmCancel.addEventListener('click', () => {
+                hideConfirmModal();
+                if (currentConfirmCallback) {
+                    currentConfirmCallback(false);
+                }
+            });
+
+            confirmOk.addEventListener('click', () => {
+                hideConfirmModal();
+                if (currentConfirmCallback) {
+                    currentConfirmCallback(true);
+                }
+            });
+
+            // Handle enter key in create note modal
+            noteTitleInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    createNoteConfirm.click();
+                }
+            });
+
+            // Press escape to close modals
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    hideExportModal();
+                    hideLinkModal();
+                    hideImageModal();
+                    hideCreateNoteModal();
+                    hideConfirmModal();
+                    closeAllDropdowns();
+                    if (sidebar.classList.contains('sidebar-visible') && window.innerWidth <= 768) {
+                        toggleSidebar();
+                    }
+                }
+            });
+
+            // Click outside modal to close
+            document.querySelectorAll('.modal-overlay').forEach(overlay => {
+                overlay.addEventListener('click', (e) => {
+                    if (e.target === overlay) {
+                        if (overlay === exportModal) hideExportModal();
+                        if (overlay === linkModal) hideLinkModal();
+                        if (overlay === imageModal) hideImageModal();
+                        if (overlay === createNoteModal) hideCreateNoteModal();
+                        if (overlay === confirmModal) {
+                            hideConfirmModal();
+                            if (currentConfirmCallback) currentConfirmCallback(false);
+                        }
+                    }
+                });
+            });
+
+            // Auto-save on interval (every 30 seconds)
+            setInterval(() => {
+                if (currentNoteId !== null && editor.innerHTML.trim() !== '') {
+                    saveCurrentNote();
+                }
+            }, 30000);
+
+            // Adjust for device orientation changes
+            window.addEventListener('resize', () => {
+                if (window.innerWidth > 768) {
+                    // Close mobile sidebar on landscape/tablet mode
+                    if (sidebar.classList.contains('sidebar-visible')) {
+                        sidebar.classList.remove('sidebar-visible');
+                        sidebarOverlay.classList.remove('show');
+                    }
+                }
+            });
+        }
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+
+</html>

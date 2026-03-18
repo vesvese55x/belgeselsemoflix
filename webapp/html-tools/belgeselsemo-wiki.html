@@ -1,0 +1,2234 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BELGESELSEMO WIKI</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --netflix-bg: #141414;
+            --netflix-card: #1f1f1f;
+            --netflix-red: #e50914;
+            --netflix-hover: #f40612;
+            --text-primary: #ffffff;
+            --text-secondary: #b3b3b3;
+            --text-muted: #808080;
+            --border-color: rgba(255, 255, 255, 0.1);
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+            --header-height: 80px;
+            --footer-height: 50px;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--netflix-bg);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            font-size: 16px;
+            line-height: 1.6;
+        }
+
+        body.light-theme {
+            --netflix-bg: #f5f5f5;
+            --netflix-card: #ffffff;
+            --netflix-red: #e50914;
+            --netflix-hover: #c50812;
+            --text-primary: #000000;
+            --text-secondary: #333333;
+            --text-muted: #666666;
+            --border-color: rgba(0, 0, 0, 0.1);
+            --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        body.font-small {
+            font-size: 14px;
+        }
+
+        body.font-medium {
+            font-size: 16px;
+        }
+
+        body.font-large {
+            font-size: 18px;
+        }
+
+        body.font-xlarge {
+            font-size: 20px;
+        }
+
+        .reading-progress {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--netflix-red), var(--netflix-hover));
+            width: 0%;
+            z-index: 1001;
+            transition: width 0.1s ease-out;
+            box-shadow: 0 0 10px rgba(229, 9, 20, 0.5);
+        }
+
+        .translation-badge {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            background: var(--netflix-red);
+            color: white;
+            padding: 0.75rem 1.25rem;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            display: none;
+            z-index: 999;
+            box-shadow: var(--shadow);
+            animation: slideInRight 0.3s;
+        }
+
+        .translation-badge.active {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .translation-spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        header {
+            background: rgba(20, 20, 20, 0.98);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 2rem;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            width: 100%;
+            z-index: 1000;
+            box-shadow: var(--shadow);
+            height: var(--header-height);
+            display: flex;
+            align-items: center;
+        }
+
+        body.light-theme header {
+            background: rgba(255, 255, 255, 0.98);
+        }
+
+        .header-content {
+            max-width: 1600px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+            width: 100%;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--netflix-red);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+            transition: transform 0.3s ease;
+            flex-shrink: 0;
+            cursor: pointer;
+        }
+
+        .logo:hover {
+            transform: scale(1.05);
+        }
+
+        .search-container {
+            flex: 1;
+            min-width: 250px;
+            max-width: 600px;
+            position: relative;
+        }
+
+        .search-box {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .search-input {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            background: var(--netflix-card);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            color: var(--text-primary);
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--netflix-red);
+            box-shadow: 0 0 0 2px rgba(229, 9, 20, 0.2);
+        }
+
+        .search-btn {
+            padding: 0.75rem 1.5rem;
+            background: var(--netflix-red);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .search-btn:hover {
+            background: var(--netflix-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(229, 9, 20, 0.4);
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .control-btn {
+            padding: 0.5rem 0.75rem;
+            background: var(--netflix-card);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+            white-space: nowrap;
+        }
+
+        .control-btn:hover {
+            background: var(--netflix-red);
+            border-color: var(--netflix-red);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .control-btn.active {
+            background: var(--netflix-red);
+            border-color: var(--netflix-red);
+            color: white;
+        }
+
+        main {
+            flex: 1;
+            max-width: 1600px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 2rem;
+            padding-top: calc(var(--header-height) + 2rem);
+            padding-bottom: calc(var(--footer-height) + 2rem);
+            display: flex;
+            gap: 2rem;
+            min-height: calc(100vh - var(--header-height) - var(--footer-height));
+        }
+
+        .toc-container {
+            width: 280px;
+            flex-shrink: 0;
+            position: sticky;
+            top: 100px;
+            height: calc(100vh - 150px);
+            overflow-y: auto;
+            display: none;
+        }
+
+        .toc-container.active {
+            display: block;
+        }
+
+        .toc {
+            background: var(--netflix-card);
+            border-radius: 8px;
+            padding: 1.5rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .toc-title {
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: var(--netflix-red);
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .toc-list {
+            list-style: none;
+        }
+
+        .toc-item {
+            margin-bottom: 0.5rem;
+        }
+
+        .toc-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            display: block;
+            padding: 0.4rem 0.75rem;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+            border-left: 2px solid transparent;
+        }
+
+        .toc-link:hover {
+            background: var(--netflix-bg);
+            color: var(--netflix-red);
+            border-left-color: var(--netflix-red);
+            padding-left: 1rem;
+        }
+
+        .toc-link.active {
+            background: rgba(229, 9, 20, 0.1);
+            color: var(--netflix-red);
+            border-left-color: var(--netflix-red);
+            font-weight: 600;
+        }
+
+        .toc-item.level-3 .toc-link {
+            padding-left: 1.5rem;
+            font-size: 0.85rem;
+        }
+
+        .article-wrapper {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .article-container {
+            background: var(--netflix-card);
+            border-radius: 8px;
+            padding: 2.5rem;
+            box-shadow: var(--shadow);
+            display: none;
+        }
+
+        .article-container.active {
+            display: block;
+        }
+
+        .article-header {
+            border-bottom: 3px solid var(--netflix-red);
+            padding-bottom: 1.5rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .article-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+            line-height: 1.2;
+        }
+
+        .article-meta {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            align-items: center;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .article-actions {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-top: 0.75rem;
+        }
+
+        .article-content {
+            line-height: 1.8;
+            color: var(--text-secondary);
+            max-width: 100%;
+            overflow-x: hidden;
+            word-wrap: break-word;
+        }
+
+        .article-content p {
+            margin-bottom: 1.25rem;
+            text-align: justify;
+            text-justify: inter-word;
+        }
+
+        .article-content h2 {
+            color: var(--text-primary);
+            font-size: 1.9rem;
+            margin-top: 2.5rem;
+            margin-bottom: 1.25rem;
+            border-left: 5px solid var(--netflix-red);
+            padding-left: 1.25rem;
+            scroll-margin-top: 100px;
+        }
+
+        .article-content h3 {
+            color: var(--text-primary);
+            font-size: 1.5rem;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            scroll-margin-top: 100px;
+        }
+
+        .article-content img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin: 1.5rem 0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .article-content img:hover {
+            transform: scale(1.02);
+            box-shadow: 0 8px 24px rgba(229, 9, 20, 0.3);
+        }
+
+        .article-content table {
+            width: 100% !important;
+            border-collapse: collapse;
+            margin: 1.5rem 0 !important;
+            background: var(--netflix-bg);
+            font-size: 0.9rem;
+            display: block !important;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            border-radius: 4px;
+            overflow-x: auto;
+            max-width: 100%;
+        }
+
+        .article-content table tbody,
+        .article-content table thead,
+        .article-content table tr {
+            display: table;
+            width: 100%;
+            table-layout: fixed;
+        }
+
+        .article-content th,
+        .article-content td {
+            padding: 0.85rem;
+            border: 1px solid var(--border-color);
+            text-align: left;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+
+        .article-content th {
+            background: var(--netflix-red);
+            color: white;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+
+        .article-content th a {
+            color: white !important;
+            border-bottom-color: rgba(255, 255, 255, 0.5);
+        }
+
+        .article-content th a:hover {
+            color: rgba(255, 255, 255, 0.9) !important;
+            border-bottom-color: white;
+        }
+
+        .article-content tr:nth-child(even) {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .article-content tr:hover {
+            background: rgba(229, 9, 20, 0.05);
+        }
+
+        .article-content a {
+            color: var(--netflix-red);
+            text-decoration: none;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border-bottom: 1px dotted var(--netflix-red);
+        }
+
+        .article-content a:hover {
+            color: var(--netflix-hover);
+            border-bottom-style: solid;
+        }
+
+        .article-content ul,
+        .article-content ol {
+            margin-left: 2rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .article-content li {
+            margin-bottom: 0.6rem;
+            text-align: justify;
+        }
+
+        .welcome-screen {
+            text-align: center;
+            padding: 5rem 2rem;
+        }
+
+        .welcome-icon {
+            font-size: 7rem;
+            margin-bottom: 2rem;
+            animation: pulse 2s infinite ease-in-out;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.08);
+            }
+        }
+
+        .welcome-title {
+            font-size: 3.5rem;
+            font-weight: 700;
+            margin-bottom: 1.25rem;
+            background: linear-gradient(135deg, var(--netflix-red), #f40612);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .welcome-subtitle {
+            font-size: 1.3rem;
+            color: var(--text-secondary);
+            margin-bottom: 2.5rem;
+        }
+
+        .welcome-features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+            margin-top: 3.5rem;
+        }
+
+        .feature-card {
+            background: var(--netflix-card);
+            padding: 2.5rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+
+        .feature-card:hover {
+            border-color: var(--netflix-red);
+            transform: translateY(-8px);
+            box-shadow: 0 12px 32px rgba(229, 9, 20, 0.2);
+        }
+
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .feature-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+        }
+
+        .feature-desc {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        #welcomeHistoryList {
+            display: none !important;
+        }
+
+        footer {
+            background: rgba(20, 20, 20, 0.98);
+            border-top: 1px solid var(--border-color);
+            padding: 0.5rem 1.5rem;
+            text-align: center;
+            color: var(--text-muted);
+            flex-shrink: 0;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            width: 100%;
+            z-index: 900;
+            height: var(--footer-height);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+        }
+
+        body.light-theme footer {
+            background: rgba(255, 255, 255, 0.98);
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 4rem;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid var(--border-color);
+            border-top: 4px solid var(--netflix-red);
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1.5rem;
+        }
+
+        .suggestions {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 50px;
+            background: var(--netflix-card);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            margin-top: 0.25rem;
+            max-height: 450px;
+            overflow-y: auto;
+            z-index: 1001;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            display: none;
+        }
+
+        .suggestions.active {
+            display: block;
+        }
+
+        .suggestion-item {
+            padding: 0.9rem 1.25rem;
+            cursor: pointer;
+            border-bottom: 1px solid var(--border-color);
+            transition: all 0.2s ease;
+        }
+
+        .suggestion-item:last-child {
+            border-bottom: none;
+        }
+
+        .suggestion-item:hover {
+            background: var(--netflix-bg);
+            border-left: 3px solid var(--netflix-red);
+        }
+
+        .suggestion-title {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .suggestion-desc {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+
+        .back-to-top {
+            position: fixed;
+            bottom: calc(var(--footer-height) + 20px);
+            right: 30px;
+            background: var(--netflix-red);
+            color: white;
+            width: 55px;
+            height: 55px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.75rem;
+            box-shadow: 0 4px 20px rgba(229, 9, 20, 0.4);
+            transition: all 0.3s ease;
+            z-index: 998;
+        }
+
+        .back-to-top.visible {
+            display: flex;
+        }
+
+        .back-to-top:hover {
+            transform: translateY(-8px);
+            background: var(--netflix-hover);
+            box-shadow: 0 8px 32px rgba(229, 9, 20, 0.6);
+        }
+
+        .lightbox {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.95);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 3000;
+            padding: 2rem;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        .lightbox.active {
+            display: flex;
+        }
+
+        .lightbox-content {
+            max-width: 95%;
+            max-height: 95%;
+            object-fit: contain;
+            border-radius: 8px;
+            box-shadow: 0 8px 48px rgba(0, 0, 0, 0.8);
+        }
+
+        .lightbox-close {
+            position: absolute;
+            top: 30px;
+            right: 30px;
+            background: var(--netflix-red);
+            color: white;
+            border: none;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 2rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .lightbox-close:hover {
+            background: var(--netflix-hover);
+            transform: rotate(90deg);
+        }
+
+        .lightbox-close i {
+            pointer-events: none;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(8px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            padding: 1rem;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--netflix-card);
+            border-radius: 8px;
+            max-width: 900px;
+            width: 100%;
+            max-height: 85vh;
+            overflow-y: auto;
+            padding: 2.5rem;
+            position: relative;
+            box-shadow: 0 16px 64px rgba(0, 0, 0, 0.6);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1.25rem;
+            border-bottom: 3px solid var(--netflix-red);
+        }
+
+        .modal-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-primary);
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0;
+            line-height: 0.8;
+            transition: all 0.3s ease;
+            font-family: Arial, sans-serif;
+            font-weight: 300;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-close:hover {
+            color: var(--netflix-red);
+            transform: rotate(90deg);
+        }
+
+        .modal-close i {
+            pointer-events: none;
+        }
+
+        .modal-body {
+            display: grid;
+            gap: 1.25rem;
+        }
+
+        .list-item {
+            background: var(--netflix-bg);
+            padding: 1.25rem;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .list-item:hover {
+            border-color: var(--netflix-red);
+            transform: translateX(8px);
+            box-shadow: -4px 0 0 0 var(--netflix-red);
+        }
+
+        .list-item-content {
+            flex: 1;
+        }
+
+        .list-item-title {
+            font-weight: 600;
+            margin-bottom: 0.4rem;
+            font-size: 1.05rem;
+        }
+
+        .list-item-meta {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .list-item-actions {
+            display: flex;
+            gap: 0.6rem;
+        }
+
+        .list-item-btn {
+            background: var(--netflix-red);
+            color: white;
+            border: none;
+            padding: 0.6rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        .list-item-btn:hover {
+            background: var(--netflix-hover);
+            transform: scale(1.05);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: var(--text-muted);
+            font-size: 1.1rem;
+        }
+
+        .shortcuts-help {
+            position: fixed;
+            bottom: calc(var(--footer-height) + 30px);
+            left: 30px;
+            background: var(--netflix-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+            display: none;
+            z-index: 999;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            max-width: 350px;
+        }
+
+        .shortcuts-help.visible {
+            display: block;
+            animation: slideInLeft 0.3s ease;
+        }
+
+        @keyframes slideInLeft {
+            from {
+                transform: translateX(-100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .shortcuts-title {
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: var(--netflix-red);
+            font-size: 1.1rem;
+        }
+
+        .shortcut-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            font-size: 0.9rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .shortcut-item:last-child {
+            border-bottom: none;
+        }
+
+        .shortcut-key {
+            background: var(--netflix-bg);
+            padding: 0.3rem 0.7rem;
+            border-radius: 4px;
+            font-family: monospace;
+            font-weight: 700;
+            border: 1px solid var(--border-color);
+        }
+
+        .mobile-toc-btn {
+            position: fixed;
+            bottom: calc(var(--footer-height) + 20px);
+            right: 30px;
+            background: var(--netflix-card);
+            color: var(--text-primary);
+            width: 55px;
+            height: 55px;
+            border-radius: 50%;
+            border: 1px solid var(--border-color);
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+            transition: all 0.3s ease;
+            z-index: 997;
+        }
+
+        .mobile-toc-btn:hover {
+            background: var(--netflix-red);
+            border-color: var(--netflix-red);
+            color: white;
+            transform: translateY(-5px);
+        }
+
+        .about-content {
+            line-height: 1.8;
+            color: var(--text-secondary);
+            text-align: justify;
+            text-justify: inter-word;
+        }
+
+        .about-content h3 {
+            color: var(--netflix-red);
+            margin-top: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .about-content ul {
+            margin-left: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        @media (min-width: 1201px) {
+            .mobile-toc-btn {
+                display: none !important;
+            }
+        }
+
+        @media (max-width: 1200px) {
+            .toc-container {
+                display: none !important;
+            }
+
+            .mobile-toc-btn.visible {
+                display: flex !important;
+            }
+
+            .back-to-top {
+                bottom: calc(var(--footer-height) + 90px) !important;
+                right: 20px;
+                width: 50px;
+                height: 50px;
+                z-index: 999;
+            }
+
+            .mobile-toc-btn {
+                bottom: calc(var(--footer-height) + 20px);
+                right: 20px;
+                width: 50px;
+                height: 50px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            :root {
+                --header-height: auto;
+            }
+
+            main {
+                padding: 1rem;
+                min-height: calc(100vh - var(--footer-height) - 120px);
+            }
+
+            .header-content {
+                gap: 1rem;
+            }
+
+            .search-container {
+                width: 100%;
+                max-width: none;
+            }
+
+            .article-container {
+                padding: 1rem;
+            }
+
+            .article-title {
+                font-size: 1.75rem;
+                word-wrap: break-word;
+            }
+
+            .article-content {
+                font-size: 0.95rem;
+            }
+
+            .article-content table {
+                font-size: 0.8rem;
+            }
+
+            .article-content th,
+            .article-content td {
+                padding: 0.5rem;
+                font-size: 0.8rem;
+            }
+
+            .article-content img {
+                max-width: 100%;
+                height: auto;
+            }
+
+            .welcome-title {
+                font-size: 2.25rem;
+            }
+
+            .welcome-features {
+                grid-template-columns: 1fr;
+            }
+
+            .control-btn {
+                font-size: 0.8rem;
+                padding: 0.4rem 0.6rem;
+            }
+
+            .back-to-top {
+                width: 45px;
+                height: 45px;
+                bottom: calc(var(--footer-height) + 80px) !important;
+                right: 15px;
+            }
+
+            .mobile-toc-btn {
+                width: 45px;
+                height: 45px;
+                bottom: calc(var(--footer-height) + 15px);
+                right: 15px;
+            }
+
+            .shortcuts-help {
+                bottom: calc(var(--footer-height) + 15px);
+                left: 15px;
+                max-width: calc(100vw - 30px);
+            }
+        }
+    </style>
+</head>
+
+<body class="font-medium">
+    <div class="reading-progress" id="readingProgress"></div>
+    <div class="translation-badge" id="translationBadge">
+        <div class="translation-spinner"></div>
+        <span>Çeviriliyor...</span>
+    </div>
+
+    <header>
+        <div class="header-content">
+            <a href="#" class="logo" id="logo">
+                <span>📚</span>
+                <span>BELGESELSEMO WIKI</span>
+            </a>
+
+            <div class="search-container">
+                <div class="search-box">
+                    <input type="text" class="search-input" id="searchInput" placeholder="Wikipedia'da ara..."
+                        autocomplete="off">
+                    <button class="search-btn" id="searchBtn">🔍</button>
+                </div>
+                <div class="suggestions" id="suggestions"></div>
+            </div>
+
+            <div class="header-controls">
+                <select class="control-btn" id="languageSelect" title="Dil - İçeriği çevir">
+                    <option value="tr">🇹🇷 TR</option>
+                    <option value="en">🇬🇧 EN</option>
+                    <option value="de">🇩🇪 DE</option>
+                    <option value="fr">🇫🇷 FR</option>
+                    <option value="es">🇪🇸 ES</option>
+                    <option value="it">🇮🇹 IT</option>
+                    <option value="ru">🇷🇺 RU</option>
+                    <option value="ar">🇸🇦 AR</option>
+                    <option value="zh">🇨🇳 ZH</option>
+                    <option value="ja">🇯🇵 JA</option>
+                </select>
+                <button class="control-btn" id="historyBtn" title="Geçmiş (H)">📖</button>
+                <button class="control-btn" id="favoritesBtn" title="Favoriler (F)">⭐</button>
+                <button class="control-btn" id="fontSizeToggle" title="Yazı Boyutu">Aa</button>
+                <button class="control-btn" id="themeToggle" title="Tema Değiştir">🌙</button>
+                <button class="control-btn" id="aboutBtn" title="Hakkında">?</button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="toc-container" id="tocContainer">
+            <div class="toc">
+                <div class="toc-title">
+                    <i class="fas fa-list-ul"></i> İçindekiler
+                </div>
+                <ul class="toc-list" id="tocList"></ul>
+            </div>
+        </div>
+
+        <div class="article-wrapper">
+            <div class="welcome-screen" id="welcomeScreen">
+                <div class="welcome-icon">📚</div>
+                <h1 class="welcome-title">BELGESELSEMO WIKI</h1>
+                <p class="welcome-subtitle">Wikipedia'nın tüm dünyasını keşfedin</p>
+
+                <div class="welcome-features">
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="fas fa-search"></i></div>
+                        <h3 class="feature-title">Güçlü Arama</h3>
+                        <p class="feature-desc">Milyonlarca makaleyi anında bulun ve keşfedin</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🌍</div>
+                        <h3 class="feature-title">Otomatik Çeviri</h3>
+                        <p class="feature-desc">Tüm içerikleri istediğiniz dile otomatik çevirin</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">📑</div>
+                        <h3 class="feature-title">İçindekiler</h3>
+                        <p class="feature-desc">Hızlı navigasyon için otomatik TOC</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">⭐</div>
+                        <h3 class="feature-title">Favoriler</h3>
+                        <p class="feature-desc">Sevdiğiniz makaleleri kaydedin</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">⌨️</div>
+                        <h3 class="feature-title">Klavye Kısayolları</h3>
+                        <p class="feature-desc">Hızlı erişim için ? tuşuna basın</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">📱</div>
+                        <h3 class="feature-title">Responsive</h3>
+                        <p class="feature-desc">Her cihazda mükemmel görünüm</p>
+                    </div>
+                </div>
+                <div class="modal-body" id="welcomeHistoryList"></div>
+            </div>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Yükleniyor...</p>
+            </div>
+
+            <div class="article-container" id="articleContainer">
+                <div class="article-header">
+                    <h1 class="article-title" id="articleTitle"></h1>
+                    <div class="article-meta">
+                        <span id="articleLang"></span>
+                        <div class="article-actions">
+                            <button class="control-btn" id="favoriteBtn">⭐ Ekle</button>
+                            <button class="control-btn" id="shareBtn">🔗 Paylaş</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="article-content" id="articleContent"></div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>BELGESELSEMO.COM.TR</p>
+    </footer>
+
+    <button class="back-to-top" id="backToTop">↑</button>
+    <button class="mobile-toc-btn" id="mobileTocBtn" title="İçindekiler">
+        <i class="fas fa-list-ul"></i>
+    </button>
+
+    <div class="lightbox" id="lightbox">
+        <button class="lightbox-close" id="lightboxClose">&times;</button>
+        <img src="" alt="" class="lightbox-content" id="lightboxImg">
+    </div>
+
+    <div class="modal" id="tocModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title"><i class="fas fa-list-ul"></i> İçindekiler</h2>
+                <button class="modal-close" id="tocClose">&times;</button>
+            </div>
+            <div class="modal-body">
+                <ul class="toc-list" id="mobileTocList"></ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="aboutModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">ℹ️ Hakkında</h2>
+                <button class="modal-close" id="aboutClose">&times;</button>
+            </div>
+            <div class="modal-body about-content">
+                <p><strong>BelgeselSemo Wiki</strong>, bilgiye erişimi sınırların ötesine taşıyan, modern ve
+                    kullanıcı dostu bir Wikipedia okuyucusudur. Netflix tarzı şık arayüzü ile sıkıcı ansiklopedi
+                    deneyimini görsel bir şölene dönüştürür.</p>
+
+                <h3>🚀 Öne Çıkan Özellikler</h3>
+                <ul>
+                    <li><strong>Sınırsız Çeviri:</strong> Gelişmiş çoklu API sistemi (Google Translate, Lingva,
+                        LibreTranslate) sayesinde makaleleri dilediğiniz dile anında, ücretsiz ve limitsiz olarak
+                        çevirin.</li>
+                    <li><strong>Akıllı Arama:</strong> Wikipedia'nın devasa kütüphanesinde anlık arama yapın ve
+                        sonuçları görsel önerilerle görüntüleyin.</li>
+                    <li><strong>Görsel Deneyim:</strong> Makalelerdeki görselleri yüksek çözünürlüklü lightbox
+                        modunda inceleyin.</li>
+                    <li><strong>Kişiselleştirme:</strong> Karanlık/Aydınlık mod, yazı boyutu ayarları ve favori
+                        listesi ile okuma deneyiminizi özelleştirin.</li>
+                    <li><strong>Geçmiş Yönetimi:</strong> Okuduğunuz makalelere "Geçmiş" özelliği ile kolayca geri
+                        dönün.</li>
+                </ul>
+
+                <h3>⚡ Teknoloji</h3>
+                <p>Bu proje, modern web teknolojileri (HTML5, CSS3, Vanilla JavaScript) kullanılarak, performans ve
+                    kullanıcı deneyimi odaklı olarak geliştirilmiştir. Herhangi bir harici kütüphane bağımlılığı
+                    olmadan, saf kod gücüyle çalışır.</p>
+
+                <p style="margin-top: 1rem; text-align: center; color: var(--text-muted); font-size: 0.9rem;">
+                    Geliştirici: <a href="https://github.com/belgeselsemo" target="_blank"
+                        style="color: var(--netflix-red); text-decoration: none;">BelgeselSemo</a> &copy; 2025
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="favoritesModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">⭐ Favorilerim</h2>
+                <button class="modal-close" id="favoritesClose">&times;</button>
+            </div>
+            <div class="modal-body" id="favoritesList"></div>
+        </div>
+    </div>
+
+    <div class="modal" id="historyModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">📖 Arama Geçmişi</h2>
+                <button class="modal-close" id="historyClose">&times;</button>
+            </div>
+            <div class="modal-body" id="historyList"></div>
+        </div>
+    </div>
+
+    <div class="shortcuts-help" id="shortcutsHelp">
+        <div class="shortcuts-title">⌨️ Klavye Kısayolları</div>
+        <div class="shortcut-item">
+            <span>Ara</span>
+            <span class="shortcut-key">/</span>
+        </div>
+        <div class="shortcut-item">
+            <span>Favoriler</span>
+            <span class="shortcut-key">F</span>
+        </div>
+        <div class="shortcut-item">
+            <span>Geçmiş</span>
+            <span class="shortcut-key">H</span>
+        </div>
+        <div class="shortcut-item">
+            <span>Tema</span>
+            <span class="shortcut-key">T</span>
+        </div>
+        <div class="shortcut-item">
+            <span>Yardımı Kapat</span>
+            <span class="shortcut-key">Esc</span>
+        </div>
+    </div>
+
+    <script>
+        window.onload = function () {
+            let wikiLanguage = 'tr';
+            let displayLanguage = 'tr';
+            let currentArticle = null;
+            let favorites = JSON.parse(localStorage.getItem('wiki_favorites') || '[]');
+            let searchHistory = JSON.parse(localStorage.getItem('wiki_history') || '[]');
+            let translationCache = {};
+            let isTranslating = false;
+
+            const searchInput = document.getElementById('searchInput');
+            const searchBtn = document.getElementById('searchBtn');
+            const suggestions = document.getElementById('suggestions');
+            const welcomeScreen = document.getElementById('welcomeScreen');
+            const loading = document.getElementById('loading');
+            const articleContainer = document.getElementById('articleContainer');
+            const articleTitle = document.getElementById('articleTitle');
+            const articleContent = document.getElementById('articleContent');
+            const articleLang = document.getElementById('articleLang');
+            const languageSelect = document.getElementById('languageSelect');
+            const themeToggle = document.getElementById('themeToggle');
+            const favoritesBtn = document.getElementById('favoritesBtn');
+            const historyBtn = document.getElementById('historyBtn');
+            const favoriteBtn = document.getElementById('favoriteBtn');
+            const shareBtn = document.getElementById('shareBtn');
+            const fontSizeToggle = document.getElementById('fontSizeToggle');
+            const aboutBtn = document.getElementById('aboutBtn');
+            const favoritesModal = document.getElementById('favoritesModal');
+            const favoritesClose = document.getElementById('favoritesClose');
+            const favoritesList = document.getElementById('favoritesList');
+            const historyModal = document.getElementById('historyModal');
+            const historyClose = document.getElementById('historyClose');
+            const historyList = document.getElementById('historyList');
+            const welcomeHistoryList = document.getElementById('welcomeHistoryList');
+            const logo = document.getElementById('logo');
+            const backToTop = document.getElementById('backToTop');
+            const readingProgress = document.getElementById('readingProgress');
+            const lightbox = document.getElementById('lightbox');
+            const lightboxImg = document.getElementById('lightboxImg');
+            const lightboxClose = document.getElementById('lightboxClose');
+            const tocContainer = document.getElementById('tocContainer');
+            const tocList = document.getElementById('tocList');
+            const shortcutsHelp = document.getElementById('shortcutsHelp');
+            const translationBadge = document.getElementById('translationBadge');
+            const aboutModal = document.getElementById('aboutModal');
+            const aboutClose = document.getElementById('aboutClose');
+
+            async function searchWikipedia(query) {
+                const url = `https://${wikiLanguage}.wikipedia.org/w/api.php?` +
+                    `action=opensearch&search=${encodeURIComponent(query)}&limit=10&namespace=0&format=json&origin=*`;
+
+                try {
+                    const response = await fetch(url);
+                    const data = await response.json();
+                    return data[1].map((title, index) => ({
+                        title: title,
+                        description: data[2][index],
+                        url: data[3][index]
+                    }));
+                } catch (error) {
+                    console.error('Search error:', error);
+                    return [];
+                }
+            }
+
+            async function getArticle(title) {
+                const url = `https://${wikiLanguage}.wikipedia.org/w/api.php?` +
+                    `action=parse&page=${encodeURIComponent(title)}&format=json&origin=*&prop=text`;
+
+                try {
+                    const response = await fetch(url);
+                    const data = await response.json();
+
+                    if (data.parse) {
+                        return {
+                            title: data.parse.title,
+                            content: data.parse.text['*']
+                        };
+                    }
+                    return null;
+                } catch (error) {
+                    console.error('Article error:', error);
+                    return null;
+                }
+            }
+
+            async function translateText(text, sourceLang, targetLang) {
+                if (!text || text.trim().length < 2 || sourceLang === targetLang) return text;
+
+                const cacheKey = `${text.substring(0, 100)}_${sourceLang}_${targetLang}`;
+                if (translationCache[cacheKey]) {
+                    return translationCache[cacheKey];
+                }
+
+                const apis = [
+                    async () => {
+                        const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sourceLang}&tl=${targetLang}&dt=t&q=${encodeURIComponent(text)}`;
+                        const response = await fetch(url);
+                        if (!response.ok) throw new Error(`Google Translate status: ${response.status}`);
+                        const data = await response.json();
+                        if (data && data[0]) {
+                            return data[0].map(item => item[0]).join('');
+                        }
+                        throw new Error('Google Translate invalid response');
+                    },
+
+                    async () => {
+                        const url = `https://lingva.ml/api/v1/${sourceLang}/${targetLang}/${encodeURIComponent(text)}`;
+                        const response = await fetch(url);
+                        if (!response.ok) throw new Error(`Lingva status: ${response.status}`);
+                        const data = await response.json();
+                        if (data && data.translation) {
+                            return data.translation;
+                        }
+                        throw new Error('Lingva invalid response');
+                    },
+
+                    async () => {
+                        const url = `https://libretranslate.de/translate`;
+                        const response = await fetch(url, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                q: text,
+                                source: sourceLang,
+                                target: targetLang,
+                                format: 'text'
+                            })
+                        });
+                        if (!response.ok) throw new Error(`LibreTranslate (DE) status: ${response.status}`);
+                        const data = await response.json();
+                        if (data.translatedText) return data.translatedText;
+                        throw new Error('LibreTranslate (DE) failed');
+                    },
+
+                    async () => {
+                        const url = `https://libretranslate.com/translate`;
+                        const response = await fetch(url, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                q: text,
+                                source: sourceLang,
+                                target: targetLang,
+                                format: 'text'
+                            })
+                        });
+                        if (!response.ok) throw new Error(`LibreTranslate (Main) status: ${response.status}`);
+                        const data = await response.json();
+                        if (data.translatedText) return data.translatedText;
+                        throw new Error('LibreTranslate (Main) failed');
+                    }
+                ];
+
+                for (let i = 0; i < apis.length; i++) {
+                    try {
+                        const translated = await apis[i]();
+                        if (translated && translated.trim().length > 0) {
+                            translationCache[cacheKey] = translated;
+                            return translated;
+                        }
+                    } catch (error) {
+                        continue;
+                    }
+                }
+
+                console.error('All translation APIs failed for:', text.substring(0, 20) + '...');
+                return text;
+            }
+
+            async function translateArticleContent() {
+                if (displayLanguage === 'tr' || isTranslating) {
+                    return;
+                }
+
+                console.log('🚀 Starting FAST translation from TR to', displayLanguage);
+                isTranslating = true;
+                translationBadge.classList.add('active');
+                translationBadge.innerHTML = '<div class="translation-spinner"></div> Çeviriliyor...';
+
+                try {
+                    const titleText = articleTitle.getAttribute('data-original') || articleTitle.textContent;
+                    const tocTitleElem = document.querySelector('.toc-title');
+
+                    const titlePromises = [
+                        translateText(titleText, wikiLanguage, displayLanguage).then(t => {
+                            articleTitle.setAttribute('data-original', titleText);
+                            articleTitle.textContent = t;
+                        })
+                    ];
+
+                    if (tocTitleElem) {
+                        const tocText = "İçindekiler";
+                        titlePromises.push(
+                            translateText(tocText, wikiLanguage, displayLanguage).then(t => {
+                                tocTitleElem.innerHTML = `<i class="fas fa-list-ul"></i> ${t}`;
+                            })
+                        );
+                    }
+
+                    await Promise.all(titlePromises);
+
+                    const selectors = 'p, h2, h3, li, th, td, caption, blockquote, .suggestion-item';
+                    const elements = Array.from(articleContent.querySelectorAll(selectors));
+
+                    const tasks = elements.filter(el => {
+                        const text = el.getAttribute('data-original') || el.textContent;
+                        return text.trim().length > 1 && !el.hasAttribute('data-translated');
+                    }).map(el => {
+                        return {
+                            element: el,
+                            original: el.getAttribute('data-original') || el.textContent
+                        };
+                    });
+
+                    console.log(`📝 Found ${tasks.length} elements to translate`);
+
+                    const BATCH_SIZE = 15;
+
+                    for (let i = 0; i < tasks.length; i += BATCH_SIZE) {
+                        const batch = tasks.slice(i, i + BATCH_SIZE);
+
+                        await Promise.all(batch.map(async (task) => {
+                            try {
+                                task.element.setAttribute('data-original', task.original);
+                                task.element.setAttribute('data-translated', 'true');
+
+                                const translated = await translateText(task.original, wikiLanguage, displayLanguage);
+
+                                if (translated && translated !== task.original) {
+                                    task.element.textContent = translated;
+                                }
+                            } catch (err) {
+                                console.warn('Translation error for element:', err);
+                            }
+                        }));
+
+                        await new Promise(r => setTimeout(r, 10));
+                    }
+
+                    if (displayLanguage !== 'tr') {
+                        const uiTranslations = {
+                            'en': { add: '⭐ Add', inFavorites: '⭐ In Favorites', share: '🔗 Share' },
+                            'de': { add: '⭐ Hinzufügen', inFavorites: '⭐ In Favoriten', share: '🔗 Teilen' },
+                            'fr': { add: '⭐ Ajouter', inFavorites: '⭐ Dans favoris', share: '🔗 Partager' },
+                            'es': { add: '⭐ Añadir', inFavorites: '⭐ En favoritos', share: '🔗 Compartir' },
+                            'it': { add: '⭐ Aggiungi', inFavorites: '⭐ Nei preferiti', share: '🔗 Condividi' },
+                            'ru': { add: '⭐ Добавить', inFavorites: '⭐ В избранном', share: '🔗 Поделиться' },
+                            'ar': { add: '⭐ إضافة', inFavorites: '⭐ في المفضلة', share: '🔗 مشاركة' },
+                            'zh': { add: '⭐ 添加', inFavorites: '⭐ 已收藏', share: '🔗 分享' },
+                            'ja': { add: '⭐ 追加', inFavorites: '⭐ お気に入り', share: '🔗 シェア' }
+                        };
+
+                        const trans = uiTranslations[displayLanguage] || uiTranslations['en'];
+                        if (favoriteBtn.textContent.includes('Ekle')) {
+                            favoriteBtn.innerHTML = trans.add;
+                        } else if (favoriteBtn.textContent.includes('Favorilerde')) {
+                            favoriteBtn.innerHTML = trans.inFavorites;
+                        }
+                        shareBtn.innerHTML = trans.share;
+                    }
+
+                    generateTOC();
+
+                } catch (error) {
+                    console.error('Translation failed:', error);
+                } finally {
+                    isTranslating = false;
+                    translationBadge.classList.remove('active');
+                }
+            }
+
+            let searchTimeout;
+            searchInput.addEventListener('input', (e) => {
+                const query = e.target.value.trim();
+
+                clearTimeout(searchTimeout);
+
+                if (query.length < 2) {
+                    suggestions.classList.remove('active');
+                    return;
+                }
+
+                searchTimeout = setTimeout(async () => {
+                    const results = await searchWikipedia(query);
+                    displaySuggestions(results);
+                }, 300);
+            });
+
+            function displaySuggestions(results) {
+                if (results.length === 0) {
+                    suggestions.classList.remove('active');
+                    return;
+                }
+
+                suggestions.innerHTML = results.map(result => `
+                <div class="suggestion-item" data-title="${result.title}">
+                    <div class="suggestion-title">${result.title}</div>
+                    ${result.description ? `<div class="suggestion-desc">${result.description}</div>` : ''}
+                </div>
+            `).join('');
+
+                suggestions.classList.add('active');
+
+                suggestions.querySelectorAll('.suggestion-item').forEach(item => {
+                    item.addEventListener('click', () => {
+                        const title = item.dataset.title;
+                        searchInput.value = title;
+                        suggestions.classList.remove('active');
+                        loadArticle(title);
+                    });
+                });
+            }
+
+            document.addEventListener('click', (e) => {
+                if (!searchInput.contains(e.target) && !suggestions.contains(e.target)) {
+                    suggestions.classList.remove('active');
+                }
+            });
+
+            searchBtn.addEventListener('click', () => {
+                console.log('🔍 Search button clicked!');
+                const query = searchInput.value.trim();
+                console.log('Query:', query);
+                if (query) {
+                    console.log('Loading article:', query);
+                    loadArticle(query);
+                } else {
+                    console.log('No query entered');
+                }
+            });
+
+            searchInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    const query = searchInput.value.trim();
+                    if (query) {
+                        suggestions.classList.remove('active');
+                        loadArticle(query);
+                    }
+                }
+            });
+
+            async function loadArticle(title) {
+                console.log('📰 loadArticle called with title:', title);
+                welcomeScreen.style.display = 'none';
+                articleContainer.classList.remove('active');
+                loading.classList.add('active');
+                tocContainer.classList.remove('active');
+
+                const article = await getArticle(title);
+
+                loading.classList.remove('active');
+
+                if (article) {
+                    currentArticle = {
+                        title: article.title,
+                        wikiLanguage: wikiLanguage,
+                        displayLanguage: displayLanguage
+                    };
+
+                    addToHistory(article.title);
+
+                    articleTitle.textContent = article.title;
+                    articleTitle.removeAttribute('data-original');
+                    articleLang.textContent = `Wikipedia ${wikiLanguage.toUpperCase()}`;
+
+                    let content = article.content;
+
+                    content = content.replace(/<span class="mw-editsection">.*?<\/span>/g, '');
+                    content = content.replace(/src="\/\//g, 'src="https://');
+                    content = content.replace(/href="\/\//g, 'href="https://');
+
+                    content = content.replace(/<table/g, '<table style="width:100%;min-width:100%;"');
+
+                    articleContent.innerHTML = content;
+
+                    const wikiLinks = articleContent.querySelectorAll(`a[href*="/wiki/"]`);
+                    wikiLinks.forEach(link => {
+                        link.addEventListener('click', (e) => {
+                            e.preventDefault();
+                            const href = link.getAttribute('href');
+                            const match = href.match(/\/wiki\/(.+)/);
+                            if (match) {
+                                const articleName = decodeURIComponent(match[1]);
+                                loadArticle(articleName);
+                                window.scrollTo(0, 0);
+                            }
+                        });
+                    });
+
+                    articleContainer.classList.add('active');
+
+                    updateFavoriteButton();
+
+                    setupImageLightbox();
+
+                    generateTOC();
+
+                    tocContainer.classList.add('active');
+
+                    if (wikiLanguage !== displayLanguage) {
+                        setTimeout(() => translateArticleContent(), 500);
+                    }
+
+                    window.scrollTo(0, 0);
+                } else {
+                    alert('Makale bulunamadı!');
+                    welcomeScreen.style.display = 'block';
+                }
+            }
+
+            function generateTOC() {
+                const headings = articleContent.querySelectorAll('h2, h3');
+                const tocList = document.getElementById('tocList');
+                const mobileTocList = document.getElementById('mobileTocList');
+
+                if (headings.length === 0) {
+                    tocContainer.classList.remove('active');
+                    if (mobileTocBtn) mobileTocBtn.classList.remove('visible');
+                    return;
+                }
+
+                tocList.innerHTML = '';
+                if (mobileTocList) mobileTocList.innerHTML = '';
+
+                headings.forEach((heading, index) => {
+                    const id = `section-${index}`;
+                    heading.id = id;
+
+                    const li = document.createElement('li');
+                    li.className = `toc-item level-${heading.tagName.toLowerCase()}`;
+                    const a = document.createElement('a');
+                    a.href = `#${id}`;
+                    a.className = 'toc-link';
+                    a.textContent = heading.textContent;
+                    a.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        heading.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    });
+                    li.appendChild(a);
+                    tocList.appendChild(li);
+
+                    if (mobileTocList) {
+                        const mLi = li.cloneNode(true);
+                        mLi.querySelector('a').addEventListener('click', (e) => {
+                            e.preventDefault();
+                            heading.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            document.getElementById('tocModal').classList.remove('active');
+                        });
+                        mobileTocList.appendChild(mLi);
+                    }
+                });
+
+                if (mobileTocBtn) mobileTocBtn.classList.add('visible');
+
+                let tocLinks = document.querySelectorAll('.toc-link');
+                function updateActiveTOC() {
+                    let current = '';
+                    headings.forEach(heading => {
+                        const rect = heading.getBoundingClientRect();
+                        if (rect.top <= 150) {
+                            current = heading.id;
+                        }
+                    });
+
+                    tocLinks.forEach(link => {
+                        link.classList.remove('active');
+                        if (link.getAttribute('href') === `#${current}`) {
+                            link.classList.add('active');
+                        }
+                    });
+                }
+
+                window.removeEventListener('scroll', updateActiveTOC);
+                window.addEventListener('scroll', updateActiveTOC);
+            }
+
+            const mobileTocBtn = document.getElementById('mobileTocBtn');
+            const tocModal = document.getElementById('tocModal');
+            const tocClose = document.getElementById('tocClose');
+
+            if (mobileTocBtn) {
+                mobileTocBtn.addEventListener('click', () => tocModal.classList.add('active'));
+            }
+            if (tocClose) {
+                tocClose.addEventListener('click', () => tocModal.classList.remove('active'));
+            }
+
+            if (aboutBtn) {
+                aboutBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    aboutModal.classList.add('active');
+                });
+            }
+
+            if (aboutClose) {
+                aboutClose.addEventListener('click', () => aboutModal.classList.remove('active'));
+            }
+
+            window.addEventListener('click', (e) => {
+                if (e.target === tocModal) tocModal.classList.remove('active');
+                if (e.target === aboutModal) aboutModal.classList.remove('active');
+            });
+
+            languageSelect.addEventListener('change', async (e) => {
+                const newLang = e.target.value;
+
+                console.log('🌍 Language changed to:', newLang);
+
+                displayLanguage = newLang;
+
+                if (newLang === 'tr') {
+                    if (currentArticle && articleContainer.classList.contains('active')) {
+                        console.log('↩️ Reverting to original Turkish content');
+                        isTranslating = false;
+                        translationBadge.classList.remove('active');
+
+                        const allElements = articleContent.querySelectorAll('[data-original]');
+                        allElements.forEach(el => {
+                            el.textContent = el.getAttribute('data-original');
+                            el.removeAttribute('data-translated');
+                        });
+
+                        if (articleTitle.hasAttribute('data-original')) {
+                            articleTitle.textContent = articleTitle.getAttribute('data-original');
+                            articleTitle.removeAttribute('data-translated');
+                        }
+
+                        const tocTitleElem = document.querySelector('.toc-title');
+                        if (tocTitleElem) {
+                            tocTitleElem.innerHTML = '<i class="fas fa-list-ul"></i> İçindekiler';
+                            tocTitleElem.removeAttribute('data-translated');
+                        }
+
+                        favoriteBtn.innerHTML = favoriteBtn.textContent.includes('⭐') ? (favorites.some(f => f.title === currentArticle.title) ? '⭐ Favorilerde' : '⭐ Ekle') : '⭐ Ekle';
+                        shareBtn.innerHTML = '🔗 Paylaş';
+
+                        generateTOC();
+                    }
+
+                    searchInput.placeholder = 'Wikipedia\'da ara...';
+                    return;
+                }
+
+                if (currentArticle && articleContainer.classList.contains('active')) {
+                    console.log('📰 Translating current article to:', newLang);
+
+                    isTranslating = false;
+                    const allElements = articleContent.querySelectorAll('[data-translated]');
+                    allElements.forEach(el => el.removeAttribute('data-translated'));
+
+                    articleTitle.removeAttribute('data-translated');
+                    const tocTitleElem = document.querySelector('.toc-title');
+                    if (tocTitleElem) tocTitleElem.removeAttribute('data-translated');
+
+                    await translateArticleContent();
+                }
+
+                searchInput.placeholder = {
+                    'tr': 'Wikipedia\'da ara...',
+                    'en': 'Search Wikipedia...',
+                    'de': 'Wikipedia durchsuchen...',
+                    'fr': 'Rechercher sur Wikipedia...',
+                    'es': 'Buscar en Wikipedia...',
+                    'it': 'Cerca su Wikipedia...',
+                    'ru': 'Поиск в Wikipedia...',
+                    'ar': 'البحث في ويكيبيديا...',
+                    'zh': '搜索维基百科...',
+                    'ja': 'ウィキペディアで検索...'
+                }[newLang] || 'Search Wikipedia...';
+            });
+
+            themeToggle.addEventListener('click', () => {
+                document.body.classList.toggle('light-theme');
+                themeToggle.textContent = document.body.classList.contains('light-theme') ? '☀️' : '🌙';
+                localStorage.setItem('wiki_theme', document.body.classList.contains('light-theme') ? 'light' : 'dark');
+            });
+
+            if (localStorage.getItem('wiki_theme') === 'light') {
+                document.body.classList.add('light-theme');
+                themeToggle.textContent = '☀️';
+            }
+
+            let fontSizes = ['font-small', 'font-medium', 'font-large', 'font-xlarge'];
+            let currentFontIndex = 1;
+            fontSizeToggle.addEventListener('click', () => {
+                document.body.classList.remove(...fontSizes);
+                currentFontIndex = (currentFontIndex + 1) % fontSizes.length;
+                document.body.classList.add(fontSizes[currentFontIndex]);
+                localStorage.setItem('wiki_font', fontSizes[currentFontIndex]);
+            });
+
+            const savedFont = localStorage.getItem('wiki_font');
+            if (savedFont && fontSizes.includes(savedFont)) {
+                document.body.classList.remove(...fontSizes);
+                document.body.classList.add(savedFont);
+                currentFontIndex = fontSizes.indexOf(savedFont);
+            }
+
+            function updateFavoriteButton() {
+                if (!currentArticle) return;
+
+                const isFavorite = favorites.some(f =>
+                    f.title === currentArticle.title && f.wikiLanguage === currentArticle.wikiLanguage
+                );
+
+                favoriteBtn.classList.toggle('active', isFavorite);
+                favoriteBtn.innerHTML = isFavorite ? '⭐ Favorilerde' : '⭐ Ekle';
+            }
+
+            favoriteBtn.addEventListener('click', () => {
+                if (!currentArticle) return;
+
+                const index = favorites.findIndex(f =>
+                    f.title === currentArticle.title && f.wikiLanguage === currentArticle.wikiLanguage
+                );
+
+                if (index > -1) {
+                    favorites.splice(index, 1);
+                } else {
+                    favorites.push({ ...currentArticle, timestamp: Date.now() });
+                }
+
+                localStorage.setItem('wiki_favorites', JSON.stringify(favorites));
+                updateFavoriteButton();
+            });
+
+            favoritesBtn.addEventListener('click', () => {
+                displayFavorites();
+                favoritesModal.classList.add('active');
+            });
+
+            favoritesClose.addEventListener('click', () => {
+                favoritesModal.classList.remove('active');
+            });
+
+            function displayFavorites() {
+                if (favorites.length === 0) {
+                    favoritesList.innerHTML = '<div class="empty-state">📚 Henüz favori eklenmemiş</div>';
+                    return;
+                }
+
+                favoritesList.innerHTML = favorites.map((fav, index) => `
+                <div class="list-item">
+                    <div class="list-item-content">
+                        <div class="list-item-title">${fav.title}</div>
+                        <div class="list-item-meta">${fav.wikiLanguage.toUpperCase()} • ${new Date(fav.timestamp).toLocaleDateString('tr-TR')}</div>
+                    </div>
+                    <div class="list-item-actions">
+                        <button class="list-item-btn" data-action="load" data-index="${index}">Aç</button>
+                        <button class="list-item-btn" data-action="remove" data-index="${index}">Sil</button>
+                    </div>
+                </div>
+            `).join('');
+
+                favoritesList.querySelectorAll('[data-action="load"]').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const fav = favorites[btn.dataset.index];
+                        wikiLanguage = fav.wikiLanguage;
+                        displayLanguage = fav.displayLanguage || fav.wikiLanguage;
+                        languageSelect.value = displayLanguage;
+                        favoritesModal.classList.remove('active');
+                        loadArticle(fav.title);
+                    });
+                });
+
+                favoritesList.querySelectorAll('[data-action="remove"]').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        favorites.splice(btn.dataset.index, 1);
+                        localStorage.setItem('wiki_favorites', JSON.stringify(favorites));
+                        displayFavorites();
+                        updateFavoriteButton();
+                    });
+                });
+            }
+
+            function addToHistory(title) {
+                const entry = {
+                    title: title,
+                    wikiLanguage: wikiLanguage,
+                    timestamp: Date.now()
+                };
+
+                searchHistory = searchHistory.filter(h => !(h.title === title && h.wikiLanguage === wikiLanguage));
+                searchHistory.unshift(entry);
+                searchHistory = searchHistory.slice(0, 10);
+
+                localStorage.setItem('wiki_history', JSON.stringify(searchHistory));
+            }
+
+            historyBtn.addEventListener('click', () => {
+                console.log('📖 History button clicked!');
+                displayHistory();
+                historyModal.classList.add('active');
+            });
+
+            historyClose.addEventListener('click', () => {
+                historyModal.classList.remove('active');
+            });
+
+            function displayHistory() {
+                const historyHTML = searchHistory.length === 0 ?
+                    '<div class="empty-state">📖 Henüz arama geçmişi yok</div>' :
+                    searchHistory.map((item, index) => `
+                <div class="list-item">
+                    <div class="list-item-content">
+                        <div class="list-item-title">${item.title}</div>
+                        <div class="list-item-meta">${item.wikiLanguage.toUpperCase()} • ${new Date(item.timestamp).toLocaleDateString('tr-TR')}</div>
+                    </div>
+                    <div class="list-item-actions">
+                        <button class="list-item-btn" data-action="load" data-index="${index}">Aç</button>
+                        <button class="list-item-btn" data-action="remove" data-index="${index}">Sil</button>
+                    </div>
+                </div>
+            `).join('');
+
+                if (historyList) {
+                    historyList.innerHTML = historyHTML;
+                    attachHistoryListeners(historyList);
+                }
+
+                if (welcomeHistoryList) {
+                    welcomeHistoryList.innerHTML = historyHTML;
+                    attachHistoryListeners(welcomeHistoryList);
+                }
+            }
+
+            function attachHistoryListeners(container) {
+                container.querySelectorAll('[data-action="load"]').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const item = searchHistory[btn.dataset.index];
+                        wikiLanguage = item.wikiLanguage;
+                        languageSelect.value = item.wikiLanguage;
+                        historyModal.classList.remove('active');
+                        loadArticle(item.title);
+                    });
+                });
+
+                container.querySelectorAll('[data-action="remove"]').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        searchHistory.splice(btn.dataset.index, 1);
+                        localStorage.setItem('wiki_history', JSON.stringify(searchHistory));
+                        displayHistory();
+                    });
+                });
+            }
+
+            shareBtn.addEventListener('click', () => {
+                if (!currentArticle) return;
+
+                const url = `https://${wikiLanguage}.wikipedia.org/wiki/${encodeURIComponent(currentArticle.title)}`;
+
+                if (navigator.share) {
+                    navigator.share({
+                        title: currentArticle.title,
+                        url: url
+                    }).catch(() => { });
+                } else {
+                    navigator.clipboard.writeText(url).then(() => {
+                        alert('✅ Link kopyalandı!');
+                    });
+                }
+            });
+
+            logo.addEventListener('click', (e) => {
+                e.preventDefault();
+                articleContainer.classList.remove('active');
+                tocContainer.classList.remove('active');
+                welcomeScreen.style.display = 'block';
+                currentArticle = null;
+                searchInput.value = '';
+                window.scrollTo(0, 0);
+            });
+
+            window.addEventListener('scroll', () => {
+                if (window.scrollY > 300) {
+                    backToTop.classList.add('visible');
+                } else {
+                    backToTop.classList.remove('visible');
+                }
+
+                const winScroll = document.body.scrollTop || document.documentElement.scrollTop;
+                const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+                const scrolled = (winScroll / height) * 100;
+                readingProgress.style.width = scrolled + '%';
+            });
+
+            backToTop.addEventListener('click', () => {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+
+            function setupImageLightbox() {
+                const images = articleContent.querySelectorAll('img');
+                images.forEach(img => {
+                    img.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        lightboxImg.src = img.src;
+                        lightbox.classList.add('active');
+                    });
+                });
+            }
+
+            lightboxClose.addEventListener('click', (e) => {
+                e.stopPropagation();
+                lightbox.classList.remove('active');
+            });
+
+            lightbox.addEventListener('click', (e) => {
+                if (e.target === lightbox) {
+                    lightbox.classList.remove('active');
+                }
+            });
+
+            let isSearchFocused = false;
+
+            searchInput.addEventListener('focus', () => isSearchFocused = true);
+            searchInput.addEventListener('blur', () => isSearchFocused = false);
+
+            document.addEventListener('keydown', (e) => {
+                if (isSearchFocused) return;
+
+                switch (e.key.toLowerCase()) {
+                    case '/':
+                        e.preventDefault();
+                        searchInput.focus();
+                        break;
+                    case 'f':
+                        e.preventDefault();
+                        favoritesBtn.click();
+                        break;
+                    case 'h':
+                        e.preventDefault();
+                        historyBtn.click();
+                        break;
+                    case 't':
+                        e.preventDefault();
+                        themeToggle.click();
+                        break;
+                    case '?':
+                        e.preventDefault();
+                        shortcutsHelp.classList.toggle('visible');
+                        break;
+                    case 'escape':
+                        shortcutsHelp.classList.remove('visible');
+                        favoritesModal.classList.remove('active');
+                        historyModal.classList.remove('active');
+                        lightbox.classList.remove('active');
+                        break;
+                }
+            });
+
+            [favoritesModal, historyModal].forEach(modal => {
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        modal.classList.remove('active');
+                    }
+                });
+            });
+
+            console.log('🎓 BELGESELSEMO WIKI yüklendi!');
+            displayHistory();
+
+        };
+    </script>
+</body>
+
+</html>

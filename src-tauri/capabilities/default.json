@@ -1,0 +1,11 @@
+{
+  "identifier": "default",
+  "description": "Default desktop capability for BELGESELSEMOFLIX.",
+  "windows": [
+    "main"
+  ],
+  "permissions": [
+    "core:default"
+  ]
+}
+

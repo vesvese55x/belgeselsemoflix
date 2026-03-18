@@ -1,0 +1,138 @@
+name: build
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  linux:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+
+      - name: Install Linux dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            curl \
+            file \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            libssl-dev \
+            libwebkit2gtk-4.1-dev \
+            libxdo-dev \
+            patchelf \
+            rpm \
+            wget
+
+      - name: Install npm dependencies
+        run: npm install
+
+      - name: Build Linux bundles
+        run: npm run tauri build -- --bundles deb,rpm,appimage
+
+      - name: Convert deb to zst with debtap
+        run: |
+          mkdir -p dist/zst
+          docker run --rm \
+            -v "${PWD}:/work" \
+            archlinux:latest \
+            /bin/bash -lc '
+              set -e
+              pacman -Sy --noconfirm debtap fakeroot binutils
+              debtap -u
+              cd /work/src-tauri/target/release/bundle/deb
+              debtap -q ./*.deb
+              mv ./*.zst /work/dist/zst/
+            '
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: belgeselsemoflix-1.0-linux
+          path: |
+            src-tauri/target/release/bundle/deb/*.deb
+            src-tauri/target/release/bundle/rpm/*.rpm
+            src-tauri/target/release/bundle/appimage/*.AppImage
+            dist/zst/*.zst
+
+  windows:
+    runs-on: windows-2019
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+
+      - name: Install npm dependencies
+        run: npm install
+
+      - name: Build portable Windows executable
+        run: npm run tauri build -- --bundles none
+
+      - name: Assemble portable package
+        shell: pwsh
+        run: |
+          $portableRoot = "portable/belgeselsemoflix-1.0"
+          New-Item -ItemType Directory -Force -Path $portableRoot | Out-Null
+          Copy-Item "src-tauri/target/release/belgeselsemoflix.exe" "$portableRoot/BELGESELSEMOFLIX.exe"
+          Copy-Item "run.bat" "$portableRoot/run.bat"
+          Copy-Item "webapp" "$portableRoot/webapp" -Recurse
+          Compress-Archive -Path "$portableRoot/*" -DestinationPath "portable/belgeselsemoflix-1.0-windows-portable.zip" -Force
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: belgeselsemoflix-1.0-windows
+          path: |
+            portable/belgeselsemoflix-1.0-windows-portable.zip
+            portable/belgeselsemoflix-1.0/BELGESELSEMOFLIX.exe
+
+  macos:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+
+      - name: Install npm dependencies
+        run: npm install
+
+      - name: Build macOS bundles
+        run: npm run tauri build -- --bundles app,dmg
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: belgeselsemoflix-1.0-macos
+          path: |
+            src-tauri/target/release/bundle/macos/*.app
+            src-tauri/target/release/bundle/dmg/*.dmg
