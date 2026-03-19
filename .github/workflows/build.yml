@@ -56,13 +56,13 @@ jobs:
 
       - name: Convert deb to zst with debtap
         run: |
-          mkdir -p dist/zst
+          mkdir -p dist/zst dist/zst-temp
           docker run --rm \
             -v "${PWD}:/work" \
             archlinux:latest \
             /bin/bash -lc '
               set -e
-              pacman -Sy --noconfirm base-devel git sudo fakeroot binutils pacman-contrib
+              pacman -Sy --noconfirm base-devel git sudo fakeroot binutils pacman-contrib libarchive zstd
               useradd -m builder
               echo "builder ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
               su - builder -c "
@@ -75,17 +75,19 @@ jobs:
               cp /work/src-tauri/target/release/bundle/deb/*.deb /tmp/debtap-work/
               cd /tmp/debtap-work
               export TERM=xterm
-              debtap -Qp ./*.deb
-              PKGBUILD_PATH="$(find /tmp/debtap-work -type f -name PKGBUILD | head -n 1)"
-              if [ -z "$PKGBUILD_PATH" ]; then
-                echo "debtap PKGBUILD dosyasi bulunamadi"
+              debtap -Q -o /work/dist/zst-temp ./*.deb
+              PACKAGE_PATH="$(find /work/dist/zst-temp -maxdepth 1 -type f -name '"'"'*.pkg.tar.zst'"'"' | head -n 1)"
+              if [ -z "$PACKAGE_PATH" ]; then
+                echo "debtap ciktisi olan pkg.tar.zst bulunamadi"
                 exit 1
               fi
-              PKG_DIR="$(dirname "$PKGBUILD_PATH")"
-              sed -i "s/'gtk'/'gtk3'/g" "$PKGBUILD_PATH"
-              chown -R builder:builder "$PKG_DIR"
-              su - builder -c "cd '$PKG_DIR' && makepkg -f --noconfirm"
-              cp "$PKG_DIR"/*.pkg.tar.zst /work/dist/zst/
+              mkdir -p /tmp/zst-unpack
+              bsdtar -xf "$PACKAGE_PATH" -C /tmp/zst-unpack
+              if [ -f /tmp/zst-unpack/.PKGINFO ]; then
+                sed -i "s/^depend = gtk$/depend = gtk3/g" /tmp/zst-unpack/.PKGINFO
+              fi
+              FINAL_NAME="$(basename "$PACKAGE_PATH")"
+              bsdtar --uid 0 --gid 0 --numeric-owner -cf - -C /tmp/zst-unpack . | zstd -c -19 -o "/work/dist/zst/$FINAL_NAME"
             '
 
       - uses: actions/upload-artifact@v4

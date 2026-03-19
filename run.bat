@@ -1,5 +1,12 @@
 @echo off
-setlocal
+setlocal EnableExtensions
+
+set "ROOT_DIR=%~dp0"
+pushd "%ROOT_DIR%" >nul 2>nul
+if errorlevel 1 (
+  echo Uygulama klasorune gecilemedi: %ROOT_DIR%
+  exit /b 1
+)
 
 set "HOST=%BELGESELSEMOFLIX_HOST%"
 if "%HOST%"=="" set "HOST=127.0.0.1"
@@ -7,10 +14,9 @@ if "%HOST%"=="" set "HOST=127.0.0.1"
 set "PORT=%BELGESELSEMOFLIX_PORT%"
 if "%PORT%"=="" set "PORT=8000"
 
-set "ROOT_DIR=%~dp0"
 set "WEBAPP_DIR=%BELGESELSEMOFLIX_WEBAPP_DIR%"
-if "%WEBAPP_DIR%"=="" set "WEBAPP_DIR=%ROOT_DIR%webapp"
-set "BUNDLED_PHP_ROOT=%ROOT_DIR%runtime\windows"
+if "%WEBAPP_DIR%"=="" set "WEBAPP_DIR=%CD%\webapp"
+set "BUNDLED_PHP_ROOT=%CD%\runtime\windows"
 set "PHP_CMD="
 set "PHP_DIR="
 
@@ -20,13 +26,8 @@ if not exist "%WEBAPP_DIR%" (
 )
 
 if exist "%BUNDLED_PHP_ROOT%" (
-  for /r "%BUNDLED_PHP_ROOT%" %%F in (php.exe) do (
-    set "PHP_CMD=%%F"
-    set "PHP_DIR=%%~dpF"
-    goto bundled_php_found
-  )
+  for /f "usebackq delims=" %%F in (`powershell -NoProfile -ExecutionPolicy Bypass -Command "$item = Get-ChildItem -LiteralPath '%BUNDLED_PHP_ROOT%' -Filter php.exe -Recurse | Select-Object -First 1 -ExpandProperty FullName; if ($item) { [Console]::WriteLine($item) }"`) do set "PHP_CMD=%%F"
 )
-:bundled_php_found
 
 if "%PHP_CMD%"=="" (
   where php >nul 2>nul
@@ -39,8 +40,15 @@ if "%PHP_CMD%"=="" (
   for %%F in ("%PHP_CMD%") do set "PHP_DIR=%%~dp$PATH:F"
 )
 
+if not "%PHP_CMD%"=="" (
+  for %%I in ("%PHP_CMD%") do set "PHP_DIR=%%~dpI"
+)
+
 if not "%PHP_DIR%"=="" set "PATH=%PHP_DIR%;%PATH%"
 if exist "%PHP_DIR%php.ini" set "PHPRC=%PHP_DIR%"
 
 echo Server baslatiliyor: http://%HOST%:%PORT%/index.php
 "%PHP_CMD%" -S %HOST%:%PORT% -t "%WEBAPP_DIR%"
+set "EXIT_CODE=%ERRORLEVEL%"
+popd >nul 2>nul
+exit /b %EXIT_CODE%
