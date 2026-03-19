@@ -78,18 +78,18 @@ jobs:
                 exit 1
               fi
               bsdtar -xf "$DATA_TAR" -C /tmp/archpkg/pkgroot
-              cat > /tmp/archpkg/src/PKGBUILD <<EOF
-pkgname=belgeselsemoflix
-pkgver=1.0.0
-pkgrel=1
-pkgdesc="BELGESELSEMOFLIX 1.0"
-arch=("x86_64")
-license=()
-depends=("cairo" "gdk-pixbuf2" "glibc" "libsoup3" "gtk3" "webkit2gtk-4.1" "glib2" "libgcc")
-package() {
-  cp -a /tmp/archpkg/pkgroot/. "\$pkgdir"/
-}
-EOF
+              printf "%s\n" \
+                "pkgname=belgeselsemoflix" \
+                "pkgver=1.0.0" \
+                "pkgrel=1" \
+                "pkgdesc=\"BELGESELSEMOFLIX 1.0\"" \
+                "arch=(\"x86_64\")" \
+                "license=()" \
+                "depends=(\"cairo\" \"gdk-pixbuf2\" \"glibc\" \"libsoup3\" \"gtk3\" \"webkit2gtk-4.1\" \"glib2\" \"libgcc\")" \
+                "package() {" \
+                "  cp -a /tmp/archpkg/pkgroot/. \"\$pkgdir\"/" \
+                "}" \
+                > /tmp/archpkg/src/PKGBUILD
               cd /tmp/archpkg/src
               makepkg -f --nodeps --noconfirm
               cp ./*.pkg.tar.zst /work/dist/zst/
