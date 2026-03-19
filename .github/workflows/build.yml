@@ -59,8 +59,10 @@ jobs:
       - name: Build AppImage from deb with appimage-builder
         if: steps.build_linux.conclusion == 'success'
         run: |
-          mkdir -p dist/appimage
+          APPIMAGE_OUT="/tmp/belgeselsemoflix-appimage"
           APPIMAGE_WORK="$(mktemp -d)"
+          rm -rf "$APPIMAGE_OUT"
+          mkdir -p "$APPIMAGE_OUT"
           DEB_PATH="$(find src-tauri/target/release/bundle/deb -maxdepth 1 -type f -name '*.deb' | head -n 1)"
           if [ -z "$DEB_PATH" ]; then
             echo "deb paketi bulunamadi"
@@ -78,7 +80,7 @@ jobs:
               --recipe "$GITHUB_WORKSPACE/.github/appimage-builder.yml" \
               --skip-test
           )
-          find "$APPIMAGE_WORK" -maxdepth 1 -type f -name '*.AppImage' ! -name 'appimage-builder*.AppImage' -exec mv {} dist/appimage/ \;
+          find "$APPIMAGE_WORK" -maxdepth 1 -type f -name '*.AppImage' ! -name 'appimage-builder*.AppImage' -exec mv {} "$APPIMAGE_OUT"/ \;
 
       - name: Convert deb to zst with debtap
         if: steps.build_linux.conclusion == 'success'
@@ -130,7 +132,7 @@ jobs:
         with:
           name: belgeselsemoflix-1.0-linux-appimage
           path: |
-            dist/appimage/*.AppImage
+            /tmp/belgeselsemoflix-appimage/*.AppImage
 
       - uses: actions/upload-artifact@v4
         if: always() && steps.build_linux.conclusion == 'success'
@@ -169,8 +171,33 @@ jobs:
           Copy-Item "$env:SystemRoot\\System32\\vcruntime140.dll" $phpDir -Force -ErrorAction SilentlyContinue
           Copy-Item "$env:SystemRoot\\System32\\vcruntime140_1.dll" $phpDir -Force -ErrorAction SilentlyContinue
           Copy-Item "$env:SystemRoot\\System32\\msvcp140.dll" $phpDir -Force -ErrorAction SilentlyContinue
-          Remove-Item "$phpDir\\php.ini" -Force -ErrorAction SilentlyContinue
-          & $phpExe.FullName -n -v
+          @'
+[PHP]
+engine=On
+short_open_tag=Off
+precision=14
+output_buffering=0
+zlib.output_compression=Off
+implicit_flush=On
+serialize_precision=-1
+max_execution_time=120
+max_input_time=60
+memory_limit=512M
+error_reporting=E_ALL
+display_errors=On
+display_startup_errors=On
+log_errors=On
+default_charset="UTF-8"
+allow_url_fopen=On
+extension_dir="ext"
+extension=curl
+extension=openssl
+extension=mbstring
+extension=fileinfo
+curl.cainfo=
+openssl.cafile=
+'@ | Set-Content -Path "$phpDir\\php.ini" -Encoding ASCII
+          & $phpExe.FullName -c "$phpDir\\php.ini" -v
 
       - name: Build Windows installer
         run: npm run tauri build -- --bundles nsis

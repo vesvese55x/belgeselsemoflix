@@ -242,14 +242,23 @@ fn startup_command(
         writeln!(log_file, "windows_resource_dir={}", resource_dir.display())?;
         writeln!(log_file, "windows_webapp_dir={}", webapp_dir.display())?;
 
+        let php_ini = php_dir.join("php.ini");
+
         let mut command = Command::new(&php_exe);
         command
             .current_dir(&resource_dir)
             .env("PATH", windows_path_with_php(&php_dir)?)
             .creation_flags(CREATE_NO_WINDOW)
-            .arg("-n")
             .arg("-d")
             .arg("cli_server.color=0");
+
+        if php_ini.is_file() {
+            writeln!(log_file, "php_ini={}", php_ini.display())?;
+            command.arg("-c").arg(&php_ini);
+        } else {
+            writeln!(log_file, "php_ini=none")?;
+            command.arg("-n");
+        }
 
         command
             .arg("-S")

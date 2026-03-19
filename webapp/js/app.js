@@ -66,15 +66,21 @@ class BelgeselSemoFlix {
     // ============================================
 
     async loadData() {
-        const BASE = 'https://belgeselsemo.com.tr/php/data';
+        const isDesktopLocalhost = ['127.0.0.1', 'localhost'].includes(window.location.hostname);
+        const buildUrl = (fileName) => {
+            if (isDesktopLocalhost) {
+                return `data-proxy.php?file=${encodeURIComponent(fileName)}`;
+            }
+            return `https://belgeselsemo.com.tr/php/data/${fileName}`;
+        };
         try {
             const [all, singles, series, episodes, categoriesData, downloadLinks] = await Promise.all([
-                fetch(`${BASE}/all_documentaries.json`).then(r => r.json()),
-                fetch(`${BASE}/single_documentaries.json`).then(r => r.json()),
-                fetch(`${BASE}/series_documentaries.json`).then(r => r.json()),
-                fetch(`${BASE}/episodes.json`).then(r => r.json()),
-                fetch(`${BASE}/categories.json`).then(r => r.json()),
-                fetch(`${BASE}/download_links.json`).then(r => r.json()).catch(() => [])
+                fetch(buildUrl('all_documentaries.json')).then(r => r.json()),
+                fetch(buildUrl('single_documentaries.json')).then(r => r.json()),
+                fetch(buildUrl('series_documentaries.json')).then(r => r.json()),
+                fetch(buildUrl('episodes.json')).then(r => r.json()),
+                fetch(buildUrl('categories.json')).then(r => r.json()),
+                fetch(buildUrl('download_links.json')).then(r => r.json()).catch(() => [])
             ]);
 
             this.data.all = all;
