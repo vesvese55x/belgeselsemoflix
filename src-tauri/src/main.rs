@@ -299,13 +299,13 @@ fn startup_command(
 }
 
 #[tauri::command]
-fn fetch_remote_data_file(file: String) -> Result<String, String> {
+async fn fetch_remote_data_file(file: String) -> Result<String, String> {
     if !is_allowed_data_file(&file) {
         return Err(format!("izin verilmeyen veri dosyasi: {file}"));
     }
 
     let url = format!("https://belgeselsemo.com.tr/php/data/{file}");
-    let client = reqwest::blocking::Client::builder()
+    let client = reqwest::Client::builder()
         .connect_timeout(Duration::from_secs(20))
         .timeout(DATA_FETCH_TIMEOUT)
         .danger_accept_invalid_certs(true)
@@ -317,6 +317,7 @@ fn fetch_remote_data_file(file: String) -> Result<String, String> {
         .header(reqwest::header::ACCEPT, "application/json")
         .header(reqwest::header::USER_AGENT, "BELGESELSEMOFLIX Desktop")
         .send()
+        .await
         .map_err(|error| format!("uzak veri istegi basarisiz oldu: {error}"))?;
 
     if !response.status().is_success() {
@@ -325,6 +326,7 @@ fn fetch_remote_data_file(file: String) -> Result<String, String> {
 
     response
         .text()
+        .await
         .map_err(|error| format!("uzak veri cevabi okunamadi: {error}"))
 }
 

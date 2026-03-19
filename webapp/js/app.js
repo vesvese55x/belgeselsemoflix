@@ -86,6 +86,7 @@ class BelgeselSemoFlix {
                     sources.push({ type: 'invoke', fileName });
                 }
                 sources.push({ type: 'http', url: `data-proxy.php?file=${encodeURIComponent(fileName)}` });
+                sources.push({ type: 'http', url: remoteUrl });
                 return sources;
             }
             return [{ type: 'http', url: remoteUrl }];
