@@ -21,7 +21,7 @@ use serde::Serialize;
 use tauri::{
     ipc::InvokeError,
     webview::{DownloadEvent, NewWindowResponse, PageLoadEvent, WebviewBuilder},
-    Manager, PhysicalPosition, PhysicalSize, RunEvent, Webview, WebviewUrl, WebviewWindow,
+    LogicalPosition, LogicalSize, Manager, RunEvent, Webview, WebviewUrl, WebviewWindow,
     WebviewWindowBuilder, WindowEvent,
 };
 use url::Url;
@@ -198,7 +198,8 @@ fn shell_toggle_maximize(window: WebviewWindow) -> Result<(), InvokeError> {
 
 #[tauri::command]
 fn shell_close(window: WebviewWindow) -> Result<(), InvokeError> {
-    window.close().map_err(Into::into)
+    window.app_handle().exit(0);
+    Ok(())
 }
 
 #[tauri::command]
@@ -358,8 +359,8 @@ fn create_home_webview(app: &tauri::AppHandle, url: &str) -> Result<(), DynError
                     }
                 }
             }),
-        PhysicalPosition::new(0, 0),
-        PhysicalSize::new(100, 100),
+        LogicalPosition::new(0.0, 0.0),
+        LogicalSize::new(100.0, 100.0),
     )?;
 
     webview.hide()?;
@@ -450,8 +451,8 @@ fn create_managed_webview(app: &tauri::AppHandle, url: Url) -> Result<(), DynErr
                 let app_handle = app_handle.clone();
                 move |_webview, event| handle_download_event(&app_handle, event)
             }),
-        PhysicalPosition::new(0, 0),
-        PhysicalSize::new(100, 100),
+        LogicalPosition::new(0.0, 0.0),
+        LogicalSize::new(100.0, 100.0),
     )?;
 
     webview.hide()?;
@@ -575,14 +576,15 @@ fn layout_child_webviews(window: &WebviewWindow) -> Result<(), DynError> {
 }
 
 fn layout_child_webviews_for_window(window: &tauri::Window) -> Result<(), DynError> {
-    let size = window.inner_size()?;
+    let scale_factor = window.scale_factor()?;
+    let size = window.inner_size()?.to_logical::<f64>(scale_factor);
     let content_y = TITLEBAR_HEIGHT + TABBAR_HEIGHT;
-    let content_height = size
-        .height
+    let logical_height = size.height.max(1.0).floor() as u32;
+    let content_height = logical_height
         .saturating_sub(content_y)
         .saturating_sub(FOOTER_HEIGHT);
-    let content_position = PhysicalPosition::new(0, content_y as i32);
-    let content_size = PhysicalSize::new(size.width, content_height.max(1));
+    let content_position = LogicalPosition::new(0.0, f64::from(content_y));
+    let content_size = LogicalSize::new(size.width.max(1.0), f64::from(content_height.max(1)));
 
     for label in [HOME_WEBVIEW_LABEL, MANAGED_WEBVIEW_LABEL] {
         if let Some(webview) = window.app_handle().get_webview(label) {
