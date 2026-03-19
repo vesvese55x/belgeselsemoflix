@@ -102,7 +102,7 @@ fn start_php_server(app: &tauri::AppHandle) -> Result<String, DynError> {
     writeln!(log_file, "webapp_dir={}", webapp_dir.display())?;
     writeln!(log_file, "port={port}")?;
 
-    let desktop_data_dir = prefetch_desktop_data(app, &mut log_file)?;
+    let desktop_data_dir = desktop_data_dir(app)?;
     writeln!(log_file, "desktop_data_dir={}", desktop_data_dir.display())?;
 
     let mut command = startup_command(&resource_dir, &webapp_dir, port, &mut log_file)?;
@@ -125,6 +125,22 @@ fn start_php_server(app: &tauri::AppHandle) -> Result<String, DynError> {
         stop_php_server(app);
         return Err(format!("{} (log: {})", error, log_path.display()).into());
     }
+
+    let background_data_dir = desktop_data_dir.clone();
+    let background_log_path = log_path.clone();
+    thread::spawn(move || {
+        if let Ok(mut log_file) = OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(&background_log_path)
+        {
+            if let Err(error) = prefetch_desktop_data(&background_data_dir, &mut log_file) {
+                let _ = writeln!(log_file, "desktop_data_prefetch_failed={error}");
+            } else {
+                let _ = writeln!(log_file, "desktop_data_prefetch=ok");
+            }
+        }
+    });
 
     Ok(format!("http://{HOST}:{port}/index.php"))
 }
@@ -293,19 +309,19 @@ fn startup_command(
     }
 }
 
-fn prefetch_desktop_data(
-    app: &tauri::AppHandle,
-    log_file: &mut std::fs::File,
-) -> Result<PathBuf, DynError> {
+fn desktop_data_dir(app: &tauri::AppHandle) -> Result<PathBuf, DynError> {
     let mut data_dir = env::temp_dir().join("belgeselsemoflix-desktop-data");
     if let Ok(app_data_dir) = app.path().app_data_dir() {
         data_dir = app_data_dir.join("desktop-data");
     }
     fs::create_dir_all(&data_dir)?;
+    Ok(data_dir)
+}
 
+fn prefetch_desktop_data(data_dir: &Path, log_file: &mut std::fs::File) -> Result<(), DynError> {
     let client = reqwest::blocking::Client::builder()
         .connect_timeout(Duration::from_secs(20))
-        .timeout(DATA_FETCH_TIMEOUT)
+        .timeout(Duration::from_secs(60))
         .danger_accept_invalid_certs(true)
         .build()
         .map_err(|error| format!("HTTP istemcisi olusturulamadi: {error}"))?;
@@ -332,7 +348,7 @@ fn prefetch_desktop_data(
         fs::write(data_dir.join(file), payload)?;
     }
 
-    Ok(data_dir)
+    Ok(())
 }
 
 #[cfg(target_os = "windows")]

@@ -48,15 +48,7 @@ jobs:
         id: build_linux
         run: npm run tauri build -- --bundles deb,rpm
 
-      - uses: actions/upload-artifact@v4
-        if: always() && steps.build_linux.conclusion == 'success'
-        with:
-          name: belgeselsemoflix-1.0-linux-core
-          path: |
-            src-tauri/target/release/bundle/deb/*.deb
-            src-tauri/target/release/bundle/rpm/*.rpm
-
-      - name: Build AppImage from deb with appimage-builder
+      - name: Build AppImage from deb
         if: steps.build_linux.conclusion == 'success'
         run: bash scripts/build-appimage-from-deb.sh
 
@@ -105,19 +97,21 @@ jobs:
               cp ./belgeselsemoflix-*.pkg.tar.zst /work/dist/zst/
             '
 
-      - uses: actions/upload-artifact@v4
+      - name: Prepare Linux artifact bundle
         if: always() && steps.build_linux.conclusion == 'success'
-        with:
-          name: belgeselsemoflix-1.0-linux-appimage
-          path: |
-            /tmp/belgeselsemoflix-appimage/*.AppImage
+        run: |
+          rm -rf release-artifacts/linux
+          mkdir -p release-artifacts/linux
+          cp src-tauri/target/release/bundle/deb/*.deb release-artifacts/linux/
+          cp src-tauri/target/release/bundle/rpm/*.rpm release-artifacts/linux/
+          cp /tmp/belgeselsemoflix-appimage/*.AppImage release-artifacts/linux/
+          cp dist/zst/*.zst release-artifacts/linux/
 
       - uses: actions/upload-artifact@v4
         if: always() && steps.build_linux.conclusion == 'success'
         with:
-          name: belgeselsemoflix-1.0-linux-zst
-          path: |
-            dist/zst/*.zst
+          name: belgeselsemoflix-1.0-linux
+          path: release-artifacts/linux/
 
   windows:
     runs-on: windows-2022
@@ -221,13 +215,16 @@ jobs:
             }
           }
 
+      - name: Prepare Windows artifact bundle
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path "release-artifacts/windows" | Out-Null
+          Copy-Item "src-tauri/target/release/bundle/nsis/*.exe" "release-artifacts/windows/" -Force
+
       - uses: actions/upload-artifact@v4
         with:
           name: belgeselsemoflix-1.0-windows
-          path: |
-            src-tauri/target/release/bundle/nsis/*.exe
-            windows-startup-smoke.stdout.log
-            windows-startup-smoke.stderr.log
+          path: release-artifacts/windows/
 
   macos:
     runs-on: macos-14
@@ -274,20 +271,17 @@ jobs:
           wait "$APP_PID" || true
           find "$HOME/Library/Logs/DiagnosticReports" -maxdepth 1 \( -name 'BELGESELSEMOFLIX*.ips' -o -name 'BELGESELSEMOFLIX*.crash' \) -exec cp {} diagnostic-reports/ \; || true
 
-      - name: Zip macOS screenshots
+      - name: Prepare macOS artifact bundle
         run: |
-          ditto -c -k --sequesterRsrc --keepParent screenshots macos-screenshots.zip
-
-      - name: Zip macOS crash logs
-        run: |
-          ditto -c -k --sequesterRsrc --keepParent diagnostic-reports macos-diagnostic-reports.zip
+          rm -rf release-artifacts/macos
+          mkdir -p release-artifacts/macos/bundle
+          cp -R src-tauri/target/release/bundle/macos/*.app release-artifacts/macos/bundle/
+          cp src-tauri/target/release/bundle/dmg/*.dmg release-artifacts/macos/bundle/
+          cp -R screenshots release-artifacts/macos/macos-screenshots
+          cp -R diagnostic-reports release-artifacts/macos/macos-diagnostic-reports
+          cp macos-runtime.log release-artifacts/macos/
 
       - uses: actions/upload-artifact@v4
         with:
           name: belgeselsemoflix-1.0-macos
-          path: |
-            src-tauri/target/release/bundle/macos/*.app
-            src-tauri/target/release/bundle/dmg/*.dmg
-            macos-runtime.log
-            macos-screenshots.zip
-            macos-diagnostic-reports.zip
+          path: release-artifacts/macos/
