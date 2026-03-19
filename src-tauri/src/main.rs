@@ -327,6 +327,7 @@ fn create_home_webview(app: &tauri::AppHandle, url: &str) -> Result<(), DynError
         home_url.scheme(),
         home_url.host_str().unwrap_or(HOST)
     );
+    let (content_position, content_size) = content_layout_for_window(&main_window)?;
 
     let webview = main_window.add_child(
         WebviewBuilder::new(HOME_WEBVIEW_LABEL, WebviewUrl::External(home_url.clone()))
@@ -359,8 +360,8 @@ fn create_home_webview(app: &tauri::AppHandle, url: &str) -> Result<(), DynError
                     }
                 }
             }),
-        LogicalPosition::new(0.0, 0.0),
-        LogicalSize::new(100.0, 100.0),
+        content_position,
+        content_size,
     )?;
 
     webview.hide()?;
@@ -407,6 +408,7 @@ fn create_managed_webview(app: &tauri::AppHandle, url: Url) -> Result<(), DynErr
         .get_window(MAIN_WINDOW_LABEL)
         .ok_or("ana pencere bulunamadi")?;
     let app_handle = app.clone();
+    let (content_position, content_size) = content_layout_for_window(&main_window)?;
 
     let webview = main_window.add_child(
         WebviewBuilder::new(MANAGED_WEBVIEW_LABEL, WebviewUrl::External(url.clone()))
@@ -451,8 +453,8 @@ fn create_managed_webview(app: &tauri::AppHandle, url: Url) -> Result<(), DynErr
                 let app_handle = app_handle.clone();
                 move |_webview, event| handle_download_event(&app_handle, event)
             }),
-        LogicalPosition::new(0.0, 0.0),
-        LogicalSize::new(100.0, 100.0),
+        content_position,
+        content_size,
     )?;
 
     webview.hide()?;
@@ -576,15 +578,7 @@ fn layout_child_webviews(window: &WebviewWindow) -> Result<(), DynError> {
 }
 
 fn layout_child_webviews_for_window(window: &tauri::Window) -> Result<(), DynError> {
-    let scale_factor = window.scale_factor()?;
-    let size = window.inner_size()?.to_logical::<f64>(scale_factor);
-    let content_y = TITLEBAR_HEIGHT + TABBAR_HEIGHT;
-    let logical_height = size.height.max(1.0).floor() as u32;
-    let content_height = logical_height
-        .saturating_sub(content_y)
-        .saturating_sub(FOOTER_HEIGHT);
-    let content_position = LogicalPosition::new(0.0, f64::from(content_y));
-    let content_size = LogicalSize::new(size.width.max(1.0), f64::from(content_height.max(1)));
+    let (content_position, content_size) = content_layout_for_window(window)?;
 
     for label in [HOME_WEBVIEW_LABEL, MANAGED_WEBVIEW_LABEL] {
         if let Some(webview) = window.app_handle().get_webview(label) {
@@ -594,6 +588,21 @@ fn layout_child_webviews_for_window(window: &tauri::Window) -> Result<(), DynErr
     }
 
     Ok(())
+}
+
+fn content_layout_for_window(
+    window: &tauri::Window,
+) -> Result<(LogicalPosition<f64>, LogicalSize<f64>), DynError> {
+    let scale_factor = window.scale_factor()?;
+    let size = window.inner_size()?.to_logical::<f64>(scale_factor);
+    let content_y = TITLEBAR_HEIGHT + TABBAR_HEIGHT;
+    let logical_height = size.height.max(1.0).floor() as u32;
+    let content_height = logical_height
+        .saturating_sub(content_y)
+        .saturating_sub(FOOTER_HEIGHT);
+    let content_position = LogicalPosition::new(0.0, f64::from(content_y));
+    let content_size = LogicalSize::new(size.width.max(1.0), f64::from(content_height.max(1)));
+    Ok((content_position, content_size))
 }
 
 fn sync_main_shell(app: &tauri::AppHandle) -> Result<(), DynError> {
