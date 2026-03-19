@@ -172,30 +172,30 @@ jobs:
           Copy-Item "$env:SystemRoot\\System32\\vcruntime140_1.dll" $phpDir -Force -ErrorAction SilentlyContinue
           Copy-Item "$env:SystemRoot\\System32\\msvcp140.dll" $phpDir -Force -ErrorAction SilentlyContinue
           @'
-[PHP]
-engine=On
-short_open_tag=Off
-precision=14
-output_buffering=0
-zlib.output_compression=Off
-implicit_flush=On
-serialize_precision=-1
-max_execution_time=120
-max_input_time=60
-memory_limit=512M
-error_reporting=E_ALL
-display_errors=On
-display_startup_errors=On
-log_errors=On
-default_charset="UTF-8"
-allow_url_fopen=On
-extension_dir="ext"
-extension=curl
-extension=openssl
-extension=mbstring
-extension=fileinfo
-curl.cainfo=
-openssl.cafile=
+          [PHP]
+          engine=On
+          short_open_tag=Off
+          precision=14
+          output_buffering=0
+          zlib.output_compression=Off
+          implicit_flush=On
+          serialize_precision=-1
+          max_execution_time=120
+          max_input_time=60
+          memory_limit=512M
+          error_reporting=E_ALL
+          display_errors=On
+          display_startup_errors=On
+          log_errors=On
+          default_charset="UTF-8"
+          allow_url_fopen=On
+          extension_dir="ext"
+          extension=curl
+          extension=openssl
+          extension=mbstring
+          extension=fileinfo
+          curl.cainfo=
+          openssl.cafile=
 '@ | Set-Content -Path "$phpDir\\php.ini" -Encoding ASCII
           & $phpExe.FullName -c "$phpDir\\php.ini" -v
 
