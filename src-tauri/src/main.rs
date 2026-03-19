@@ -286,6 +286,7 @@ fn resolve_windows_php(resource_dir: &Path) -> Result<PathBuf, DynError> {
     }
 
     let path = String::from_utf8_lossy(&output.stdout)
+        .into_owned()
         .lines()
         .map(str::trim)
         .find(|line| !line.is_empty())
