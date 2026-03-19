@@ -40,7 +40,9 @@ if [ -z "$EXEC_PATH" ]; then
 fi
 
 mkdir -p "$BIN_DIR" "$DESKTOP_DIR" "$ICON_DIR"
-ln -sf "$(basename "$EXEC_PATH")" "$BIN_DIR/belgeselsemoflix"
+if [ "$(basename "$EXEC_PATH")" != "belgeselsemoflix" ]; then
+  ln -sf "$(basename "$EXEC_PATH")" "$BIN_DIR/belgeselsemoflix"
+fi
 
 DESKTOP_PATH="$(find "$DESKTOP_DIR" -maxdepth 1 -type f -name '*.desktop' -print -quit 2>/dev/null || true)"
 if [ -n "$DESKTOP_PATH" ] && [ "$(basename "$DESKTOP_PATH")" != "belgeselsemoflix.desktop" ]; then

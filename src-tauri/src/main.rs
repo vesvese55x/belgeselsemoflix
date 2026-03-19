@@ -23,6 +23,7 @@ const HOST: &str = "127.0.0.1";
 const DEFAULT_PORT: u16 = 8000;
 const MAX_PORT: u16 = 8100;
 const STARTUP_TIMEOUT: Duration = Duration::from_secs(600);
+const DATA_FETCH_TIMEOUT: Duration = Duration::from_secs(180);
 #[cfg(target_os = "windows")]
 const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 
@@ -37,8 +38,17 @@ fn main() {
         .manage(AppState {
             server_process: Mutex::new(None),
         })
+        .invoke_handler(tauri::generate_handler![fetch_remote_data_file])
         .setup(|app| {
             WebviewWindowBuilder::new(app, "main", WebviewUrl::App("index.html".into()))
+                .initialization_script(
+                    "window.__BELGESELSEMOFLIX_INVOKE = async (cmd, args) => {
+                        if (window.__TAURI_INTERNALS__ && typeof window.__TAURI_INTERNALS__.invoke === 'function') {
+                            return window.__TAURI_INTERNALS__.invoke(cmd, args || {});
+                        }
+                        throw new Error('Tauri invoke hazir degil');
+                    };",
+                )
                 .title(APP_TITLE)
                 .inner_size(1440.0, 900.0)
                 .resizable(true)
@@ -286,6 +296,48 @@ fn startup_command(
             .env("BELGESELSEMOFLIX_WEBAPP_DIR", webapp_dir);
         Ok(command)
     }
+}
+
+#[tauri::command]
+fn fetch_remote_data_file(file: String) -> Result<String, String> {
+    if !is_allowed_data_file(&file) {
+        return Err(format!("izin verilmeyen veri dosyasi: {file}"));
+    }
+
+    let url = format!("https://belgeselsemo.com.tr/php/data/{file}");
+    let client = reqwest::blocking::Client::builder()
+        .connect_timeout(Duration::from_secs(20))
+        .timeout(DATA_FETCH_TIMEOUT)
+        .danger_accept_invalid_certs(true)
+        .build()
+        .map_err(|error| format!("HTTP istemcisi olusturulamadi: {error}"))?;
+
+    let response = client
+        .get(url)
+        .header(reqwest::header::ACCEPT, "application/json")
+        .header(reqwest::header::USER_AGENT, "BELGESELSEMOFLIX Desktop")
+        .send()
+        .map_err(|error| format!("uzak veri istegi basarisiz oldu: {error}"))?;
+
+    if !response.status().is_success() {
+        return Err(format!("uzak veri istegi HTTP {}", response.status()));
+    }
+
+    response
+        .text()
+        .map_err(|error| format!("uzak veri cevabi okunamadi: {error}"))
+}
+
+fn is_allowed_data_file(file: &str) -> bool {
+    matches!(
+        file,
+        "all_documentaries.json"
+            | "single_documentaries.json"
+            | "series_documentaries.json"
+            | "episodes.json"
+            | "categories.json"
+            | "download_links.json"
+    )
 }
 
 #[cfg(target_os = "windows")]

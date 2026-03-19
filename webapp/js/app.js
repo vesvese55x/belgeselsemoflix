@@ -67,6 +67,9 @@ class BelgeselSemoFlix {
 
     async loadData() {
         const isDesktopLocalhost = ['127.0.0.1', 'localhost'].includes(window.location.hostname);
+        const desktopInvoke = typeof window.__BELGESELSEMOFLIX_INVOKE === 'function'
+            ? window.__BELGESELSEMOFLIX_INVOKE
+            : null;
         const requests = [
             ['all', 'all_documentaries.json', false],
             ['singles', 'single_documentaries.json', false],
@@ -75,29 +78,48 @@ class BelgeselSemoFlix {
             ['categoriesData', 'categories.json', false],
             ['downloadLinks', 'download_links.json', true]
         ];
-        const buildUrls = (fileName) => {
+        const buildSources = (fileName) => {
             const remoteUrl = `https://belgeselsemo.com.tr/php/data/${fileName}`;
             if (isDesktopLocalhost) {
-                return [`data-proxy.php?file=${encodeURIComponent(fileName)}`, remoteUrl];
+                const sources = [];
+                if (desktopInvoke) {
+                    sources.push({ type: 'invoke', fileName });
+                }
+                sources.push({ type: 'http', url: `data-proxy.php?file=${encodeURIComponent(fileName)}` });
+                return sources;
             }
-            return [remoteUrl];
+            return [{ type: 'http', url: remoteUrl }];
+        };
+        const fetchJsonFromHttp = async (url, fileName) => {
+            const controller = typeof AbortController === 'function' ? new AbortController() : null;
+            const timeoutId = controller ? setTimeout(() => controller.abort(), 60000) : null;
+            try {
+                const response = await fetch(url, controller ? { signal: controller.signal } : undefined);
+                if (!response.ok) {
+                    throw new Error(`${fileName} icin HTTP ${response.status}`);
+                }
+                return await response.json();
+            } finally {
+                if (timeoutId) {
+                    clearTimeout(timeoutId);
+                }
+            }
         };
         const fetchJsonWithFallback = async (fileName, allowEmpty = false) => {
             let lastError = null;
-            for (const url of buildUrls(fileName)) {
+            for (const source of buildSources(fileName)) {
                 try {
-                    const response = await fetch(url);
-                    if (!response.ok) {
-                        throw new Error(`${fileName} icin HTTP ${response.status}`);
-                    }
-                    const data = await response.json();
+                    const data = source.type === 'invoke'
+                        ? JSON.parse(await desktopInvoke('fetch_remote_data_file', { file: fileName }))
+                        : await fetchJsonFromHttp(source.url, fileName);
                     if (data && !data.error) {
                         return data;
                     }
                     throw new Error(`${fileName} gecersiz veri dondu`);
                 } catch (error) {
                     lastError = error;
-                    console.warn(`Veri kaynagi basarisiz oldu: ${url}`, error);
+                    const sourceLabel = source.type === 'invoke' ? `tauri:${fileName}` : source.url;
+                    console.warn(`Veri kaynagi basarisiz oldu: ${sourceLabel}`, error);
                 }
             }
 
