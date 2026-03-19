@@ -33,6 +33,9 @@ if (function_exists('curl_init')) {
         CURLOPT_FOLLOWLOCATION => true,
         CURLOPT_CONNECTTIMEOUT => 15,
         CURLOPT_TIMEOUT => 60,
+        CURLOPT_SSL_VERIFYPEER => false,
+        CURLOPT_SSL_VERIFYHOST => 0,
+        CURLOPT_ENCODING => '',
         CURLOPT_HTTPHEADER => [
             'Accept: application/json',
             'User-Agent: BELGESELSEMOFLIX Desktop',
@@ -59,8 +62,8 @@ if ($payload === null) {
             'header' => "Accept: application/json\r\nUser-Agent: BELGESELSEMOFLIX Desktop\r\n",
         ],
         'ssl' => [
-            'verify_peer' => true,
-            'verify_peer_name' => true,
+            'verify_peer' => false,
+            'verify_peer_name' => false,
         ],
     ]);
 

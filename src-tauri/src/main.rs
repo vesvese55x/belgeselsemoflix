@@ -288,6 +288,7 @@ fn startup_command(
     }
 }
 
+#[cfg(target_os = "windows")]
 fn resolve_windows_php(resource_dir: &Path) -> Result<PathBuf, DynError> {
     let bundled_root = resource_dir.join("runtime").join("windows");
     if bundled_root.exists() {
@@ -310,6 +311,7 @@ fn resolve_windows_php(resource_dir: &Path) -> Result<PathBuf, DynError> {
     Ok(PathBuf::from(path))
 }
 
+#[cfg(target_os = "windows")]
 fn find_file_recursive(root: &Path, filename: &str) -> Result<Option<PathBuf>, DynError> {
     let entries = match fs::read_dir(root) {
         Ok(entries) => entries,
@@ -336,6 +338,7 @@ fn find_file_recursive(root: &Path, filename: &str) -> Result<Option<PathBuf>, D
     Ok(None)
 }
 
+#[cfg(target_os = "windows")]
 fn windows_path_with_php(php_dir: &Path) -> Result<std::ffi::OsString, DynError> {
     let mut combined = php_dir.as_os_str().to_os_string();
     if let Some(existing) = env::var_os("PATH") {

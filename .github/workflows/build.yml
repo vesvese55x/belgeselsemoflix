@@ -58,29 +58,7 @@ jobs:
 
       - name: Build AppImage from deb with appimage-builder
         if: steps.build_linux.conclusion == 'success'
-        run: |
-          APPIMAGE_OUT="/tmp/belgeselsemoflix-appimage"
-          APPIMAGE_WORK="$(mktemp -d)"
-          rm -rf "$APPIMAGE_OUT"
-          mkdir -p "$APPIMAGE_OUT"
-          DEB_PATH="$(find src-tauri/target/release/bundle/deb -maxdepth 1 -type f -name '*.deb' | head -n 1)"
-          if [ -z "$DEB_PATH" ]; then
-            echo "deb paketi bulunamadi"
-            exit 1
-          fi
-          dpkg-deb -x "$DEB_PATH" "$APPIMAGE_WORK/AppDir"
-          test -x "$APPIMAGE_WORK/AppDir/usr/bin/belgeselsemoflix"
-          test -f "$APPIMAGE_WORK/AppDir/usr/share/applications/belgeselsemoflix.desktop"
-          curl -fsSL -o /tmp/appimage-builder.AppImage \
-            https://github.com/AppImageCrafters/appimage-builder/releases/download/v1.1.0/appimage-builder-1.1.0-x86_64.AppImage
-          chmod +x /tmp/appimage-builder.AppImage
-          (
-            cd "$APPIMAGE_WORK"
-            ARCH=x86_64 /tmp/appimage-builder.AppImage --appimage-extract-and-run \
-              --recipe "$GITHUB_WORKSPACE/.github/appimage-builder.yml" \
-              --skip-test
-          )
-          find "$APPIMAGE_WORK" -maxdepth 1 -type f -name '*.AppImage' ! -name 'appimage-builder*.AppImage' -exec mv {} "$APPIMAGE_OUT"/ \;
+        run: bash scripts/build-appimage-from-deb.sh
 
       - name: Convert deb to zst with debtap
         if: steps.build_linux.conclusion == 'success'
@@ -225,7 +203,8 @@ jobs:
               }
               try {
                 $response = Invoke-WebRequest "http://127.0.0.1:8123/index.php" -UseBasicParsing -TimeoutSec 5
-                if ($response.StatusCode -eq 200) {
+                $dataResponse = Invoke-WebRequest "http://127.0.0.1:8123/data-proxy.php?file=categories.json" -UseBasicParsing -TimeoutSec 20
+                if ($response.StatusCode -eq 200 -and $dataResponse.StatusCode -eq 200 -and $dataResponse.Content.Length -gt 10) {
                   $ready = $true
                   break
                 }
