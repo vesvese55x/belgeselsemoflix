@@ -42,6 +42,11 @@
     ],
     "shortDescription": "BELGESELSEMOFLIX 1.0",
     "targets": "all",
-    "windows": {}
+    "windows": {
+      "nsis": {},
+      "webviewInstallMode": {
+        "type": "offlineInstaller"
+      }
+    }
   }
 }
