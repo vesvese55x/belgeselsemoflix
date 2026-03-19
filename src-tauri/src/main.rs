@@ -13,6 +13,9 @@ use std::{
     time::{Duration, Instant},
 };
 
+#[cfg(target_os = "windows")]
+use std::os::windows::process::CommandExt;
+
 use tauri::{Manager, RunEvent, WebviewUrl, WebviewWindowBuilder};
 
 const APP_TITLE: &str = "BELGESELSEMOFLIX 1.0";
@@ -20,6 +23,8 @@ const HOST: &str = "127.0.0.1";
 const DEFAULT_PORT: u16 = 8000;
 const MAX_PORT: u16 = 8100;
 const STARTUP_TIMEOUT: Duration = Duration::from_secs(600);
+#[cfg(target_os = "windows")]
+const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 
 type DynError = Box<dyn Error + Send + Sync>;
 
@@ -224,20 +229,24 @@ fn startup_command(
     port: u16,
     log_file: &mut std::fs::File,
 ) -> Result<Command, DynError> {
-    if cfg!(target_os = "windows") {
-        let php_exe = resolve_windows_php(resource_dir)?;
-        let php_dir = php_exe
-            .parent()
-            .ok_or("php klasoru bulunamadi")?
-            .to_path_buf();
+    #[cfg(target_os = "windows")]
+    {
+        let php_exe = windows_compatible_path(&resolve_windows_php(resource_dir)?);
+        let php_dir =
+            windows_compatible_path(php_exe.parent().ok_or("php klasoru bulunamadi")?.as_ref());
+        let resource_dir = windows_compatible_path(resource_dir);
+        let webapp_dir = windows_compatible_path(webapp_dir);
 
         writeln!(log_file, "php_exe={}", php_exe.display())?;
         writeln!(log_file, "php_dir={}", php_dir.display())?;
+        writeln!(log_file, "windows_resource_dir={}", resource_dir.display())?;
+        writeln!(log_file, "windows_webapp_dir={}", webapp_dir.display())?;
 
         let mut command = Command::new(&php_exe);
         command
-            .current_dir(resource_dir)
+            .current_dir(&resource_dir)
             .env("PATH", windows_path_with_php(&php_dir)?)
+            .creation_flags(CREATE_NO_WINDOW)
             .arg("-n")
             .arg("-d")
             .arg("cli_server.color=0");
@@ -250,21 +259,24 @@ fn startup_command(
         return Ok(command);
     }
 
-    let script_path = startup_script(resource_dir);
-    if !script_path.is_file() {
-        return Err(format!("baslangic scripti bulunamadi: {}", script_path.display()).into());
+    #[cfg(not(target_os = "windows"))]
+    {
+        let script_path = startup_script(resource_dir);
+        if !script_path.is_file() {
+            return Err(format!("baslangic scripti bulunamadi: {}", script_path.display()).into());
+        }
+
+        writeln!(log_file, "startup_script={}", script_path.display())?;
+
+        let mut command = Command::new("sh");
+        command
+            .arg(&script_path)
+            .current_dir(resource_dir)
+            .env("BELGESELSEMOFLIX_HOST", HOST)
+            .env("BELGESELSEMOFLIX_PORT", port.to_string())
+            .env("BELGESELSEMOFLIX_WEBAPP_DIR", webapp_dir);
+        Ok(command)
     }
-
-    writeln!(log_file, "startup_script={}", script_path.display())?;
-
-    let mut command = Command::new("sh");
-    command
-        .arg(&script_path)
-        .current_dir(resource_dir)
-        .env("BELGESELSEMOFLIX_HOST", HOST)
-        .env("BELGESELSEMOFLIX_PORT", port.to_string())
-        .env("BELGESELSEMOFLIX_WEBAPP_DIR", webapp_dir);
-    Ok(command)
 }
 
 fn resolve_windows_php(resource_dir: &Path) -> Result<PathBuf, DynError> {
@@ -322,6 +334,30 @@ fn windows_path_with_php(php_dir: &Path) -> Result<std::ffi::OsString, DynError>
         combined.push(existing);
     }
     Ok(combined)
+}
+
+#[cfg(target_os = "windows")]
+fn windows_compatible_path(path: &Path) -> PathBuf {
+    let raw = path.to_string_lossy();
+
+    if let Some(stripped) = raw.strip_prefix(r"\\?\UNC\") {
+        return PathBuf::from(format!(r"\\{stripped}"));
+    }
+
+    if let Some(stripped) = raw.strip_prefix(r"\\?\") {
+        return PathBuf::from(stripped);
+    }
+
+    if let Some(stripped) = raw.strip_prefix(r"\??\") {
+        return PathBuf::from(stripped);
+    }
+
+    path.to_path_buf()
+}
+
+#[cfg(not(target_os = "windows"))]
+fn windows_compatible_path(path: &Path) -> PathBuf {
+    path.to_path_buf()
 }
 
 fn js_string(value: &str) -> String {

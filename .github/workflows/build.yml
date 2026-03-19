@@ -59,23 +59,26 @@ jobs:
       - name: Build AppImage from deb with appimage-builder
         if: steps.build_linux.conclusion == 'success'
         run: |
-          rm -rf AppDir dist/appimage
-          mkdir -p AppDir dist/appimage
+          mkdir -p dist/appimage
+          APPIMAGE_WORK="$(mktemp -d)"
           DEB_PATH="$(find src-tauri/target/release/bundle/deb -maxdepth 1 -type f -name '*.deb' | head -n 1)"
           if [ -z "$DEB_PATH" ]; then
             echo "deb paketi bulunamadi"
             exit 1
           fi
-          dpkg-deb -x "$DEB_PATH" AppDir
-          test -x AppDir/usr/bin/belgeselsemoflix
-          test -f AppDir/usr/share/applications/belgeselsemoflix.desktop
+          dpkg-deb -x "$DEB_PATH" "$APPIMAGE_WORK/AppDir"
+          test -x "$APPIMAGE_WORK/AppDir/usr/bin/belgeselsemoflix"
+          test -f "$APPIMAGE_WORK/AppDir/usr/share/applications/belgeselsemoflix.desktop"
           curl -fsSL -o /tmp/appimage-builder.AppImage \
             https://github.com/AppImageCrafters/appimage-builder/releases/download/v1.1.0/appimage-builder-1.1.0-x86_64.AppImage
           chmod +x /tmp/appimage-builder.AppImage
-          ARCH=x86_64 /tmp/appimage-builder.AppImage --appimage-extract-and-run \
-            --recipe .github/appimage-builder.yml \
-            --skip-test
-          find . -maxdepth 1 -type f -name '*.AppImage' ! -name 'appimage-builder*.AppImage' -exec mv {} dist/appimage/ \;
+          (
+            cd "$APPIMAGE_WORK"
+            ARCH=x86_64 /tmp/appimage-builder.AppImage --appimage-extract-and-run \
+              --recipe "$GITHUB_WORKSPACE/.github/appimage-builder.yml" \
+              --skip-test
+          )
+          find "$APPIMAGE_WORK" -maxdepth 1 -type f -name '*.AppImage' ! -name 'appimage-builder*.AppImage' -exec mv {} dist/appimage/ \;
 
       - name: Convert deb to zst with debtap
         if: steps.build_linux.conclusion == 'success'
