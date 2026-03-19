@@ -62,7 +62,7 @@ jobs:
             archlinux:latest \
             /bin/bash -lc '
               set -e
-              pacman -Sy --noconfirm base-devel git sudo fakeroot binutils pacman-contrib
+              pacman -Sy --noconfirm base-devel git sudo fakeroot binutils pacman-contrib libarchive zstd
               useradd -m builder
               echo "builder ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
               su - builder -c "
@@ -74,16 +74,17 @@ jobs:
               mkdir -p /tmp/debtap-work
               cp /work/src-tauri/target/release/bundle/deb/*.deb /tmp/debtap-work/
               cd /tmp/debtap-work
-              debtap -p ./*.deb
-              PKG_DIR="$(find /tmp/debtap-work -maxdepth 1 -type d -name '*-PKGBUILD' | head -n 1)"
-              if [ -z "$PKG_DIR" ]; then
-                echo "debtap PKGBUILD klasoru bulunamadi"
+              debtap -q ./*.deb
+              PACKAGE_PATH="$(find /tmp/debtap-work -maxdepth 1 -type f -name '*.pkg.tar.zst' | head -n 1)"
+              if [ -z "$PACKAGE_PATH" ]; then
+                echo "debtap ciktisi olan pkg.tar.zst bulunamadi"
                 exit 1
               fi
-              sed -i "s/'gtk'/'gtk3'/g" "$PKG_DIR/PKGBUILD"
-              chown -R builder:builder "$PKG_DIR"
-              su - builder -c "cd '$PKG_DIR' && makepkg -f --noconfirm"
-              mv "$PKG_DIR"/*.pkg.tar.zst /work/dist/zst/
+              mkdir -p /tmp/debtap-unpacked
+              bsdtar -xf "$PACKAGE_PATH" -C /tmp/debtap-unpacked
+              sed -i "s/^depend = gtk$/depend = gtk3/g" /tmp/debtap-unpacked/.PKGINFO
+              rm -f "$PACKAGE_PATH"
+              tar --zstd -cf "/work/dist/zst/$(basename "$PACKAGE_PATH")" -C /tmp/debtap-unpacked .
             '
 
       - uses: actions/upload-artifact@v4
@@ -114,7 +115,7 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path "runtime/windows" | Out-Null
-          Invoke-WebRequest "https://windows.php.net/downloads/releases/php-8.4.13-nts-Win32-vs17-x64.zip" -OutFile "runtime/windows/php.zip"
+          Invoke-WebRequest "https://windows.php.net/downloads/releases/php-8.5.1-nts-Win32-vs17-x64.zip" -OutFile "runtime/windows/php.zip"
           Expand-Archive -Path "runtime/windows/php.zip" -DestinationPath "runtime/windows/php" -Force
 
       - name: Build Windows installer

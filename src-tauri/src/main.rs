@@ -42,11 +42,13 @@ fn main() {
             thread::spawn(move || {
                 match start_php_server(&app_handle) {
                     Ok(url) => {
-                        let script = format!(
-                            "window.__BELGESELSEMOFLIX_SET_STATUS && window.__BELGESELSEMOFLIX_SET_STATUS('Hazir', 'Arayuz yukleniyor...'); window.location.replace({});",
-                            js_string(&url)
-                        );
-                        if let Some(status_window) = app_handle.get_webview_window("main") {
+                        if cfg!(target_os = "linux") {
+                            let _ = replace_splash_with_external_window(&app_handle, &url);
+                        } else if let Some(status_window) = app_handle.get_webview_window("main") {
+                            let script = format!(
+                                "window.__BELGESELSEMOFLIX_SET_STATUS && window.__BELGESELSEMOFLIX_SET_STATUS('Hazir', 'Arayuz yukleniyor...'); window.location.replace({});",
+                                js_string(&url)
+                            );
                             let _ = status_window.eval(&script);
                         }
                     }
@@ -235,4 +237,20 @@ fn platform_command(script_path: &Path) -> Command {
 
 fn js_string(value: &str) -> String {
     format!("{value:?}")
+}
+
+fn replace_splash_with_external_window(app: &tauri::AppHandle, url: &str) -> Result<(), DynError> {
+    let parsed_url = url::Url::parse(url)?;
+
+    WebviewWindowBuilder::new(app, "app", WebviewUrl::External(parsed_url))
+        .title(APP_TITLE)
+        .inner_size(1440.0, 900.0)
+        .resizable(true)
+        .build()?;
+
+    if let Some(status_window) = app.get_webview_window("main") {
+        let _ = status_window.close();
+    }
+
+    Ok(())
 }
