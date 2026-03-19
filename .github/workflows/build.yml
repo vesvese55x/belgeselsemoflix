@@ -55,6 +55,7 @@ jobs:
             src-tauri/target/release/bundle/appimage/*.AppImage
 
       - name: Convert deb to zst with debtap
+        if: steps.build_linux.conclusion == 'success'
         run: |
           mkdir -p dist/zst
           docker run --rm \
@@ -63,7 +64,8 @@ jobs:
             /bin/bash -lc '
               set -e
               pacman -Sy --noconfirm base-devel binutils libarchive zstd fakeroot
-              mkdir -p /tmp/archpkg/ar /tmp/archpkg/pkgroot /tmp/archpkg/src
+              useradd -m builder
+              mkdir -p /tmp/archpkg/ar /tmp/archpkg/pkgroot /tmp/archpkg/src /work/dist/zst
               DEB_PATH="$(find /work/src-tauri/target/release/bundle/deb -maxdepth 1 -type f -name "*.deb" | head -n 1)"
               if [ -z "$DEB_PATH" ]; then
                 echo "deb paketi bulunamadi"
@@ -90,12 +92,14 @@ jobs:
                 "  cp -a /tmp/archpkg/pkgroot/. \"\$pkgdir\"/" \
                 "}" \
                 > /tmp/archpkg/src/PKGBUILD
+              chown -R builder:builder /tmp/archpkg/src /tmp/archpkg/pkgroot /work/dist/zst
               cd /tmp/archpkg/src
-              makepkg -f --nodeps --noconfirm
+              runuser -u builder -- makepkg -f --nodeps --noconfirm
               cp ./*.pkg.tar.zst /work/dist/zst/
             '
 
       - uses: actions/upload-artifact@v4
+        if: always() && steps.build_linux.conclusion == 'success'
         with:
           name: belgeselsemoflix-1.0-linux-zst
           path: |
@@ -139,11 +143,45 @@ jobs:
       - name: Build Windows installer
         run: npm run tauri build -- --bundles nsis
 
+      - name: Smoke test bundled PHP startup on Windows
+        shell: pwsh
+        run: |
+          $env:BELGESELSEMOFLIX_PORT = "8123"
+          $stdoutLog = Join-Path $PWD "windows-startup-smoke.stdout.log"
+          $stderrLog = Join-Path $PWD "windows-startup-smoke.stderr.log"
+          $process = Start-Process -FilePath "cmd.exe" -ArgumentList "/c", "run.bat" -WorkingDirectory $PWD -PassThru -RedirectStandardOutput $stdoutLog -RedirectStandardError $stderrLog
+          try {
+            $ready = $false
+            for ($i = 0; $i -lt 30; $i++) {
+              Start-Sleep -Seconds 2
+              if ($process.HasExited) {
+                throw "run.bat erken kapandi. STDOUT:`n$(Get-Content $stdoutLog -Raw)`nSTDERR:`n$(Get-Content $stderrLog -Raw)"
+              }
+              try {
+                $response = Invoke-WebRequest "http://127.0.0.1:8123/index.php" -UseBasicParsing -TimeoutSec 5
+                if ($response.StatusCode -eq 200) {
+                  $ready = $true
+                  break
+                }
+              } catch {
+              }
+            }
+            if (-not $ready) {
+              throw "Windows smoke test zamaninda hazir olmadi. STDOUT:`n$(Get-Content $stdoutLog -Raw)`nSTDERR:`n$(Get-Content $stderrLog -Raw)"
+            }
+          } finally {
+            if (-not $process.HasExited) {
+              Stop-Process -Id $process.Id -Force
+            }
+          }
+
       - uses: actions/upload-artifact@v4
         with:
           name: belgeselsemoflix-1.0-windows
           path: |
             src-tauri/target/release/bundle/nsis/*.exe
+            windows-startup-smoke.stdout.log
+            windows-startup-smoke.stderr.log
 
   macos:
     runs-on: macos-14

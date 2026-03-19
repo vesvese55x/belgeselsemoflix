@@ -1,5 +1,5 @@
 @echo off
-setlocal EnableExtensions
+setlocal EnableExtensions EnableDelayedExpansion
 
 set "ROOT_DIR=%~dp0"
 pushd "%ROOT_DIR%" >nul 2>nul
@@ -19,6 +19,7 @@ if "%WEBAPP_DIR%"=="" set "WEBAPP_DIR=%CD%\webapp"
 set "BUNDLED_PHP_ROOT=%CD%\runtime\windows"
 set "PHP_CMD="
 set "PHP_DIR="
+set "PHP_ARGS=-d cli_server.color=0"
 
 if not exist "%WEBAPP_DIR%" (
   echo Web uygulama klasoru bulunamadi: %WEBAPP_DIR%
@@ -27,7 +28,8 @@ if not exist "%WEBAPP_DIR%" (
 
 if exist "%BUNDLED_PHP_ROOT%" (
   for /f "delims=" %%F in ('dir /s /b "%BUNDLED_PHP_ROOT%\php.exe" 2^>nul') do (
-    set "PHP_CMD=%%F"
+    set "PHP_CMD=%%~fF"
+    set "PHP_DIR=%%~dpF"
     goto bundled_php_found
   )
 )
@@ -44,18 +46,21 @@ if "%PHP_CMD%"=="" (
   for %%F in ("%PHP_CMD%") do set "PHP_DIR=%%~dp$PATH:F"
 )
 
-if not "%PHP_CMD%"=="" (
-  for %%I in ("%PHP_CMD%") do set "PHP_DIR=%%~dpI"
+if not "!PHP_CMD!"=="" (
+  for %%I in ("!PHP_CMD!") do set "PHP_DIR=%%~dpI"
 )
 
-if not "%PHP_DIR%"=="" set "PATH=%PHP_DIR%;%PATH%"
-if exist "%PHP_DIR%php.ini" set "PHPRC=%PHP_DIR%"
+if not "!PHP_DIR!"=="" set "PATH=!PHP_DIR!;%PATH%"
+if exist "!PHP_DIR!php.ini" (
+  set "PHPRC=!PHP_DIR!"
+  set "PHP_ARGS=!PHP_ARGS! -c ""!PHP_DIR!php.ini"""
+)
 
-echo PHP komutu: %PHP_CMD%
-echo PHP klasoru: %PHP_DIR%
+echo PHP komutu: !PHP_CMD!
+echo PHP klasoru: !PHP_DIR!
 echo Web klasoru: %WEBAPP_DIR%
 echo Server baslatiliyor: http://%HOST%:%PORT%/index.php
-"%PHP_CMD%" -S %HOST%:%PORT% -t "%WEBAPP_DIR%"
+"!PHP_CMD!" !PHP_ARGS! -S %HOST%:%PORT% -t "%WEBAPP_DIR%"
 set "EXIT_CODE=%ERRORLEVEL%"
 popd >nul 2>nul
 exit /b %EXIT_CODE%

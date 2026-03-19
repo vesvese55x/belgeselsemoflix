@@ -4,6 +4,7 @@ use std::{
     env,
     error::Error,
     fs::{self, OpenOptions},
+    io::Write,
     net::{TcpListener, TcpStream},
     path::{Path, PathBuf},
     process::{Child, Command, Stdio},
@@ -79,7 +80,6 @@ fn start_php_server(app: &tauri::AppHandle) -> Result<String, DynError> {
     let root_dir = runtime_root(app)?;
     let resource_dir = resource_root(&root_dir);
     let webapp_dir = resource_dir.join("webapp");
-    let script_path = startup_script(&resource_dir);
     let port = pick_available_port()?;
     let log_path = startup_log_path(app)?;
 
@@ -87,21 +87,18 @@ fn start_php_server(app: &tauri::AppHandle) -> Result<String, DynError> {
         return Err(format!("webapp klasoru bulunamadi: {}", webapp_dir.display()).into());
     }
 
-    if !script_path.is_file() {
-        return Err(format!("baslangic scripti bulunamadi: {}", script_path.display()).into());
-    }
-
-    let mut command = platform_command(&script_path);
-    let log_file = OpenOptions::new()
+    let mut log_file = OpenOptions::new()
         .create(true)
         .append(true)
         .open(&log_path)?;
+    writeln!(log_file, "== BELGESELSEMOFLIX startup ==")?;
+    writeln!(log_file, "resource_dir={}", resource_dir.display())?;
+    writeln!(log_file, "webapp_dir={}", webapp_dir.display())?;
+    writeln!(log_file, "port={port}")?;
+
+    let mut command = startup_command(&resource_dir, &webapp_dir, port, &mut log_file)?;
     let error_log = log_file.try_clone()?;
     command
-        .current_dir(&resource_dir)
-        .env("BELGESELSEMOFLIX_HOST", HOST)
-        .env("BELGESELSEMOFLIX_PORT", port.to_string())
-        .env("BELGESELSEMOFLIX_WEBAPP_DIR", &webapp_dir)
         .env("BELGESELSEMOFLIX_LOG_PATH", &log_path)
         .stdin(Stdio::null())
         .stdout(Stdio::from(log_file))
@@ -221,16 +218,114 @@ fn startup_script(root_dir: &Path) -> PathBuf {
     }
 }
 
-fn platform_command(script_path: &Path) -> Command {
+fn startup_command(
+    resource_dir: &Path,
+    webapp_dir: &Path,
+    port: u16,
+    log_file: &mut std::fs::File,
+) -> Result<Command, DynError> {
     if cfg!(target_os = "windows") {
-        let mut command = Command::new("cmd");
-        command.arg("/C").arg(script_path);
+        let php_exe = resolve_windows_php(resource_dir)?;
+        let php_dir = php_exe
+            .parent()
+            .ok_or("php klasoru bulunamadi")?
+            .to_path_buf();
+        let php_ini = php_dir.join("php.ini");
+
+        writeln!(log_file, "php_exe={}", php_exe.display())?;
+        writeln!(log_file, "php_dir={}", php_dir.display())?;
+
+        let mut command = Command::new(&php_exe);
         command
-    } else {
-        let mut command = Command::new("sh");
-        command.arg(script_path);
+            .current_dir(&php_dir)
+            .env("PATH", windows_path_with_php(&php_dir)?)
+            .env("PHPRC", &php_dir)
+            .arg("-d")
+            .arg("cli_server.color=0");
+
+        if php_ini.is_file() {
+            command.arg("-c").arg(&php_ini);
+        }
+
         command
+            .arg("-S")
+            .arg(format!("{HOST}:{port}"))
+            .arg("-t")
+            .arg(webapp_dir);
+        return Ok(command);
     }
+
+    let script_path = startup_script(resource_dir);
+    if !script_path.is_file() {
+        return Err(format!("baslangic scripti bulunamadi: {}", script_path.display()).into());
+    }
+
+    writeln!(log_file, "startup_script={}", script_path.display())?;
+
+    let mut command = Command::new("sh");
+    command
+        .arg(&script_path)
+        .current_dir(resource_dir)
+        .env("BELGESELSEMOFLIX_HOST", HOST)
+        .env("BELGESELSEMOFLIX_PORT", port.to_string())
+        .env("BELGESELSEMOFLIX_WEBAPP_DIR", webapp_dir);
+    Ok(command)
+}
+
+fn resolve_windows_php(resource_dir: &Path) -> Result<PathBuf, DynError> {
+    let bundled_root = resource_dir.join("runtime").join("windows");
+    if bundled_root.exists() {
+        if let Some(path) = find_file_recursive(&bundled_root, "php.exe")? {
+            return Ok(path);
+        }
+    }
+
+    let output = Command::new("where").arg("php").output()?;
+    if !output.status.success() {
+        return Err("Windows uzerinde php.exe bulunamadi".into());
+    }
+
+    let path = String::from_utf8_lossy(&output.stdout)
+        .lines()
+        .map(str::trim)
+        .find(|line| !line.is_empty())
+        .ok_or("where php cikti vermedi")?;
+    Ok(PathBuf::from(path))
+}
+
+fn find_file_recursive(root: &Path, filename: &str) -> Result<Option<PathBuf>, DynError> {
+    let entries = match fs::read_dir(root) {
+        Ok(entries) => entries,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(error) => return Err(error.into()),
+    };
+
+    for entry in entries {
+        let entry = entry?;
+        let path = entry.path();
+        if path.is_dir() {
+            if let Some(found) = find_file_recursive(&path, filename)? {
+                return Ok(Some(found));
+            }
+        } else if path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .is_some_and(|name| name.eq_ignore_ascii_case(filename))
+        {
+            return Ok(Some(path));
+        }
+    }
+
+    Ok(None)
+}
+
+fn windows_path_with_php(php_dir: &Path) -> Result<std::ffi::OsString, DynError> {
+    let mut combined = php_dir.as_os_str().to_os_string();
+    if let Some(existing) = env::var_os("PATH") {
+        combined.push(";");
+        combined.push(existing);
+    }
+    Ok(combined)
 }
 
 fn js_string(value: &str) -> String {
