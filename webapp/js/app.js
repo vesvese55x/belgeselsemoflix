@@ -3896,7 +3896,7 @@ class BelgeselSemoFlix {
     }
 }
 
-window.copyAndMaybeOpenManagedLink = function (url, titleHint, button) {
+window.copyAndMaybeOpenManagedLink = async function (url, titleHint, button) {
     const finishState = () => {
         if (!button) return;
         button.innerHTML = '<i class="fas fa-check"></i>';
@@ -3914,7 +3914,7 @@ window.copyAndMaybeOpenManagedLink = function (url, titleHint, button) {
     }
 
     if (window.__BELGESELSEMOFLIX_DESKTOP && typeof window.__BELGESELSEMOFLIX_DESKTOP.openManagedUrl === 'function') {
-        window.__BELGESELSEMOFLIX_DESKTOP.openManagedUrl(url, titleHint).catch((error) => {
+        await window.__BELGESELSEMOFLIX_DESKTOP.openManagedUrl(url, titleHint).catch((error) => {
             console.warn('Desktop managed tab acilamadi:', error);
         });
     }

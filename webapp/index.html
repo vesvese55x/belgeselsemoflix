@@ -1897,19 +1897,10 @@
 
         async function startDownload(file) {
             const desktopBridge = window.__BELGESELSEMOFLIX_DESKTOP;
-            let openedInDesktop = false;
+            const isDesktop = desktopBridge && typeof desktopBridge.openManagedUrl === 'function';
             let newTab = null;
 
-            if (desktopBridge && typeof desktopBridge.openManagedUrl === 'function') {
-                try {
-                    await desktopBridge.openManagedUrl(file.download_link, 'Indirme');
-                    openedInDesktop = true;
-                } catch (error) {
-                    console.warn('Desktop managed tab acilamadi:', error);
-                }
-            }
-
-            if (!openedInDesktop) {
+            if (!isDesktop) {
                 newTab = window.open(file.download_link, '_blank');
             }
 
@@ -1931,10 +1922,22 @@
 
             const descEl = document.getElementById('rstep2desc');
 
-            if (openedInDesktop) {
+            if (isDesktop) {
                 descEl.innerHTML = `
-                    <span style="color:#4caf50;"><i class="fas fa-window-restore"></i> Indirme sekmesi uygulama icinde acildi.</span><br>
-                    <span style="color:#b3b3b3;font-size:0.8rem;">fileq.net sayfasindan indirmeyi baslatin, dosya secimi masaustu uygulamada sorulacaktir.</span>`;
+                    <span style="color:#4caf50;"><i class="fas fa-link"></i> Link hazirlandi. Indirme sekmesine geciliyor...</span><br>
+                    <span style="color:#b3b3b3;font-size:0.8rem;">Asagidaki link görünür hale geldigi anda masaustu uygulama fileq.net sayfasini Indirmeler tabinda acar.</span>
+                    <div style="margin-top:8px;background:rgba(255,255,255,0.05);border-radius:6px;padding:6px 10px;font-size:0.75rem;color:#fff;word-break:break-all;">${file.download_link}</div>`;
+
+                requestAnimationFrame(() => {
+                    desktopBridge.openManagedUrl(file.download_link, 'Indirme').catch((error) => {
+                        console.warn('Desktop indirme sekmesi acilamadi:', error);
+                        descEl.innerHTML = `
+                            <span style="color:#ff9800;"><i class="fas fa-copy"></i> Link hazirlandi ama sekme acilamadi. Linki kopyala ve tarayiciya yapistir:</span>
+                            <div style="margin-top:8px;background:rgba(255,255,255,0.05);border-radius:6px;padding:8px 10px;font-size:0.75rem;color:#fff;word-break:break-all;cursor:pointer;"
+                                 onclick="navigator.clipboard.writeText('${file.download_link}').then(()=>this.style.color='#4caf50')"
+                            >${file.download_link}</div>`;
+                    });
+                });
             } else if (!newTab || newTab.closed) {
                 // Popup engellendi - clipboard'a kopyala
                 try {
