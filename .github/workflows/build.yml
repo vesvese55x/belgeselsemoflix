@@ -61,9 +61,17 @@ jobs:
                 makepkg -si --noconfirm
               "
               yes | debtap -u
-              cd /work/src-tauri/target/release/bundle/deb
-              debtap -q ./*.deb
-              mv ./*.zst /work/dist/zst/
+              mkdir -p /tmp/debtap-work
+              cp /work/src-tauri/target/release/bundle/deb/*.deb /tmp/debtap-work/
+              cd /tmp/debtap-work
+              debtap -p ./*.deb
+              sed -i "s/'gtk'/'gtk3'/g" PKGBUILD
+              chown -R builder:builder /tmp/debtap-work
+              su - builder -c "
+                cd /tmp/debtap-work
+                makepkg -f --noconfirm
+              "
+              mv /tmp/debtap-work/*.pkg.tar.zst /work/dist/zst/
             '
 
       - uses: actions/upload-artifact@v4
@@ -94,16 +102,20 @@ jobs:
         run: npm install
 
       - name: Build portable Windows executable
-        run: npm run tauri build -- --bundles none
+        run: cargo build --manifest-path src-tauri/Cargo.toml --release
 
       - name: Assemble portable package
         shell: pwsh
         run: |
           $portableRoot = "portable/belgeselsemoflix-1.0"
+          $resourceRoot = "$portableRoot/_up_"
           New-Item -ItemType Directory -Force -Path $portableRoot | Out-Null
+          New-Item -ItemType Directory -Force -Path $resourceRoot | Out-Null
           Copy-Item "src-tauri/target/release/belgeselsemoflix.exe" "$portableRoot/BELGESELSEMOFLIX.exe"
-          Copy-Item "run.bat" "$portableRoot/run.bat"
-          Copy-Item "webapp" "$portableRoot/webapp" -Recurse
+          Copy-Item "run.bat" "$resourceRoot/run.bat"
+          Copy-Item "run.sh" "$resourceRoot/run.sh"
+          Copy-Item "run.command" "$resourceRoot/run.command"
+          Copy-Item "webapp" "$resourceRoot/webapp" -Recurse
           Compress-Archive -Path "$portableRoot/*" -DestinationPath "portable/belgeselsemoflix-1.0-windows-portable.zip" -Force
 
       - uses: actions/upload-artifact@v4
@@ -143,7 +155,7 @@ jobs:
             exit 1
           fi
 
-          open "$APP_PATH"
+          open "$APP_PATH" || true
           for index in 1 2 3 4; do
             sleep 15
             screencapture -x "screenshots/belgeselsemoflix-${index}.png"

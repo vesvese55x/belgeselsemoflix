@@ -51,8 +51,9 @@ fn main() {
 
 fn start_php_server(app: &tauri::AppHandle) -> Result<String, Box<dyn Error>> {
     let root_dir = runtime_root(app)?;
-    let webapp_dir = root_dir.join("webapp");
-    let script_path = startup_script(&root_dir);
+    let resource_dir = resource_root(&root_dir);
+    let webapp_dir = resource_dir.join("webapp");
+    let script_path = startup_script(&resource_dir);
     let port = pick_available_port()?;
 
     if !webapp_dir.is_dir() {
@@ -65,7 +66,7 @@ fn start_php_server(app: &tauri::AppHandle) -> Result<String, Box<dyn Error>> {
 
     let mut command = platform_command(&script_path);
     command
-        .current_dir(&root_dir)
+        .current_dir(&resource_dir)
         .env("BELGESELSEMOFLIX_HOST", HOST)
         .env("BELGESELSEMOFLIX_PORT", port.to_string())
         .env("BELGESELSEMOFLIX_WEBAPP_DIR", &webapp_dir)
@@ -152,6 +153,15 @@ fn runtime_root(app: &tauri::AppHandle) -> Result<PathBuf, Box<dyn Error>> {
         .ok_or("calistirilabilir dosya klasoru bulunamadi")?;
 
     Ok(exe_dir.to_path_buf())
+}
+
+fn resource_root(root_dir: &Path) -> PathBuf {
+    let updater_dir = root_dir.join("_up_");
+    if updater_dir.exists() {
+        updater_dir
+    } else {
+        root_dir.to_path_buf()
+    }
 }
 
 fn startup_script(root_dir: &Path) -> PathBuf {

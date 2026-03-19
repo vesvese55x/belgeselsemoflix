@@ -58,8 +58,14 @@ ensure_php() {
             esac
             ;;
         Darwin)
-            echo "macOS uzerinde PHP sistemde yok. Lutfen Homebrew veya resmi PHP paketi ile yukleyin."
-            exit 1
+            if command -v brew >/dev/null 2>&1; then
+                echo "PHP Homebrew ile yukleniyor (macOS)..."
+                brew install php
+            else
+                echo "macOS uzerinde PHP sistemde yok ve Homebrew bulunamadi."
+                echo "Lutfen once Homebrew kurun ya da PHP'yi manuel yukleyin."
+                exit 1
+            fi
             ;;
         *)
             echo "Bu platform desteklenmiyor."
