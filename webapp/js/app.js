@@ -67,8 +67,8 @@ class BelgeselSemoFlix {
 
     async loadData() {
         const isDesktopLocalhost = ['127.0.0.1', 'localhost'].includes(window.location.hostname);
-        const desktopInvoke = typeof window.__BELGESELSEMOFLIX_INVOKE === 'function'
-            ? window.__BELGESELSEMOFLIX_INVOKE
+        const desktopInvoke = window.__TAURI_INTERNALS__ && typeof window.__TAURI_INTERNALS__.invoke === 'function'
+            ? (cmd, args) => window.__TAURI_INTERNALS__.invoke(cmd, args || {})
             : null;
         const requests = [
             ['all', 'all_documentaries.json', false],
@@ -85,15 +85,15 @@ class BelgeselSemoFlix {
                 if (desktopInvoke) {
                     sources.push({ type: 'invoke', fileName });
                 }
-                sources.push({ type: 'http', url: `data-proxy.php?file=${encodeURIComponent(fileName)}` });
                 sources.push({ type: 'http', url: remoteUrl });
+                sources.push({ type: 'http', url: `data-proxy.php?file=${encodeURIComponent(fileName)}` });
                 return sources;
             }
             return [{ type: 'http', url: remoteUrl }];
         };
         const fetchJsonFromHttp = async (url, fileName) => {
             const controller = typeof AbortController === 'function' ? new AbortController() : null;
-            const timeoutId = controller ? setTimeout(() => controller.abort(), 60000) : null;
+            const timeoutId = controller ? setTimeout(() => controller.abort(), 20000) : null;
             try {
                 const response = await fetch(url, controller ? { signal: controller.signal } : undefined);
                 if (!response.ok) {
@@ -111,7 +111,12 @@ class BelgeselSemoFlix {
             for (const source of buildSources(fileName)) {
                 try {
                     const data = source.type === 'invoke'
-                        ? JSON.parse(await desktopInvoke('fetch_remote_data_file', { file: fileName }))
+                        ? JSON.parse(await Promise.race([
+                            desktopInvoke('fetch_remote_data_file', { file: fileName }),
+                            new Promise((_, reject) => {
+                                setTimeout(() => reject(new Error(`${fileName} icin Tauri timeout`)), 20000);
+                            })
+                        ]))
                         : await fetchJsonFromHttp(source.url, fileName);
                     if (data && !data.error) {
                         return data;

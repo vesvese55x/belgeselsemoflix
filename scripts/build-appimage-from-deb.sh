@@ -4,10 +4,12 @@ set -euo pipefail
 
 APPIMAGE_OUT="${APPIMAGE_OUT:-/tmp/belgeselsemoflix-appimage}"
 APPIMAGE_WORK="$(mktemp -d)"
-trap 'rm -rf "$APPIMAGE_WORK"' EXIT
-
 DEB_DIR="src-tauri/target/release/bundle/deb"
 DEB_PATH="$(find "$DEB_DIR" -maxdepth 1 -type f -name '*.deb' -print -quit)"
+APPDIR="$APPIMAGE_WORK/AppDir"
+APPIMAGETOOL="$APPIMAGE_WORK/appimagetool.AppImage"
+
+trap 'rm -rf "$APPIMAGE_WORK"' EXIT
 
 rm -rf "$APPIMAGE_OUT"
 mkdir -p "$APPIMAGE_OUT"
@@ -22,54 +24,42 @@ if [ -z "$DEB_PATH" ]; then
   exit 1
 fi
 
-APPDIR="$APPIMAGE_WORK/AppDir"
+mkdir -p "$APPDIR"
 dpkg-deb -x "$DEB_PATH" "$APPDIR"
 
-BIN_DIR="$APPDIR/usr/bin"
-DESKTOP_DIR="$APPDIR/usr/share/applications"
-ICON_DIR="$APPDIR/usr/share/icons/hicolor/128x128/apps"
-
-EXEC_PATH="$(find "$BIN_DIR" -maxdepth 1 -type f -perm -111 -print -quit 2>/dev/null || true)"
-if [ -z "$EXEC_PATH" ]; then
-  EXEC_PATH="$(find "$BIN_DIR" -maxdepth 1 -type f -print -quit 2>/dev/null || true)"
+BIN_PATH="$(find "$APPDIR/usr/bin" -maxdepth 1 -type f -perm -111 -print -quit 2>/dev/null || true)"
+if [ -z "$BIN_PATH" ]; then
+  BIN_PATH="$(find "$APPDIR/usr/bin" -maxdepth 1 -type f -print -quit 2>/dev/null || true)"
 fi
-if [ -z "$EXEC_PATH" ]; then
-  echo "AppDir icinde calistirilabilir binary bulunamadi: $BIN_DIR"
+if [ -z "$BIN_PATH" ]; then
+  echo "AppDir icinde calistirilabilir dosya bulunamadi"
   find "$APPDIR" -maxdepth 4 -type f | sort
   exit 1
 fi
 
-mkdir -p "$BIN_DIR" "$DESKTOP_DIR" "$ICON_DIR"
-if [ "$(basename "$EXEC_PATH")" != "belgeselsemoflix" ]; then
-  ln -sf "$(basename "$EXEC_PATH")" "$BIN_DIR/belgeselsemoflix"
-fi
+cat > "$APPDIR/AppRun" <<EOF
+#!/bin/sh
+HERE="\$(CDPATH= cd -- "\$(dirname -- "\$0")" && pwd)"
+exec "\$HERE/usr/bin/$(basename "$BIN_PATH")" "\$@"
+EOF
+chmod +x "$APPDIR/AppRun"
 
-DESKTOP_PATH="$(find "$DESKTOP_DIR" -maxdepth 1 -type f -name '*.desktop' -print -quit 2>/dev/null || true)"
-if [ -n "$DESKTOP_PATH" ] && [ "$(basename "$DESKTOP_PATH")" != "belgeselsemoflix.desktop" ]; then
-  cp "$DESKTOP_PATH" "$DESKTOP_DIR/belgeselsemoflix.desktop"
-fi
-
-cat > "$DESKTOP_DIR/belgeselsemoflix.desktop" <<'EOF'
+cat > "$APPDIR/belgeselsemoflix.desktop" <<'EOF'
 [Desktop Entry]
-Type=Application
 Name=BELGESELSEMOFLIX
-Exec=usr/bin/belgeselsemoflix
+Exec=AppRun
 Icon=belgeselsemoflix
-Categories=Entertainment;
+Type=Application
+Categories=Entertainment;Video;
+Version=1.0
 Terminal=false
 EOF
 
-cp src-tauri/icons/128x128.png "$ICON_DIR/belgeselsemoflix.png"
+cp src-tauri/icons/128x128.png "$APPDIR/belgeselsemoflix.png"
+cp src-tauri/icons/128x128.png "$APPDIR/.DirIcon"
 
-curl -fsSL -o /tmp/appimage-builder.AppImage \
-  https://github.com/AppImageCrafters/appimage-builder/releases/download/v1.1.0/appimage-builder-1.1.0-x86_64.AppImage
-chmod +x /tmp/appimage-builder.AppImage
+curl -fsSL -o "$APPIMAGETOOL" \
+  https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
+chmod +x "$APPIMAGETOOL"
 
-(
-  cd "$APPIMAGE_WORK"
-  ARCH=x86_64 /tmp/appimage-builder.AppImage --appimage-extract-and-run \
-    --recipe "$GITHUB_WORKSPACE/.github/appimage-builder.yml" \
-    --skip-test
-)
-
-find "$APPIMAGE_WORK" -maxdepth 1 -type f -name '*.AppImage' ! -name 'appimage-builder*.AppImage' -exec mv {} "$APPIMAGE_OUT"/ \;
+ARCH=x86_64 "$APPIMAGETOOL" --appimage-extract-and-run "$APPDIR" "$APPIMAGE_OUT/BELGESELSEMOFLIX-1.0.0-x86_64.AppImage"
