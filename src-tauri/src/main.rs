@@ -285,8 +285,8 @@ fn resolve_windows_php(resource_dir: &Path) -> Result<PathBuf, DynError> {
         return Err("Windows uzerinde php.exe bulunamadi".into());
     }
 
-    let path = String::from_utf8_lossy(&output.stdout)
-        .into_owned()
+    let where_output = String::from_utf8_lossy(&output.stdout).into_owned();
+    let path = where_output
         .lines()
         .map(str::trim)
         .find(|line| !line.is_empty())
