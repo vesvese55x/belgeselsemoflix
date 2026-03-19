@@ -74,7 +74,8 @@ jobs:
               mkdir -p /tmp/debtap-work
               cp /work/src-tauri/target/release/bundle/deb/*.deb /tmp/debtap-work/
               cd /tmp/debtap-work
-              debtap -p ./*.deb
+              export TERM=xterm
+              debtap -Qp ./*.deb
               PKGBUILD_PATH="$(find /tmp/debtap-work -type f -name PKGBUILD | head -n 1)"
               if [ -z "$PKGBUILD_PATH" ]; then
                 echo "debtap PKGBUILD dosyasi bulunamadi"
@@ -117,6 +118,16 @@ jobs:
           New-Item -ItemType Directory -Force -Path "runtime/windows" | Out-Null
           Invoke-WebRequest "https://windows.php.net/downloads/releases/php-8.5.1-nts-Win32-vs17-x64.zip" -OutFile "runtime/windows/php.zip"
           Expand-Archive -Path "runtime/windows/php.zip" -DestinationPath "runtime/windows/php" -Force
+          $phpExe = Get-ChildItem "runtime/windows/php" -Filter php.exe -Recurse | Select-Object -First 1
+          if (-not $phpExe) { throw "Bundled php.exe bulunamadi" }
+          $phpDir = $phpExe.DirectoryName
+          Copy-Item "$env:SystemRoot\\System32\\vcruntime140.dll" $phpDir -Force -ErrorAction SilentlyContinue
+          Copy-Item "$env:SystemRoot\\System32\\vcruntime140_1.dll" $phpDir -Force -ErrorAction SilentlyContinue
+          Copy-Item "$env:SystemRoot\\System32\\msvcp140.dll" $phpDir -Force -ErrorAction SilentlyContinue
+          if (Test-Path "$phpDir\\php.ini-production") {
+            Copy-Item "$phpDir\\php.ini-production" "$phpDir\\php.ini" -Force
+          }
+          & $phpExe.FullName -v
 
       - name: Build Windows installer
         run: npm run tauri build -- --bundles nsis
