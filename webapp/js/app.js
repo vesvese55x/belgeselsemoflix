@@ -67,9 +67,6 @@ class BelgeselSemoFlix {
 
     async loadData() {
         const isDesktopLocalhost = ['127.0.0.1', 'localhost'].includes(window.location.hostname);
-        const desktopInvoke = window.__TAURI_INTERNALS__ && typeof window.__TAURI_INTERNALS__.invoke === 'function'
-            ? (cmd, args) => window.__TAURI_INTERNALS__.invoke(cmd, args || {})
-            : null;
         const requests = [
             ['all', 'all_documentaries.json', false],
             ['singles', 'single_documentaries.json', false],
@@ -81,13 +78,10 @@ class BelgeselSemoFlix {
         const buildSources = (fileName) => {
             const remoteUrl = `https://belgeselsemo.com.tr/php/data/${fileName}`;
             if (isDesktopLocalhost) {
-                const sources = [];
-                if (desktopInvoke) {
-                    sources.push({ type: 'invoke', fileName });
-                }
-                sources.push({ type: 'http', url: remoteUrl });
-                sources.push({ type: 'http', url: `data-proxy.php?file=${encodeURIComponent(fileName)}` });
-                return sources;
+                return [
+                    { type: 'http', url: `data-proxy.php?file=${encodeURIComponent(fileName)}` },
+                    { type: 'http', url: remoteUrl }
+                ];
             }
             return [{ type: 'http', url: remoteUrl }];
         };
@@ -110,22 +104,14 @@ class BelgeselSemoFlix {
             let lastError = null;
             for (const source of buildSources(fileName)) {
                 try {
-                    const data = source.type === 'invoke'
-                        ? JSON.parse(await Promise.race([
-                            desktopInvoke('fetch_remote_data_file', { file: fileName }),
-                            new Promise((_, reject) => {
-                                setTimeout(() => reject(new Error(`${fileName} icin Tauri timeout`)), 20000);
-                            })
-                        ]))
-                        : await fetchJsonFromHttp(source.url, fileName);
+                    const data = await fetchJsonFromHttp(source.url, fileName);
                     if (data && !data.error) {
                         return data;
                     }
                     throw new Error(`${fileName} gecersiz veri dondu`);
                 } catch (error) {
                     lastError = error;
-                    const sourceLabel = source.type === 'invoke' ? `tauri:${fileName}` : source.url;
-                    console.warn(`Veri kaynagi basarisiz oldu: ${sourceLabel}`, error);
+                    console.warn(`Veri kaynagi basarisiz oldu: ${source.url}`, error);
                 }
             }
 
@@ -136,19 +122,13 @@ class BelgeselSemoFlix {
             throw lastError || new Error(`${fileName} yuklenemedi`);
         };
         try {
+            const values = await Promise.all(
+                requests.map(([, fileName, allowEmpty]) => fetchJsonWithFallback(fileName, allowEmpty))
+            );
             const loadedData = {};
-            if (isDesktopLocalhost) {
-                for (const [key, fileName, allowEmpty] of requests) {
-                    loadedData[key] = await fetchJsonWithFallback(fileName, allowEmpty);
-                }
-            } else {
-                const values = await Promise.all(
-                    requests.map(([, fileName, allowEmpty]) => fetchJsonWithFallback(fileName, allowEmpty))
-                );
-                requests.forEach(([key], index) => {
-                    loadedData[key] = values[index];
-                });
-            }
+            requests.forEach(([key], index) => {
+                loadedData[key] = values[index];
+            });
 
             const all = loadedData.all;
             const singles = loadedData.singles;

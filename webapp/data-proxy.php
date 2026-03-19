@@ -25,6 +25,14 @@ if (!in_array($file, $allowedFiles, true)) {
 $remoteUrl = 'https://belgeselsemo.com.tr/php/data/' . rawurlencode($file);
 
 $payload = null;
+$desktopDataDir = getenv('BELGESELSEMOFLIX_DESKTOP_DATA_DIR');
+
+if (is_string($desktopDataDir) && $desktopDataDir !== '') {
+    $localPath = rtrim($desktopDataDir, "/\\") . DIRECTORY_SEPARATOR . $file;
+    if (is_file($localPath) && is_readable($localPath)) {
+        $payload = @file_get_contents($localPath);
+    }
+}
 
 if (function_exists('curl_init')) {
     $ch = curl_init($remoteUrl);

@@ -50,7 +50,7 @@ Name=BELGESELSEMOFLIX
 Exec=AppRun
 Icon=belgeselsemoflix
 Type=Application
-Categories=Entertainment;Video;
+Categories=AudioVideo;Video;
 Version=1.0
 Terminal=false
 EOF
