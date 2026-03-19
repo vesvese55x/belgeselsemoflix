@@ -204,7 +204,8 @@ jobs:
               try {
                 $response = Invoke-WebRequest "http://127.0.0.1:8123/index.php" -UseBasicParsing -TimeoutSec 5
                 $dataResponse = Invoke-WebRequest "http://127.0.0.1:8123/data-proxy.php?file=categories.json" -UseBasicParsing -TimeoutSec 20
-                if ($response.StatusCode -eq 200 -and $dataResponse.StatusCode -eq 200 -and $dataResponse.Content.Length -gt 10) {
+                $largeDataResponse = Invoke-WebRequest "http://127.0.0.1:8123/data-proxy.php?file=all_documentaries.json" -UseBasicParsing -TimeoutSec 180
+                if ($response.StatusCode -eq 200 -and $dataResponse.StatusCode -eq 200 -and $dataResponse.Content.Length -gt 10 -and $largeDataResponse.StatusCode -eq 200 -and $largeDataResponse.Content.Length -gt 1000) {
                   $ready = $true
                   break
                 }

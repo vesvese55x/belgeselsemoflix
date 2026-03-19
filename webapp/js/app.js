@@ -67,21 +67,67 @@ class BelgeselSemoFlix {
 
     async loadData() {
         const isDesktopLocalhost = ['127.0.0.1', 'localhost'].includes(window.location.hostname);
-        const buildUrl = (fileName) => {
+        const requests = [
+            ['all', 'all_documentaries.json', false],
+            ['singles', 'single_documentaries.json', false],
+            ['series', 'series_documentaries.json', false],
+            ['episodes', 'episodes.json', false],
+            ['categoriesData', 'categories.json', false],
+            ['downloadLinks', 'download_links.json', true]
+        ];
+        const buildUrls = (fileName) => {
+            const remoteUrl = `https://belgeselsemo.com.tr/php/data/${fileName}`;
             if (isDesktopLocalhost) {
-                return `data-proxy.php?file=${encodeURIComponent(fileName)}`;
+                return [`data-proxy.php?file=${encodeURIComponent(fileName)}`, remoteUrl];
             }
-            return `https://belgeselsemo.com.tr/php/data/${fileName}`;
+            return [remoteUrl];
+        };
+        const fetchJsonWithFallback = async (fileName, allowEmpty = false) => {
+            let lastError = null;
+            for (const url of buildUrls(fileName)) {
+                try {
+                    const response = await fetch(url);
+                    if (!response.ok) {
+                        throw new Error(`${fileName} icin HTTP ${response.status}`);
+                    }
+                    const data = await response.json();
+                    if (data && !data.error) {
+                        return data;
+                    }
+                    throw new Error(`${fileName} gecersiz veri dondu`);
+                } catch (error) {
+                    lastError = error;
+                    console.warn(`Veri kaynagi basarisiz oldu: ${url}`, error);
+                }
+            }
+
+            if (allowEmpty) {
+                return [];
+            }
+
+            throw lastError || new Error(`${fileName} yuklenemedi`);
         };
         try {
-            const [all, singles, series, episodes, categoriesData, downloadLinks] = await Promise.all([
-                fetch(buildUrl('all_documentaries.json')).then(r => r.json()),
-                fetch(buildUrl('single_documentaries.json')).then(r => r.json()),
-                fetch(buildUrl('series_documentaries.json')).then(r => r.json()),
-                fetch(buildUrl('episodes.json')).then(r => r.json()),
-                fetch(buildUrl('categories.json')).then(r => r.json()),
-                fetch(buildUrl('download_links.json')).then(r => r.json()).catch(() => [])
-            ]);
+            const loadedData = {};
+            if (isDesktopLocalhost) {
+                for (const [key, fileName, allowEmpty] of requests) {
+                    loadedData[key] = await fetchJsonWithFallback(fileName, allowEmpty);
+                }
+            } else {
+                const values = await Promise.all(
+                    requests.map(([, fileName, allowEmpty]) => fetchJsonWithFallback(fileName, allowEmpty))
+                );
+                requests.forEach(([key], index) => {
+                    loadedData[key] = values[index];
+                });
+            }
+
+            const all = loadedData.all;
+            const singles = loadedData.singles;
+            const series = loadedData.series;
+            const episodes = loadedData.episodes;
+            const categoriesData = loadedData.categoriesData;
+            const downloadLinks = loadedData.downloadLinks;
 
             this.data.all = all;
             this.data.singles = singles;

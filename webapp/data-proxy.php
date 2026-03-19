@@ -31,8 +31,8 @@ if (function_exists('curl_init')) {
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_FOLLOWLOCATION => true,
-        CURLOPT_CONNECTTIMEOUT => 15,
-        CURLOPT_TIMEOUT => 60,
+        CURLOPT_CONNECTTIMEOUT => 20,
+        CURLOPT_TIMEOUT => 180,
         CURLOPT_SSL_VERIFYPEER => false,
         CURLOPT_SSL_VERIFYHOST => 0,
         CURLOPT_ENCODING => '',
@@ -58,7 +58,7 @@ if ($payload === null) {
     $context = stream_context_create([
         'http' => [
             'method' => 'GET',
-            'timeout' => 60,
+            'timeout' => 180,
             'header' => "Accept: application/json\r\nUser-Agent: BELGESELSEMOFLIX Desktop\r\n",
         ],
         'ssl' => [
