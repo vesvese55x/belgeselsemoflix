@@ -2087,7 +2087,7 @@ class BelgeselSemoFlix {
 
             <div class="modal-footer-fixed">
                 <div class="modal-actions">
-                    <button class="btn-icon" title="Linki Kopyala" onclick="navigator.clipboard.writeText('${appData.playstore}').then(()=>{ this.innerHTML='<i class=\\'fas fa-check\\'></i>'; setTimeout(()=>{ this.innerHTML='<i class=\\'fas fa-copy\\'></i>'; },2000); })">
+                    <button class="btn-icon" title="Linki Kopyala" onclick="window.copyAndMaybeOpenManagedLink('${appData.playstore}', 'Play Store', this)">
                         <i class="fas fa-copy"></i>
                     </button>
                 </div>
@@ -3750,7 +3750,17 @@ class BelgeselSemoFlix {
             const url = decoded.split('|')[0];
             
             console.log('İndirme URL\'si:', url);
-            
+
+            if (window.__BELGESELSEMOFLIX_DESKTOP && typeof window.__BELGESELSEMOFLIX_DESKTOP.openManagedUrl === 'function') {
+                window.__BELGESELSEMOFLIX_DESKTOP
+                    .openManagedUrl(url, 'Indirme')
+                    .catch((error) => {
+                        console.error('Desktop managed tab hatasi:', error);
+                        this.openDownloadModal(url);
+                    });
+                return;
+            }
+
             // Popup modal ile link kopyalama göster
             this.openDownloadModal(url);
         } catch (error) {
@@ -3885,6 +3895,30 @@ class BelgeselSemoFlix {
         document.body.style.overflow = '';
     }
 }
+
+window.copyAndMaybeOpenManagedLink = function (url, titleHint, button) {
+    const finishState = () => {
+        if (!button) return;
+        button.innerHTML = '<i class="fas fa-check"></i>';
+        setTimeout(() => {
+            button.innerHTML = '<i class="fas fa-copy"></i>';
+        }, 2000);
+    };
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url).catch((error) => {
+            console.warn('Clipboard yazimi basarisiz:', error);
+        }).finally(finishState);
+    } else {
+        finishState();
+    }
+
+    if (window.__BELGESELSEMOFLIX_DESKTOP && typeof window.__BELGESELSEMOFLIX_DESKTOP.openManagedUrl === 'function') {
+        window.__BELGESELSEMOFLIX_DESKTOP.openManagedUrl(url, titleHint).catch((error) => {
+            console.warn('Desktop managed tab acilamadi:', error);
+        });
+    }
+};
 
 // Initialize
 let app;

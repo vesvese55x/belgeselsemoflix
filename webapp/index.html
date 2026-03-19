@@ -1896,8 +1896,22 @@
         }
 
         async function startDownload(file) {
-            // Önce yeni sekme dene
-            const newTab = window.open(file.download_link, '_blank');
+            const desktopBridge = window.__BELGESELSEMOFLIX_DESKTOP;
+            let openedInDesktop = false;
+            let newTab = null;
+
+            if (desktopBridge && typeof desktopBridge.openManagedUrl === 'function') {
+                try {
+                    await desktopBridge.openManagedUrl(file.download_link, 'Indirme');
+                    openedInDesktop = true;
+                } catch (error) {
+                    console.warn('Desktop managed tab acilamadi:', error);
+                }
+            }
+
+            if (!openedInDesktop) {
+                newTab = window.open(file.download_link, '_blank');
+            }
 
             // Snapshot al
             const profitBefore = await fetchStats();
@@ -1917,7 +1931,11 @@
 
             const descEl = document.getElementById('rstep2desc');
 
-            if (!newTab || newTab.closed) {
+            if (openedInDesktop) {
+                descEl.innerHTML = `
+                    <span style="color:#4caf50;"><i class="fas fa-window-restore"></i> Indirme sekmesi uygulama icinde acildi.</span><br>
+                    <span style="color:#b3b3b3;font-size:0.8rem;">fileq.net sayfasindan indirmeyi baslatin, dosya secimi masaustu uygulamada sorulacaktir.</span>`;
+            } else if (!newTab || newTab.closed) {
                 // Popup engellendi - clipboard'a kopyala
                 try {
                     await navigator.clipboard.writeText(file.download_link);
