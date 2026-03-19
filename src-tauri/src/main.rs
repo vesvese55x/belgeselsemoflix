@@ -21,7 +21,7 @@ use serde::Serialize;
 use tauri::{
     ipc::InvokeError,
     webview::{DownloadEvent, NewWindowResponse, PageLoadEvent, WebviewBuilder},
-    Manager, PhysicalPosition, PhysicalSize, RunEvent, WebviewUrl, WebviewWindow,
+    Manager, PhysicalPosition, PhysicalSize, RunEvent, Webview, WebviewUrl, WebviewWindow,
     WebviewWindowBuilder, WindowEvent,
 };
 use url::Url;
@@ -317,7 +317,7 @@ fn create_home_webview(app: &tauri::AppHandle, url: &str) -> Result<(), DynError
     }
 
     let main_window = app
-        .get_webview_window(MAIN_WINDOW_LABEL)
+        .get_window(MAIN_WINDOW_LABEL)
         .ok_or("ana pencere bulunamadi")?;
     let home_url = Url::parse(url)?;
     let app_handle = app.clone();
@@ -327,7 +327,7 @@ fn create_home_webview(app: &tauri::AppHandle, url: &str) -> Result<(), DynError
         home_url.host_str().unwrap_or(HOST)
     );
 
-    let webview = main_window.as_ref().window().add_child(
+    let webview = main_window.add_child(
         WebviewBuilder::new(HOME_WEBVIEW_LABEL, WebviewUrl::External(home_url.clone()))
             .initialization_script(home_initialization_script())
             .on_navigation({
@@ -363,7 +363,7 @@ fn create_home_webview(app: &tauri::AppHandle, url: &str) -> Result<(), DynError
     )?;
 
     webview.hide()?;
-    layout_child_webviews(&main_window)?;
+    layout_child_webviews_for_window(&main_window)?;
     apply_active_tab(app)?;
     Ok(())
 }
@@ -403,11 +403,11 @@ fn create_managed_webview(app: &tauri::AppHandle, url: Url) -> Result<(), DynErr
     }
 
     let main_window = app
-        .get_webview_window(MAIN_WINDOW_LABEL)
+        .get_window(MAIN_WINDOW_LABEL)
         .ok_or("ana pencere bulunamadi")?;
     let app_handle = app.clone();
 
-    let webview = main_window.as_ref().window().add_child(
+    let webview = main_window.add_child(
         WebviewBuilder::new(MANAGED_WEBVIEW_LABEL, WebviewUrl::External(url.clone()))
             .on_navigation({
                 let app_handle = app_handle.clone();
@@ -455,7 +455,7 @@ fn create_managed_webview(app: &tauri::AppHandle, url: Url) -> Result<(), DynErr
     )?;
 
     webview.hide()?;
-    layout_child_webviews(&main_window)?;
+    layout_child_webviews_for_window(&main_window)?;
     Ok(())
 }
 
@@ -529,7 +529,7 @@ fn handle_home_navigation(app: &tauri::AppHandle, url: &Url, allowed_origin: &st
 
 fn apply_active_tab(app: &tauri::AppHandle) -> Result<(), DynError> {
     let main_window = app
-        .get_webview_window(MAIN_WINDOW_LABEL)
+        .get_window(MAIN_WINDOW_LABEL)
         .ok_or("ana pencere bulunamadi")?;
 
     let (active_tab, managed_open) = {
@@ -554,8 +554,8 @@ fn apply_active_tab(app: &tauri::AppHandle) -> Result<(), DynError> {
         }
     }
 
-    layout_child_webviews(&main_window)?;
-    sync_shell(&main_window)?;
+    layout_child_webviews_for_window(&main_window)?;
+    sync_main_shell(app)?;
     Ok(())
 }
 
@@ -571,6 +571,10 @@ fn attach_window_layout_handler(window: WebviewWindow) {
 }
 
 fn layout_child_webviews(window: &WebviewWindow) -> Result<(), DynError> {
+    layout_child_webviews_for_window(&window.as_ref().window())
+}
+
+fn layout_child_webviews_for_window(window: &tauri::Window) -> Result<(), DynError> {
     let size = window.inner_size()?;
     let content_y = TITLEBAR_HEIGHT + TABBAR_HEIGHT;
     let content_height = size
@@ -591,14 +595,18 @@ fn layout_child_webviews(window: &WebviewWindow) -> Result<(), DynError> {
 }
 
 fn sync_main_shell(app: &tauri::AppHandle) -> Result<(), DynError> {
-    let window = app
-        .get_webview_window(MAIN_WINDOW_LABEL)
-        .ok_or("ana pencere bulunamadi")?;
-    sync_shell(&window)
+    let webview = app
+        .get_webview(MAIN_WINDOW_LABEL)
+        .ok_or("shell webview bulunamadi")?;
+    sync_shell_webview(&webview)
 }
 
 fn sync_shell(window: &WebviewWindow) -> Result<(), DynError> {
-    let state = window.app_handle().state::<AppState>();
+    sync_shell_webview(window.as_ref())
+}
+
+fn sync_shell_webview(webview: &Webview) -> Result<(), DynError> {
+    let state = webview.app_handle().state::<AppState>();
     let shell = state.shell.lock().expect("state lock bozuldu");
     let snapshot = ShellSnapshot {
         app_title: APP_TITLE,
@@ -616,7 +624,7 @@ fn sync_shell(window: &WebviewWindow) -> Result<(), DynError> {
         managed_url: shell.managed_url.clone(),
         downloads_tab_label: DOWNLOAD_TAB_LABEL,
         downloads: shell.downloads.clone(),
-        is_maximized: window.is_maximized().unwrap_or(false),
+        is_maximized: webview.window().is_maximized().unwrap_or(false),
     };
     drop(shell);
 
@@ -624,7 +632,7 @@ fn sync_shell(window: &WebviewWindow) -> Result<(), DynError> {
     let script = format!(
         "window.__BELGESELSEMOFLIX_SHELL && window.__BELGESELSEMOFLIX_SHELL.sync({payload});"
     );
-    window.eval(&script)?;
+    webview.eval(&script)?;
     Ok(())
 }
 
