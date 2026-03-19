@@ -7,21 +7,16 @@
     <style>
       :root {
         color-scheme: dark;
-        --bg-base: #070809;
-        --bg-panel: rgba(16, 19, 22, 0.92);
-        --bg-panel-strong: rgba(18, 22, 25, 0.98);
+        --bg-root: #070809;
+        --bg-panel: #0d1013;
+        --bg-bar: rgba(20, 17, 18, 0.96);
         --bg-tab: rgba(255, 255, 255, 0.05);
-        --bg-tab-active: linear-gradient(135deg, rgba(218, 19, 40, 0.88), rgba(120, 16, 24, 0.92));
+        --bg-tab-active: linear-gradient(135deg, #d11e30, #7f1520);
+        --text-primary: #f5f0e8;
+        --text-muted: rgba(245, 240, 232, 0.65);
         --border-soft: rgba(255, 255, 255, 0.08);
-        --border-strong: rgba(255, 80, 96, 0.2);
-        --text-primary: #f4f1ea;
-        --text-muted: rgba(244, 241, 234, 0.68);
-        --text-dim: rgba(244, 241, 234, 0.46);
-        --accent: #ff3048;
-        --accent-soft: rgba(255, 48, 72, 0.18);
-        --shadow-lg: 0 32px 80px rgba(0, 0, 0, 0.4);
+        --border-strong: rgba(229, 39, 61, 0.22);
         font-family: "Segoe UI", "Helvetica Neue", sans-serif;
-        background: #060708;
       }
 
       * {
@@ -30,35 +25,40 @@
 
       html,
       body {
+        margin: 0;
         width: 100%;
         height: 100%;
-        margin: 0;
         overflow: hidden;
         color: var(--text-primary);
         background:
-          radial-gradient(circle at top, rgba(160, 12, 28, 0.34), transparent 34%),
-          linear-gradient(180deg, #16110f 0%, #090909 22%, #070809 100%);
+          radial-gradient(circle at top, rgba(165, 18, 34, 0.32), transparent 33%),
+          linear-gradient(180deg, #16110f 0%, #090909 24%, #070809 100%);
       }
 
       .app-shell {
-        position: relative;
         width: 100%;
         height: 100vh;
+        max-height: 100vh;
         display: grid;
         grid-template-rows: 58px 48px 1fr 34px;
+        overflow: hidden;
+      }
+
+      .titlebar,
+      .tabs,
+      .footer {
+        position: relative;
+        z-index: 10;
       }
 
       .titlebar {
-        position: relative;
-        z-index: 30;
         display: grid;
         grid-template-columns: 1fr auto 1fr;
         align-items: center;
         padding: 0 10px 0 14px;
-        background: linear-gradient(180deg, rgba(22, 15, 16, 0.96), rgba(14, 15, 18, 0.9));
+        background: var(--bg-bar);
         border-bottom: 1px solid var(--border-strong);
         backdrop-filter: blur(18px);
-        box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.03);
       }
 
       .drag-region {
@@ -69,37 +69,34 @@
         display: inline-flex;
         align-items: center;
         gap: 10px;
-        min-width: 0;
       }
 
       .brand img {
         width: 24px;
         height: 24px;
         border-radius: 7px;
-        box-shadow: 0 10px 22px rgba(255, 46, 62, 0.25);
       }
 
       .brand small {
-        color: var(--text-dim);
         font-size: 0.72rem;
         letter-spacing: 0.12em;
+        color: var(--text-muted);
         text-transform: uppercase;
       }
 
       .window-title {
         text-align: center;
         font-size: 1rem;
-        letter-spacing: 0.16em;
         font-weight: 600;
-        color: rgba(244, 241, 234, 0.9);
+        letter-spacing: 0.16em;
         text-transform: uppercase;
       }
 
       .window-controls {
         justify-self: end;
         display: inline-flex;
-        align-items: center;
         gap: 8px;
+        pointer-events: auto;
       }
 
       .window-controls button {
@@ -110,126 +107,109 @@
         background: rgba(255, 255, 255, 0.04);
         color: var(--text-primary);
         cursor: pointer;
-        transition: 160ms ease;
-        position: relative;
-        z-index: 3;
+        transition: 150ms ease;
+        pointer-events: auto;
       }
 
       .window-controls button:hover {
-        transform: translateY(-1px);
         background: rgba(255, 255, 255, 0.08);
-        border-color: rgba(255, 255, 255, 0.16);
       }
 
-      .window-controls button.close:hover {
+      .window-controls .close:hover {
         background: rgba(255, 58, 81, 0.18);
-        border-color: rgba(255, 58, 81, 0.32);
       }
 
       .tabs {
-        position: relative;
-        z-index: 30;
         display: flex;
         align-items: center;
         gap: 10px;
-        padding: 0 18px;
+        padding: 0 14px;
+        background: rgba(9, 11, 13, 0.9);
         border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        background: rgba(8, 10, 12, 0.8);
-        backdrop-filter: blur(14px);
       }
 
       .tab {
-        display: inline-flex;
-        align-items: center;
-        gap: 10px;
-        min-width: 0;
         height: 36px;
         padding: 0 16px;
-        border: 1px solid rgba(255, 255, 255, 0.05);
         border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.06);
         background: var(--bg-tab);
         color: var(--text-muted);
-        font-size: 0.9rem;
         cursor: pointer;
-        transition: 180ms ease;
-      }
-
-      .tab:hover {
-        color: var(--text-primary);
-        border-color: rgba(255, 255, 255, 0.12);
+        font-size: 0.92rem;
       }
 
       .tab.active {
         color: #fff;
         background: var(--bg-tab-active);
-        border-color: rgba(255, 114, 129, 0.28);
-        box-shadow: 0 14px 30px rgba(135, 16, 31, 0.24);
+        border-color: rgba(255, 119, 133, 0.28);
       }
 
       .tab.hidden {
         display: none;
       }
 
-      .tab-label {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        max-width: 240px;
-      }
-
       .content {
         position: relative;
         min-height: 0;
+        height: 100%;
         overflow: hidden;
-        background:
-          radial-gradient(circle at top right, rgba(130, 19, 33, 0.16), transparent 30%),
-          linear-gradient(180deg, rgba(17, 19, 22, 0.98), rgba(9, 10, 12, 1));
+        background: var(--bg-panel);
       }
 
-      .status-overlay,
-      .downloads-pane {
+      .pane {
         position: absolute;
-        inset: 18px;
-        z-index: 20;
+        inset: 0;
         display: none;
-        border: 1px solid var(--border-soft);
-        border-radius: 24px;
-        background: linear-gradient(180deg, rgba(17, 20, 23, 0.96), rgba(11, 12, 14, 0.98));
-        box-shadow: var(--shadow-lg);
-        backdrop-filter: blur(18px);
+        background:
+          radial-gradient(circle at top right, rgba(122, 19, 34, 0.18), transparent 26%),
+          #0c1013;
       }
 
-      .status-overlay.visible,
-      .downloads-pane.visible {
+      .pane.active {
         display: block;
       }
 
-      .status-card {
-        position: absolute;
-        inset: 0;
-        display: grid;
-        place-items: center;
-        padding: 32px;
+      .pane iframe {
+        width: 100%;
+        height: 100%;
+        min-height: 0;
+        border: 0;
+        display: block;
+        background: #0c1013;
       }
 
-      .status-card-inner {
+      .status-overlay {
+        position: absolute;
+        inset: 18px;
+        display: none;
+        place-items: center;
+        border-radius: 24px;
+        border: 1px solid var(--border-soft);
+        background: linear-gradient(180deg, rgba(17, 20, 23, 0.96), rgba(11, 12, 14, 0.98));
+        z-index: 20;
+      }
+
+      .status-overlay.visible {
+        display: grid;
+      }
+
+      .status-card {
         width: min(720px, calc(100% - 32px));
         padding: 34px 40px;
+        text-align: center;
         border-radius: 28px;
         background:
           radial-gradient(circle at top, rgba(165, 21, 41, 0.16), transparent 42%),
           rgba(21, 22, 26, 0.88);
         border: 1px solid rgba(255, 255, 255, 0.08);
-        text-align: center;
       }
 
       .status-chip {
         display: inline-flex;
-        align-items: center;
-        gap: 10px;
         padding: 7px 14px;
         border-radius: 999px;
-        background: var(--accent-soft);
+        background: rgba(255, 48, 72, 0.18);
         color: #ffb3bc;
         font-size: 0.82rem;
         letter-spacing: 0.08em;
@@ -239,110 +219,35 @@
       .status-title {
         margin: 16px 0 10px;
         font-size: clamp(2rem, 4vw, 3.2rem);
-        letter-spacing: 0.12em;
         font-weight: 800;
+        letter-spacing: 0.12em;
       }
 
       .status-text {
         margin: 0;
         color: var(--text-muted);
-        line-height: 1.8;
+        line-height: 1.7;
         white-space: pre-wrap;
       }
 
-      .downloads-pane {
-        padding: 22px;
-      }
-
-      .downloads-head {
-        display: flex;
-        align-items: end;
-        justify-content: space-between;
-        gap: 18px;
-        margin-bottom: 18px;
-      }
-
-      .downloads-head h2 {
-        margin: 0;
-        font-size: 1.18rem;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-      }
-
-      .downloads-head p {
-        margin: 6px 0 0;
-        color: var(--text-muted);
-      }
-
-      .downloads-list {
-        display: grid;
-        gap: 12px;
-      }
-
-      .download-item {
-        padding: 16px 18px;
-        border-radius: 18px;
-        background: rgba(255, 255, 255, 0.035);
-        border: 1px solid rgba(255, 255, 255, 0.06);
-      }
-
-      .download-row {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 16px;
-      }
-
-      .download-name {
-        font-weight: 600;
-        word-break: break-word;
-      }
-
-      .download-status {
-        padding: 6px 10px;
-        border-radius: 999px;
-        background: rgba(255, 255, 255, 0.06);
-        color: #ffd3d8;
-        font-size: 0.82rem;
-      }
-
-      .download-path {
-        margin-top: 10px;
-        color: var(--text-dim);
-        font-size: 0.85rem;
-        word-break: break-all;
-      }
-
-      .empty-downloads {
+      .empty-pane {
+        height: 100%;
         display: grid;
         place-items: center;
-        min-height: 260px;
-        color: var(--text-dim);
         text-align: center;
+        color: var(--text-muted);
+        padding: 32px;
       }
 
       .footer {
-        position: relative;
-        z-index: 30;
         display: grid;
         place-items: center;
-        font-size: 0.78rem;
-        letter-spacing: 0.22em;
-        color: rgba(244, 241, 234, 0.54);
-        text-transform: uppercase;
         border-top: 1px solid rgba(255, 255, 255, 0.04);
         background: rgba(6, 7, 8, 0.94);
-      }
-
-      @media (max-width: 1100px) {
-        .window-title {
-          font-size: 0.86rem;
-          letter-spacing: 0.12em;
-        }
-
-        .tab-label {
-          max-width: 170px;
-        }
+        color: rgba(245, 240, 232, 0.54);
+        font-size: 0.78rem;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
       }
     </style>
   </head>
@@ -357,55 +262,49 @@
         </div>
         <div class="window-title drag-region" id="windowTitle" data-tauri-drag-region">BELGESELSEMOFLIX 1.0</div>
         <div class="window-controls">
-          <button id="minimizeBtn" type="button" aria-label="Kucult">
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-              <path d="M2 7h10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
-            </svg>
-          </button>
-          <button id="maximizeBtn" type="button" aria-label="Buyut">
-            <svg id="maximizeIcon" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-              <rect x="2.3" y="2.3" width="9.4" height="9.4" rx="1.6" stroke="currentColor" stroke-width="1.3" />
-            </svg>
-          </button>
-          <button id="closeBtn" class="close" type="button" aria-label="Kapat">
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-              <path d="M3 3l8 8M11 3 3 11" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
-            </svg>
-          </button>
+          <button id="minimizeBtn" type="button" aria-label="Kucult">-</button>
+          <button id="maximizeBtn" type="button" aria-label="Buyut">+</button>
+          <button id="closeBtn" class="close" type="button" aria-label="Kapat">x</button>
         </div>
       </header>
 
       <nav class="tabs">
-        <button class="tab active" id="homeTab" type="button" data-tab="home">
-          <span class="tab-label">Ana Uygulama</span>
-        </button>
-        <button class="tab hidden" id="managedTab" type="button" data-tab="managed">
-          <span class="tab-label" id="managedTabLabel">Ozel Sekme</span>
-        </button>
-        <button class="tab" id="downloadsTab" type="button" data-tab="downloads">
-          <span class="tab-label">Indirmeler</span>
-        </button>
+        <button class="tab active" id="homeTab" type="button" data-tab="home">Ana Uygulama</button>
+        <button class="tab" id="downloadsTab" type="button" data-tab="downloads">Indirmeler</button>
+        <button class="tab hidden" id="managedTab" type="button" data-tab="managed">Play Store</button>
       </nav>
 
       <main class="content">
-        <section class="status-overlay visible" id="statusOverlay">
-          <div class="status-card">
-            <div class="status-card-inner">
-              <div class="status-chip">Desktop Shell</div>
-              <div class="status-title" id="statusTitle">Hazirlaniyor...</div>
-              <p class="status-text" id="statusText">Yerel PHP sunucusu arka planda baslatiliyor.</p>
-            </div>
-          </div>
+        <section class="pane active" id="homePane">
+          <iframe id="homeFrame" title="Ana Uygulama" referrerpolicy="no-referrer"></iframe>
         </section>
 
-        <section class="downloads-pane" id="downloadsPane">
-          <div class="downloads-head">
+        <section class="pane" id="downloadsPane">
+          <div class="empty-pane" id="downloadsEmpty">
             <div>
-              <h2>Indirme Merkezi</h2>
-              <p>fileq.net indirmeleri burada yonetilir ve kayit konumu secilir.</p>
+              <strong>Henüz açık bir indirme sayfası yok.</strong>
+              <div style="margin-top:10px;">fileq.net bağlantısı açıldığında burada görünecek.</div>
             </div>
           </div>
-          <div class="downloads-list" id="downloadsList"></div>
+          <iframe id="downloadsFrame" title="Indirmeler" referrerpolicy="no-referrer" style="display:none;"></iframe>
+        </section>
+
+        <section class="pane" id="managedPane">
+          <div class="empty-pane" id="managedEmpty">
+            <div>
+              <strong>Henüz açık bir dış sayfa yok.</strong>
+              <div style="margin-top:10px;">Play Store bağlantısı açıldığında burada görünecek.</div>
+            </div>
+          </div>
+          <iframe id="managedFrame" title="Play Store" referrerpolicy="no-referrer" style="display:none;"></iframe>
+        </section>
+
+        <section class="status-overlay visible" id="statusOverlay">
+          <div class="status-card">
+            <div class="status-chip">Desktop Shell</div>
+            <div class="status-title" id="statusTitle">Hazirlaniyor...</div>
+            <p class="status-text" id="statusText">Yerel PHP sunucusu arka planda baslatiliyor.</p>
+          </div>
         </section>
       </main>
 
@@ -422,65 +321,58 @@
           return internal.invoke(cmd, args);
         };
 
-        const homeTab = document.getElementById("homeTab");
-        const managedTab = document.getElementById("managedTab");
-        const downloadsTab = document.getElementById("downloadsTab");
-        const managedTabLabel = document.getElementById("managedTabLabel");
+        const state = {
+          homeLoaded: false,
+          lastHomeUrl: null,
+          lastDownloadsUrl: null,
+          lastManagedUrl: null,
+        };
+
+        const tabs = {
+          home: document.getElementById("homeTab"),
+          downloads: document.getElementById("downloadsTab"),
+          managed: document.getElementById("managedTab"),
+        };
+
+        const panes = {
+          home: document.getElementById("homePane"),
+          downloads: document.getElementById("downloadsPane"),
+          managed: document.getElementById("managedPane"),
+        };
+
+        const homeFrame = document.getElementById("homeFrame");
+        const downloadsFrame = document.getElementById("downloadsFrame");
+        const downloadsEmpty = document.getElementById("downloadsEmpty");
+        const managedFrame = document.getElementById("managedFrame");
+        const managedEmpty = document.getElementById("managedEmpty");
         const statusOverlay = document.getElementById("statusOverlay");
         const statusTitle = document.getElementById("statusTitle");
         const statusText = document.getElementById("statusText");
-        const downloadsPane = document.getElementById("downloadsPane");
-        const downloadsList = document.getElementById("downloadsList");
         const maximizeBtn = document.getElementById("maximizeBtn");
 
         function setActiveTab(tab) {
-          [homeTab, managedTab, downloadsTab].forEach((button) => {
-            button.classList.toggle("active", button.dataset.tab === tab);
+          Object.entries(tabs).forEach(([key, button]) => {
+            button.classList.toggle("active", key === tab);
+          });
+          Object.entries(panes).forEach(([key, pane]) => {
+            pane.classList.toggle("active", key === tab);
           });
         }
 
-        function renderDownloads(downloads) {
-          if (!downloads.length) {
-            downloadsList.innerHTML = `
-              <div class="empty-downloads">
-                <div>
-                  <strong>Henuz aktif indirme yok.</strong>
-                  <div style="margin-top:10px;">fileq.net uzerinden bir dosya baslatildiginda burada gorunecek.</div>
-                </div>
-              </div>
-            `;
-            return;
-          }
-
-          downloadsList.innerHTML = downloads
-            .map(
-              (item) => `
-                <article class="download-item">
-                  <div class="download-row">
-                    <div class="download-name">${item.filename}</div>
-                    <div class="download-status">${item.status}</div>
-                  </div>
-                  <div class="download-path">${item.destination || item.url}</div>
-                </article>
-              `,
-            )
-            .join("");
+        function setMaximizeLabel(isMaximized) {
+          maximizeBtn.textContent = isMaximized ? "[]" : "+";
         }
 
-        function setMaximizeIcon(isMaximized) {
-          maximizeBtn.innerHTML = isMaximized
-            ? `
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-                <path d="M4 2.5h7.5V10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
-                <rect x="2.3" y="4.3" width="7.4" height="7.4" rx="1.4" stroke="currentColor" stroke-width="1.3"/>
-              </svg>
-            `
-            : `
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-                <rect x="2.3" y="2.3" width="9.4" height="9.4" rx="1.6" stroke="currentColor" stroke-width="1.3" />
-              </svg>
-            `;
+        function refreshOverlay(snapshot) {
+          const startupFailed = snapshot.status_title === "Baslatma Hatasi";
+          const shouldShow = startupFailed || !state.homeLoaded;
+          statusOverlay.classList.toggle("visible", shouldShow);
         }
+
+        homeFrame.addEventListener("load", () => {
+          state.homeLoaded = true;
+          statusOverlay.classList.remove("visible");
+        });
 
         window.__BELGESELSEMOFLIX_SHELL = {
           sync(snapshot) {
@@ -489,19 +381,39 @@
             document.getElementById("footerText").textContent = snapshot.footer_text;
             statusTitle.textContent = snapshot.status_title;
             statusText.textContent = snapshot.status_detail;
-            managedTabLabel.textContent = snapshot.managed_tab_label;
-            managedTab.classList.toggle("hidden", !snapshot.managed_open);
+            tabs.managed.textContent = snapshot.managed_tab_label;
+            tabs.managed.classList.toggle("hidden", !snapshot.managed_open);
             setActiveTab(snapshot.active_tab);
-            setMaximizeIcon(snapshot.is_maximized);
-            renderDownloads(snapshot.downloads || []);
+            setMaximizeLabel(snapshot.is_maximized);
 
-            const showStatus = !snapshot.home_ready;
-            statusOverlay.classList.toggle("visible", showStatus);
-            downloadsPane.classList.toggle("visible", snapshot.active_tab === "downloads");
+            if (snapshot.home_url && snapshot.home_url !== state.lastHomeUrl) {
+              state.lastHomeUrl = snapshot.home_url;
+              state.homeLoaded = false;
+              homeFrame.src = snapshot.home_url;
+            }
+
+            if (snapshot.downloads_url && snapshot.downloads_url !== state.lastDownloadsUrl) {
+              state.lastDownloadsUrl = snapshot.downloads_url;
+              downloadsFrame.src = snapshot.downloads_url;
+              downloadsFrame.style.display = "block";
+              downloadsEmpty.style.display = "none";
+            }
+
+            if (snapshot.managed_url && snapshot.managed_url !== state.lastManagedUrl) {
+              state.lastManagedUrl = snapshot.managed_url;
+              managedFrame.src = snapshot.managed_url;
+              managedFrame.style.display = "block";
+              managedEmpty.style.display = "none";
+            }
+
+            refreshOverlay(snapshot);
           },
         };
 
         document.querySelectorAll(".tab").forEach((button) => {
+          button.addEventListener("mousedown", (event) => {
+            event.stopPropagation();
+          });
           button.addEventListener("click", () => {
             invoke("shell_select_tab", { tab: button.dataset.tab }).catch(console.error);
           });
@@ -510,13 +422,25 @@
         document.getElementById("minimizeBtn").addEventListener("click", () => {
           invoke("shell_minimize").catch(console.error);
         });
+        document.getElementById("minimizeBtn").addEventListener("mousedown", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+        });
 
         maximizeBtn.addEventListener("click", () => {
           invoke("shell_toggle_maximize").catch(console.error);
         });
+        maximizeBtn.addEventListener("mousedown", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+        });
 
         document.getElementById("closeBtn").addEventListener("click", () => {
           invoke("shell_close").catch(console.error);
+        });
+        document.getElementById("closeBtn").addEventListener("mousedown", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
         });
 
         invoke("shell_ready").catch(console.error);

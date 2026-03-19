@@ -16,30 +16,21 @@ use std::{
 #[cfg(target_os = "windows")]
 use std::os::windows::process::CommandExt;
 
-use rfd::FileDialog;
 use serde::Serialize;
 use tauri::{
-    ipc::InvokeError,
-    webview::{DownloadEvent, NewWindowResponse, PageLoadEvent, WebviewBuilder},
-    LogicalPosition, LogicalSize, Manager, RunEvent, Webview, WebviewUrl, WebviewWindow,
-    WebviewWindowBuilder, WindowEvent,
+    ipc::InvokeError, Manager, RunEvent, Webview, WebviewUrl, WebviewWindow, WebviewWindowBuilder,
 };
 use url::Url;
 
 const APP_TITLE: &str = "BELGESELSEMOFLIX 1.0";
 const APP_FOOTER: &str = "BELGESELSEMO.COM.TR";
 const MAIN_WINDOW_LABEL: &str = "main";
-const HOME_WEBVIEW_LABEL: &str = "home-webview";
-const MANAGED_WEBVIEW_LABEL: &str = "managed-webview";
 const HOST: &str = "127.0.0.1";
 const DEFAULT_PORT: u16 = 8000;
 const MAX_PORT: u16 = 8100;
 const STARTUP_TIMEOUT: Duration = Duration::from_secs(600);
 const DOWNLOAD_TAB_LABEL: &str = "Indirmeler";
 const HOME_TAB_LABEL: &str = "Ana Uygulama";
-const TITLEBAR_HEIGHT: u32 = 58;
-const TABBAR_HEIGHT: u32 = 48;
-const FOOTER_HEIGHT: u32 = 34;
 #[cfg(target_os = "windows")]
 const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 
@@ -55,12 +46,10 @@ struct ShellState {
     status_title: String,
     status_detail: String,
     home_url: Option<String>,
-    home_ready: bool,
     active_tab: ActiveTab,
     managed_title: Option<String>,
     managed_url: Option<String>,
-    downloads: Vec<DownloadItem>,
-    next_download_id: u64,
+    downloads_url: Option<String>,
 }
 
 #[derive(Clone, Copy, Serialize, Default, PartialEq, Eq)]
@@ -72,29 +61,20 @@ enum ActiveTab {
     Downloads,
 }
 
-#[derive(Clone, Serialize)]
-struct DownloadItem {
-    id: u64,
-    filename: String,
-    url: String,
-    status: String,
-    destination: Option<String>,
-}
-
 #[derive(Serialize)]
 struct ShellSnapshot {
     app_title: &'static str,
     footer_text: &'static str,
     status_title: String,
     status_detail: String,
-    home_ready: bool,
+    home_url: Option<String>,
     active_tab: ActiveTab,
     home_tab_label: &'static str,
     managed_tab_label: String,
     managed_open: bool,
     managed_url: Option<String>,
     downloads_tab_label: &'static str,
-    downloads: Vec<DownloadItem>,
+    downloads_url: Option<String>,
     is_maximized: bool,
 }
 
@@ -127,31 +107,23 @@ fn main() {
             .min_inner_size(1180.0, 760.0)
             .resizable(true)
             .decorations(false)
+            .initialization_script_for_all_frames(home_initialization_script())
             .build()?;
 
-            attach_window_layout_handler(main_window.clone());
+            let _ = sync_shell(&main_window);
+
             let app_handle = app.handle().clone();
             thread::spawn(move || match start_php_server(&app_handle) {
                 Ok(url) => {
-                    if let Err(error) = create_home_webview(&app_handle, &url) {
-                        let detail = format!("Arayuz yuklenemedi: {error}");
-                        set_status(&app_handle, "Baslatma Hatasi", &detail);
-                        stop_php_server(&app_handle);
-                        return;
-                    }
-
                     {
-                        {
-                            let state = app_handle.state::<AppState>();
-                            let mut shell = state.shell.lock().expect("state lock bozuldu");
-                            shell.home_url = Some(url);
-                            shell.status_title = "Hazir".into();
-                            shell.status_detail = "Masaustu kabugu hazir.".into();
-                        }
+                        let state = app_handle.state::<AppState>();
+                        let mut shell = state.shell.lock().expect("state lock bozuldu");
+                        shell.home_url = Some(url);
+                        shell.status_title = "Hazir".into();
+                        shell.status_detail = "Ana uygulama hazir.".into();
+                        shell.active_tab = ActiveTab::Home;
                     }
-
                     let _ = sync_main_shell(&app_handle);
-                    let _ = apply_active_tab(&app_handle);
                 }
                 Err(error) => {
                     let detail = format!(
@@ -181,7 +153,9 @@ fn shell_ready(window: WebviewWindow) -> Result<(), InvokeError> {
 
 #[tauri::command]
 fn shell_minimize(window: WebviewWindow) -> Result<(), InvokeError> {
-    window.minimize().map_err(Into::into)
+    window
+        .minimize()
+        .map_err(|error| InvokeError::from(error.to_string()))
 }
 
 #[tauri::command]
@@ -190,10 +164,15 @@ fn shell_toggle_maximize(window: WebviewWindow) -> Result<(), InvokeError> {
         .is_maximized()
         .map_err::<InvokeError, _>(Into::into)?
     {
-        window.unmaximize().map_err(Into::into)
+        window
+            .unmaximize()
+            .map_err(|error| InvokeError::from(error.to_string()))?;
     } else {
-        window.maximize().map_err(Into::into)
+        window
+            .maximize()
+            .map_err(|error| InvokeError::from(error.to_string()))?;
     }
+    sync_shell(&window).map_err(|error| InvokeError::from(error.to_string()))
 }
 
 #[tauri::command]
@@ -204,26 +183,26 @@ fn shell_close(window: WebviewWindow) -> Result<(), InvokeError> {
 
 #[tauri::command]
 fn shell_select_tab(app: tauri::AppHandle, tab: String) -> Result<(), InvokeError> {
-    let active_tab = match tab.as_str() {
-        "home" => ActiveTab::Home,
-        "managed" => ActiveTab::Managed,
-        "downloads" => ActiveTab::Downloads,
-        _ => return Err(InvokeError::from("gecersiz sekme")),
-    };
-
     {
         let state = app.state::<AppState>();
         let mut shell = state
             .shell
             .lock()
             .map_err(|_| InvokeError::from("state lock bozuldu"))?;
-        if active_tab == ActiveTab::Managed && shell.managed_url.is_none() {
-            return Ok(());
+
+        match tab.as_str() {
+            "home" => shell.active_tab = ActiveTab::Home,
+            "downloads" => shell.active_tab = ActiveTab::Downloads,
+            "managed" => {
+                if shell.managed_url.is_some() {
+                    shell.active_tab = ActiveTab::Managed;
+                }
+            }
+            _ => return Err(InvokeError::from("gecersiz sekme")),
         }
-        shell.active_tab = active_tab;
     }
 
-    apply_active_tab(&app).map_err(|error| InvokeError::from(error.to_string()))
+    sync_main_shell(&app).map_err(|error| InvokeError::from(error.to_string()))
 }
 
 #[tauri::command]
@@ -312,64 +291,6 @@ fn stop_php_server(app: &tauri::AppHandle) {
     }
 }
 
-fn create_home_webview(app: &tauri::AppHandle, url: &str) -> Result<(), DynError> {
-    if app.get_webview(HOME_WEBVIEW_LABEL).is_some() {
-        return Ok(());
-    }
-
-    let main_window = app
-        .get_window(MAIN_WINDOW_LABEL)
-        .ok_or("ana pencere bulunamadi")?;
-    let home_url = Url::parse(url)?;
-    let app_handle = app.clone();
-    let origin = format!(
-        "{}://{}",
-        home_url.scheme(),
-        home_url.host_str().unwrap_or(HOST)
-    );
-    let (content_position, content_size) = content_layout_for_window(&main_window)?;
-
-    let webview = main_window.add_child(
-        WebviewBuilder::new(HOME_WEBVIEW_LABEL, WebviewUrl::External(home_url.clone()))
-            .initialization_script(home_initialization_script())
-            .on_navigation({
-                let app_handle = app_handle.clone();
-                move |navigating_url| handle_home_navigation(&app_handle, navigating_url, &origin)
-            })
-            .on_new_window({
-                let app_handle = app_handle.clone();
-                move |navigating_url, _| {
-                    if is_allowed_managed_url(&navigating_url) {
-                        let _ = open_managed_url(&app_handle, navigating_url, None);
-                    }
-                    NewWindowResponse::Deny
-                }
-            })
-            .on_page_load({
-                let app_handle = app_handle.clone();
-                move |_webview, payload| {
-                    if payload.event() == PageLoadEvent::Finished {
-                        let state = app_handle.state::<AppState>();
-                        if let Ok(mut shell) = state.shell.lock() {
-                            shell.home_ready = true;
-                            if shell.status_title == "Hazir" {
-                                shell.status_detail = "Ana icerik yuklendi.".into();
-                            }
-                        }
-                        let _ = sync_main_shell(&app_handle);
-                    }
-                }
-            }),
-        content_position,
-        content_size,
-    )?;
-
-    webview.hide()?;
-    layout_child_webviews_for_window(&main_window)?;
-    apply_active_tab(app)?;
-    Ok(())
-}
-
 fn open_managed_url(
     app: &tauri::AppHandle,
     url: Url,
@@ -379,237 +300,31 @@ fn open_managed_url(
         return Err("yalnizca fileq.net ve play.google.com izinli".into());
     }
 
-    let tab_title = title_hint.unwrap_or_else(|| managed_label_for_url(&url));
+    let title = title_hint.unwrap_or_else(|| managed_label_for_url(&url));
+    let host = url.host_str().unwrap_or_default().to_string();
 
     {
         let state = app.state::<AppState>();
         let mut shell = state.shell.lock().expect("state lock bozuldu");
-        shell.managed_url = Some(url.as_str().to_string());
-        shell.managed_title = Some(tab_title);
-        shell.active_tab = ActiveTab::Managed;
-    }
 
-    if let Some(webview) = app.get_webview(MANAGED_WEBVIEW_LABEL) {
-        webview.navigate(url.clone())?;
-    } else {
-        create_managed_webview(app, url)?;
-    }
-
-    apply_active_tab(app)?;
-    Ok(())
-}
-
-fn create_managed_webview(app: &tauri::AppHandle, url: Url) -> Result<(), DynError> {
-    if app.get_webview(MANAGED_WEBVIEW_LABEL).is_some() {
-        return Ok(());
-    }
-
-    let main_window = app
-        .get_window(MAIN_WINDOW_LABEL)
-        .ok_or("ana pencere bulunamadi")?;
-    let app_handle = app.clone();
-    let (content_position, content_size) = content_layout_for_window(&main_window)?;
-
-    let webview = main_window.add_child(
-        WebviewBuilder::new(MANAGED_WEBVIEW_LABEL, WebviewUrl::External(url.clone()))
-            .on_navigation({
-                let app_handle = app_handle.clone();
-                move |navigating_url| {
-                    let allowed = is_allowed_managed_url(navigating_url);
-                    if allowed {
-                        let title = managed_label_for_url(navigating_url);
-                        let state = app_handle.state::<AppState>();
-                        if let Ok(mut shell) = state.shell.lock() {
-                            shell.managed_url = Some(navigating_url.as_str().to_string());
-                            shell.managed_title = Some(title);
-                        }
-                        let _ = sync_main_shell(&app_handle);
-                    }
-                    allowed
-                }
-            })
-            .on_document_title_changed({
-                let app_handle = app_handle.clone();
-                move |_webview, title| {
-                    let state = app_handle.state::<AppState>();
-                    if let Ok(mut shell) = state.shell.lock() {
-                        if !title.trim().is_empty() {
-                            shell.managed_title = Some(title);
-                        }
-                    }
-                    let _ = sync_main_shell(&app_handle);
-                }
-            })
-            .on_new_window({
-                let app_handle = app_handle.clone();
-                move |navigating_url, _| {
-                    if is_allowed_managed_url(&navigating_url) {
-                        let _ = open_managed_url(&app_handle, navigating_url, None);
-                    }
-                    NewWindowResponse::Deny
-                }
-            })
-            .on_download({
-                let app_handle = app_handle.clone();
-                move |_webview, event| handle_download_event(&app_handle, event)
-            }),
-        content_position,
-        content_size,
-    )?;
-
-    webview.hide()?;
-    layout_child_webviews_for_window(&main_window)?;
-    Ok(())
-}
-
-fn handle_download_event(app: &tauri::AppHandle, event: DownloadEvent<'_>) -> bool {
-    match event {
-        DownloadEvent::Requested { url, destination } => {
-            let filename = download_filename_from_url(&url);
-            let save_path = FileDialog::new().set_file_name(&filename).save_file();
-            let Some(path) = save_path else {
-                return false;
-            };
-            *destination = path.clone();
-
-            {
-                let state = app.state::<AppState>();
-                let mut shell = state.shell.lock().expect("state lock bozuldu");
-                let id = shell.next_download_id;
-                shell.next_download_id += 1;
-                shell.downloads.push(DownloadItem {
-                    id,
-                    filename,
-                    url: url.to_string(),
-                    status: "Indiriliyor".into(),
-                    destination: Some(path.display().to_string()),
-                });
-                shell.active_tab = ActiveTab::Downloads;
-            }
-
-            let _ = apply_active_tab(app);
-            true
-        }
-        DownloadEvent::Finished { url, path, success } => {
-            {
-                let state = app.state::<AppState>();
-                let mut shell = state.shell.lock().expect("state lock bozuldu");
-                if let Some(item) = shell
-                    .downloads
-                    .iter_mut()
-                    .rev()
-                    .find(|item| item.url == url.as_str())
-                {
-                    item.status = if success {
-                        "Tamamlandi".into()
-                    } else {
-                        "Basarisiz".into()
-                    };
-                    if let Some(path) = path {
-                        item.destination = Some(path.display().to_string());
-                    }
-                }
-            }
-            let _ = sync_main_shell(app);
-            true
-        }
-        _ => true,
-    }
-}
-
-fn handle_home_navigation(app: &tauri::AppHandle, url: &Url, allowed_origin: &str) -> bool {
-    let same_origin = format!("{}://{}", url.scheme(), url.host_str().unwrap_or_default());
-    if same_origin == allowed_origin {
-        return true;
-    }
-
-    if is_allowed_managed_url(url) {
-        let _ = open_managed_url(app, url.clone(), None);
-    }
-
-    false
-}
-
-fn apply_active_tab(app: &tauri::AppHandle) -> Result<(), DynError> {
-    let main_window = app
-        .get_window(MAIN_WINDOW_LABEL)
-        .ok_or("ana pencere bulunamadi")?;
-
-    let (active_tab, managed_open) = {
-        let state = app.state::<AppState>();
-        let shell = state.shell.lock().expect("state lock bozuldu");
-        (shell.active_tab, shell.managed_url.is_some())
-    };
-
-    if let Some(home) = app.get_webview(HOME_WEBVIEW_LABEL) {
-        if active_tab == ActiveTab::Home {
-            home.show()?;
+        if host == "fileq.net" || host.ends_with(".fileq.net") {
+            shell.downloads_url = Some(url.to_string());
+            shell.active_tab = ActiveTab::Downloads;
         } else {
-            home.hide()?;
+            shell.managed_url = Some(url.to_string());
+            shell.managed_title = Some(title);
+            shell.active_tab = ActiveTab::Managed;
         }
     }
 
-    if let Some(managed) = app.get_webview(MANAGED_WEBVIEW_LABEL) {
-        if active_tab == ActiveTab::Managed && managed_open {
-            managed.show()?;
-        } else {
-            managed.hide()?;
-        }
-    }
-
-    layout_child_webviews_for_window(&main_window)?;
-    sync_main_shell(app)?;
-    Ok(())
-}
-
-fn attach_window_layout_handler(window: WebviewWindow) {
-    let window_clone = window.clone();
-    window.on_window_event(move |event| match event {
-        WindowEvent::Resized(_) | WindowEvent::ScaleFactorChanged { .. } => {
-            let _ = layout_child_webviews(&window_clone);
-            let _ = sync_shell(&window_clone);
-        }
-        _ => {}
-    });
-}
-
-fn layout_child_webviews(window: &WebviewWindow) -> Result<(), DynError> {
-    layout_child_webviews_for_window(&window.as_ref().window())
-}
-
-fn layout_child_webviews_for_window(window: &tauri::Window) -> Result<(), DynError> {
-    let (content_position, content_size) = content_layout_for_window(window)?;
-
-    for label in [HOME_WEBVIEW_LABEL, MANAGED_WEBVIEW_LABEL] {
-        if let Some(webview) = window.app_handle().get_webview(label) {
-            webview.set_position(content_position)?;
-            webview.set_size(content_size)?;
-        }
-    }
-
-    Ok(())
-}
-
-fn content_layout_for_window(
-    window: &tauri::Window,
-) -> Result<(LogicalPosition<f64>, LogicalSize<f64>), DynError> {
-    let scale_factor = window.scale_factor()?;
-    let size = window.inner_size()?.to_logical::<f64>(scale_factor);
-    let content_y = TITLEBAR_HEIGHT + TABBAR_HEIGHT;
-    let logical_height = size.height.max(1.0).floor() as u32;
-    let content_height = logical_height
-        .saturating_sub(content_y)
-        .saturating_sub(FOOTER_HEIGHT);
-    let content_position = LogicalPosition::new(0.0, f64::from(content_y));
-    let content_size = LogicalSize::new(size.width.max(1.0), f64::from(content_height.max(1)));
-    Ok((content_position, content_size))
+    sync_main_shell(app)
 }
 
 fn sync_main_shell(app: &tauri::AppHandle) -> Result<(), DynError> {
-    let webview = app
-        .get_webview(MAIN_WINDOW_LABEL)
-        .ok_or("shell webview bulunamadi")?;
-    sync_shell_webview(&webview)
+    let window = app
+        .get_webview_window(MAIN_WINDOW_LABEL)
+        .ok_or("shell penceresi bulunamadi")?;
+    sync_shell(&window)
 }
 
 fn sync_shell(window: &WebviewWindow) -> Result<(), DynError> {
@@ -624,17 +339,17 @@ fn sync_shell_webview(webview: &Webview) -> Result<(), DynError> {
         footer_text: APP_FOOTER,
         status_title: shell.status_title.clone(),
         status_detail: shell.status_detail.clone(),
-        home_ready: shell.home_ready,
+        home_url: shell.home_url.clone(),
         active_tab: shell.active_tab,
         home_tab_label: HOME_TAB_LABEL,
         managed_tab_label: shell
             .managed_title
             .clone()
-            .unwrap_or_else(|| "Ozel Sekme".into()),
+            .unwrap_or_else(|| "Play Store".into()),
         managed_open: shell.managed_url.is_some(),
         managed_url: shell.managed_url.clone(),
         downloads_tab_label: DOWNLOAD_TAB_LABEL,
-        downloads: shell.downloads.clone(),
+        downloads_url: shell.downloads_url.clone(),
         is_maximized: webview.window().is_maximized().unwrap_or(false),
     };
     drop(shell);
@@ -676,17 +391,14 @@ fn is_allowed_managed_url(url: &Url) -> bool {
     host == "fileq.net" || host.ends_with(".fileq.net") || host == "play.google.com"
 }
 
-fn download_filename_from_url(url: &Url) -> String {
-    url.path_segments()
-        .and_then(|segments| segments.last())
-        .filter(|name| !name.trim().is_empty())
-        .map(|name| name.to_string())
-        .unwrap_or_else(|| "belgeselsemoflix-download.bin".into())
-}
-
 fn home_initialization_script() -> &'static str {
     r#"
 (() => {
+  const host = window.location.hostname || '';
+  if (host === 'fileq.net' || host.endsWith('.fileq.net')) {
+    window.open = () => null;
+  }
+
   const invoke = (cmd, args = {}) => {
     const internal = window.__TAURI_INTERNALS__;
     if (!internal || typeof internal.invoke !== 'function') {
