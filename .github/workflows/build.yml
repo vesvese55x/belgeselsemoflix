@@ -42,7 +42,17 @@ jobs:
         run: npm install
 
       - name: Build Linux bundles
+        id: build_linux
         run: npm run tauri build -- --bundles deb,rpm,appimage
+
+      - uses: actions/upload-artifact@v4
+        if: always() && steps.build_linux.conclusion == 'success'
+        with:
+          name: belgeselsemoflix-1.0-linux-core
+          path: |
+            src-tauri/target/release/bundle/deb/*.deb
+            src-tauri/target/release/bundle/rpm/*.rpm
+            src-tauri/target/release/bundle/appimage/*.AppImage
 
       - name: Convert deb to zst with debtap
         run: |
@@ -72,20 +82,14 @@ jobs:
               fi
               sed -i "s/'gtk'/'gtk3'/g" "$PKG_DIR/PKGBUILD"
               chown -R builder:builder "$PKG_DIR"
-              su - builder -c "
-                cd $PKG_DIR
-                makepkg -f --noconfirm
-              "
+              su - builder -c "cd '$PKG_DIR' && makepkg -f --noconfirm"
               mv "$PKG_DIR"/*.pkg.tar.zst /work/dist/zst/
             '
 
       - uses: actions/upload-artifact@v4
         with:
-          name: belgeselsemoflix-1.0-linux
+          name: belgeselsemoflix-1.0-linux-zst
           path: |
-            src-tauri/target/release/bundle/deb/*.deb
-            src-tauri/target/release/bundle/rpm/*.rpm
-            src-tauri/target/release/bundle/appimage/*.AppImage
             dist/zst/*.zst
 
   windows:
@@ -105,6 +109,13 @@ jobs:
 
       - name: Install npm dependencies
         run: npm install
+
+      - name: Download bundled PHP for Windows
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path "runtime/windows" | Out-Null
+          Invoke-WebRequest "https://windows.php.net/downloads/releases/php-8.4.13-nts-Win32-vs17-x64.zip" -OutFile "runtime/windows/php.zip"
+          Expand-Archive -Path "runtime/windows/php.zip" -DestinationPath "runtime/windows/php" -Force
 
       - name: Build Windows installer
         run: npm run tauri build -- --bundles nsis
@@ -132,6 +143,10 @@ jobs:
 
       - name: Install npm dependencies
         run: npm install
+
+      - name: Ensure PHP is available on macOS
+        run: |
+          brew list php >/dev/null 2>&1 || brew install php
 
       - name: Build macOS bundles
         run: npm run tauri build -- --bundles app,dmg

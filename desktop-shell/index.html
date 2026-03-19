@@ -25,6 +25,7 @@
       main {
         text-align: center;
         padding: 32px;
+        width: min(92vw, 720px);
       }
 
       h1 {
@@ -33,16 +34,49 @@
       }
 
       p {
-        margin: 0;
+        margin: 0 0 10px;
         opacity: 0.8;
+        line-height: 1.5;
+      }
+
+      .panel {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 20px;
+        padding: 28px;
+        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+      }
+
+      .status {
+        color: #ffd166;
+        font-weight: 700;
+      }
+
+      .detail {
+        font-size: 0.95rem;
+        white-space: pre-wrap;
+      }
+
+      .hint {
+        font-size: 0.9rem;
+        opacity: 0.65;
       }
     </style>
   </head>
   <body>
     <main>
-      <h1>BELGESELSEMOFLIX 1.0</h1>
-      <p>Yerel PHP sunucusu baslatiliyor...</p>
+      <div class="panel">
+        <h1>BELGESELSEMOFLIX 1.0</h1>
+        <p id="status" class="status">Hazirlaniyor...</p>
+        <p id="detail" class="detail">Yerel PHP sunucusu arka planda baslatiliyor.</p>
+        <p class="hint">Ilk acilista gerekli araclar yukleniyorsa bu ekran biraz bekleyebilir.</p>
+      </div>
     </main>
+    <script>
+      window.__BELGESELSEMOFLIX_SET_STATUS = (status, detail) => {
+        document.getElementById("status").textContent = status;
+        document.getElementById("detail").textContent = detail;
+      };
+    </script>
   </body>
 </html>
-

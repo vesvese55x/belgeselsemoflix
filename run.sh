@@ -6,6 +6,8 @@ PORT="${BELGESELSEMOFLIX_PORT:-8000}"
 HOST="${BELGESELSEMOFLIX_HOST:-127.0.0.1}"
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WEBAPP_DIR="${BELGESELSEMOFLIX_WEBAPP_DIR:-$ROOT_DIR/webapp}"
+BUNDLED_PHP_LINUX="$ROOT_DIR/runtime/linux/bin/php"
+BUNDLED_PHP_MACOS="$ROOT_DIR/runtime/macos/bin/php"
 
 echo "BELGESELSEMOFLIX PHP server hazirlaniyor..."
 
@@ -35,7 +37,20 @@ detect_distro() {
 }
 
 ensure_php() {
+    if [ -x "$BUNDLED_PHP_LINUX" ]; then
+        PHP_BIN="$BUNDLED_PHP_LINUX"
+        echo "Paket icindeki PHP bulundu."
+        return
+    fi
+
+    if [ -x "$BUNDLED_PHP_MACOS" ]; then
+        PHP_BIN="$BUNDLED_PHP_MACOS"
+        echo "Paket icindeki PHP bulundu."
+        return
+    fi
+
     if command -v php >/dev/null 2>&1; then
+        PHP_BIN="$(command -v php)"
         echo "PHP bulundu."
         return
     fi
@@ -61,6 +76,7 @@ ensure_php() {
             if command -v brew >/dev/null 2>&1; then
                 echo "PHP Homebrew ile yukleniyor (macOS)..."
                 brew install php
+                PHP_BIN="$(command -v php)"
             else
                 echo "macOS uzerinde PHP sistemde yok ve Homebrew bulunamadi."
                 echo "Lutfen once Homebrew kurun ya da PHP'yi manuel yukleyin."
@@ -82,4 +98,4 @@ fi
 ensure_php
 
 echo "Server baslatiliyor: http://$HOST:$PORT/index.php"
-exec php -S "$HOST:$PORT" -t "$WEBAPP_DIR"
+exec "$PHP_BIN" -S "$HOST:$PORT" -t "$WEBAPP_DIR"

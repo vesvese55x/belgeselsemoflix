@@ -36,6 +36,7 @@
     },
     "resources": [
       "../webapp/**/*",
+      "../runtime/**/*",
       "../run.sh",
       "../run.command",
       "../run.bat"
@@ -45,7 +46,7 @@
     "windows": {
       "nsis": {},
       "webviewInstallMode": {
-        "type": "offlineInstaller"
+        "type": "downloadBootstrapper"
       }
     }
   }

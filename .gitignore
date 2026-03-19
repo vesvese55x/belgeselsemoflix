@@ -3,4 +3,6 @@ src-tauri/target/
 dist/
 portable/
 .DS_Store
-
+runtime/windows/php/
+runtime/windows/php.zip
+*.log
