@@ -26,8 +26,12 @@ if not exist "%WEBAPP_DIR%" (
 )
 
 if exist "%BUNDLED_PHP_ROOT%" (
-  for /f "usebackq delims=" %%F in (`powershell -NoProfile -ExecutionPolicy Bypass -Command "$item = Get-ChildItem -LiteralPath '%BUNDLED_PHP_ROOT%' -Filter php.exe -Recurse | Select-Object -First 1 -ExpandProperty FullName; if ($item) { [Console]::WriteLine($item) }"`) do set "PHP_CMD=%%F"
+  for /f "delims=" %%F in ('dir /s /b "%BUNDLED_PHP_ROOT%\php.exe" 2^>nul') do (
+    set "PHP_CMD=%%F"
+    goto bundled_php_found
+  )
 )
+:bundled_php_found
 
 if "%PHP_CMD%"=="" (
   where php >nul 2>nul
@@ -47,6 +51,9 @@ if not "%PHP_CMD%"=="" (
 if not "%PHP_DIR%"=="" set "PATH=%PHP_DIR%;%PATH%"
 if exist "%PHP_DIR%php.ini" set "PHPRC=%PHP_DIR%"
 
+echo PHP komutu: %PHP_CMD%
+echo PHP klasoru: %PHP_DIR%
+echo Web klasoru: %WEBAPP_DIR%
 echo Server baslatiliyor: http://%HOST%:%PORT%/index.php
 "%PHP_CMD%" -S %HOST%:%PORT% -t "%WEBAPP_DIR%"
 set "EXIT_CODE=%ERRORLEVEL%"
