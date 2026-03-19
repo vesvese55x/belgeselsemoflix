@@ -28,7 +28,9 @@ jobs:
           sudo apt-get install -y \
             build-essential \
             curl \
+            desktop-file-utils \
             file \
+            libfuse2 \
             libayatana-appindicator3-dev \
             librsvg2-dev \
             libssl-dev \
@@ -36,6 +38,7 @@ jobs:
             libxdo-dev \
             patchelf \
             rpm \
+            squashfs-tools \
             wget
 
       - name: Install npm dependencies
@@ -43,7 +46,7 @@ jobs:
 
       - name: Build Linux bundles
         id: build_linux
-        run: npm run tauri build -- --bundles deb,rpm,appimage
+        run: npm run tauri build -- --bundles deb,rpm
 
       - uses: actions/upload-artifact@v4
         if: always() && steps.build_linux.conclusion == 'success'
@@ -52,7 +55,27 @@ jobs:
           path: |
             src-tauri/target/release/bundle/deb/*.deb
             src-tauri/target/release/bundle/rpm/*.rpm
-            src-tauri/target/release/bundle/appimage/*.AppImage
+
+      - name: Build AppImage from deb with appimage-builder
+        if: steps.build_linux.conclusion == 'success'
+        run: |
+          rm -rf AppDir dist/appimage
+          mkdir -p AppDir dist/appimage
+          DEB_PATH="$(find src-tauri/target/release/bundle/deb -maxdepth 1 -type f -name '*.deb' | head -n 1)"
+          if [ -z "$DEB_PATH" ]; then
+            echo "deb paketi bulunamadi"
+            exit 1
+          fi
+          dpkg-deb -x "$DEB_PATH" AppDir
+          test -x AppDir/usr/bin/belgeselsemoflix
+          test -f AppDir/usr/share/applications/belgeselsemoflix.desktop
+          curl -fsSL -o /tmp/appimage-builder.AppImage \
+            https://github.com/AppImageCrafters/appimage-builder/releases/download/v1.1.0/appimage-builder-1.1.0-x86_64.AppImage
+          chmod +x /tmp/appimage-builder.AppImage
+          ARCH=x86_64 /tmp/appimage-builder.AppImage --appimage-extract-and-run \
+            --recipe .github/appimage-builder.yml \
+            --skip-test
+          find . -maxdepth 1 -type f -name '*.AppImage' ! -name 'appimage-builder*.AppImage' -exec mv {} dist/appimage/ \;
 
       - name: Convert deb to zst with debtap
         if: steps.build_linux.conclusion == 'success'
@@ -87,6 +110,7 @@ jobs:
                 "pkgdesc=\"BELGESELSEMOFLIX 1.0\"" \
                 "arch=(\"x86_64\")" \
                 "license=()" \
+                "options=(!debug)" \
                 "depends=(\"cairo\" \"gdk-pixbuf2\" \"glibc\" \"libsoup3\" \"gtk3\" \"webkit2gtk-4.1\" \"glib2\" \"libgcc\")" \
                 "package() {" \
                 "  cp -a /tmp/archpkg/pkgroot/. \"\$pkgdir\"/" \
@@ -95,8 +119,15 @@ jobs:
               chown -R builder:builder /tmp/archpkg/src /tmp/archpkg/pkgroot /work/dist/zst
               cd /tmp/archpkg/src
               runuser -u builder -- makepkg -f --nodeps --noconfirm
-              cp ./*.pkg.tar.zst /work/dist/zst/
+              cp ./belgeselsemoflix-*.pkg.tar.zst /work/dist/zst/
             '
+
+      - uses: actions/upload-artifact@v4
+        if: always() && steps.build_linux.conclusion == 'success'
+        with:
+          name: belgeselsemoflix-1.0-linux-appimage
+          path: |
+            dist/appimage/*.AppImage
 
       - uses: actions/upload-artifact@v4
         if: always() && steps.build_linux.conclusion == 'success'
@@ -135,10 +166,8 @@ jobs:
           Copy-Item "$env:SystemRoot\\System32\\vcruntime140.dll" $phpDir -Force -ErrorAction SilentlyContinue
           Copy-Item "$env:SystemRoot\\System32\\vcruntime140_1.dll" $phpDir -Force -ErrorAction SilentlyContinue
           Copy-Item "$env:SystemRoot\\System32\\msvcp140.dll" $phpDir -Force -ErrorAction SilentlyContinue
-          if (Test-Path "$phpDir\\php.ini-production") {
-            Copy-Item "$phpDir\\php.ini-production" "$phpDir\\php.ini" -Force
-          }
-          & $phpExe.FullName -v
+          Remove-Item "$phpDir\\php.ini" -Force -ErrorAction SilentlyContinue
+          & $phpExe.FullName -n -v
 
       - name: Build Windows installer
         run: npm run tauri build -- --bundles nsis

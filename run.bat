@@ -19,7 +19,7 @@ if "%WEBAPP_DIR%"=="" set "WEBAPP_DIR=%CD%\webapp"
 set "BUNDLED_PHP_ROOT=%CD%\runtime\windows"
 set "PHP_CMD="
 set "PHP_DIR="
-set "PHP_ARGS=-d cli_server.color=0"
+set "PHP_ARGS=-n -d cli_server.color=0"
 
 if not exist "%WEBAPP_DIR%" (
   echo Web uygulama klasoru bulunamadi: %WEBAPP_DIR%
@@ -51,10 +51,6 @@ if not "!PHP_CMD!"=="" (
 )
 
 if not "!PHP_DIR!"=="" set "PATH=!PHP_DIR!;%PATH%"
-if exist "!PHP_DIR!php.ini" (
-  set "PHPRC=!PHP_DIR!"
-  set "PHP_ARGS=!PHP_ARGS! -c ""!PHP_DIR!php.ini"""
-)
 
 echo PHP komutu: !PHP_CMD!
 echo PHP klasoru: !PHP_DIR!

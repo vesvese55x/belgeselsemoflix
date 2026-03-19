@@ -230,22 +230,17 @@ fn startup_command(
             .parent()
             .ok_or("php klasoru bulunamadi")?
             .to_path_buf();
-        let php_ini = php_dir.join("php.ini");
 
         writeln!(log_file, "php_exe={}", php_exe.display())?;
         writeln!(log_file, "php_dir={}", php_dir.display())?;
 
         let mut command = Command::new(&php_exe);
         command
-            .current_dir(&php_dir)
+            .current_dir(resource_dir)
             .env("PATH", windows_path_with_php(&php_dir)?)
-            .env("PHPRC", &php_dir)
+            .arg("-n")
             .arg("-d")
             .arg("cli_server.color=0");
-
-        if php_ini.is_file() {
-            command.arg("-c").arg(&php_ini);
-        }
 
         command
             .arg("-S")
