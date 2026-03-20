@@ -220,7 +220,7 @@
         <div class="drag-region" data-tauri-drag-region>
           <div class="brand">
             <img src="app-icon.svg" alt="BELGESELSEMOFLIX" />
-            <small>Masaustu Surumu</small>
+            <small id="headerClock">--.--.-- --:--</small>
           </div>
         </div>
         <div class="window-title drag-region" id="windowTitle" data-tauri-drag-region">BELGESELSEMOFLIX 1.0</div>
@@ -233,7 +233,13 @@
 
       <main class="content">
         <section class="pane" id="homePane">
-          <iframe id="homeFrame" title="Ana Uygulama" referrerpolicy="no-referrer"></iframe>
+          <iframe
+            id="homeFrame"
+            title="Ana Uygulama"
+            referrerpolicy="no-referrer"
+            allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
+            allowfullscreen
+          ></iframe>
         </section>
 
         <section class="status-overlay visible" id="statusOverlay">
@@ -264,10 +270,17 @@
         };
 
         const homeFrame = document.getElementById("homeFrame");
+        const headerClock = document.getElementById("headerClock");
         const statusOverlay = document.getElementById("statusOverlay");
         const statusTitle = document.getElementById("statusTitle");
         const statusText = document.getElementById("statusText");
         const maximizeBtn = document.getElementById("maximizeBtn");
+
+        function updateClock() {
+          const now = new Date();
+          const pad = (value) => String(value).padStart(2, "0");
+          headerClock.textContent = `${pad(now.getDate())}.${pad(now.getMonth() + 1)}.${String(now.getFullYear()).slice(-2)} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+        }
 
         function setMaximizeLabel(isMaximized) {
           maximizeBtn.textContent = isMaximized ? "[]" : "+";
@@ -297,20 +310,6 @@
               state.lastHomeUrl = snapshot.home_url;
               state.homeLoaded = false;
               homeFrame.src = snapshot.home_url;
-            }
-
-            if (snapshot.downloads_url && snapshot.downloads_url !== state.lastDownloadsUrl) {
-              state.lastDownloadsUrl = snapshot.downloads_url;
-              downloadsFrame.src = snapshot.downloads_url;
-              downloadsFrame.style.display = "block";
-              downloadsEmpty.style.display = "none";
-            }
-
-            if (snapshot.managed_url && snapshot.managed_url !== state.lastManagedUrl) {
-              state.lastManagedUrl = snapshot.managed_url;
-              managedFrame.src = snapshot.managed_url;
-              managedFrame.style.display = "block";
-              managedEmpty.style.display = "none";
             }
 
             refreshOverlay(snapshot);
@@ -354,6 +353,8 @@
         });
 
         invoke("shell_ready").catch(console.error);
+        updateClock();
+        setInterval(updateClock, 1000);
       })();
     </script>
   </body>

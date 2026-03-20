@@ -135,7 +135,7 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path "runtime/windows" | Out-Null
-          Invoke-WebRequest "https://windows.php.net/downloads/releases/php-8.5.1-nts-Win32-vs17-x64.zip" -OutFile "runtime/windows/php.zip"
+          Invoke-WebRequest "https://downloads.php.net/~windows/releases/php-8.5.4-nts-Win32-vs17-x64.zip" -OutFile "runtime/windows/php.zip"
           Expand-Archive -Path "runtime/windows/php.zip" -DestinationPath "runtime/windows/php" -Force
           $phpExe = Get-ChildItem "runtime/windows/php" -Filter php.exe -Recurse | Select-Object -First 1
           if (-not $phpExe) { throw "Bundled php.exe bulunamadi" }
