@@ -26,11 +26,36 @@ install_php_arch() {
     sudo pacman -Sy --noconfirm php
 }
 
+install_php_fedora() {
+    echo "PHP yukleniyor (Fedora/RHEL tabanli)..."
+
+    local pkg_tool=""
+    if command -v dnf >/dev/null 2>&1; then
+        pkg_tool="dnf"
+    elif command -v yum >/dev/null 2>&1; then
+        pkg_tool="yum"
+    else
+        echo "dnf/yum bulunamadi. PHP otomatik yuklenemedi."
+        exit 1
+    fi
+
+    sudo "$pkg_tool" install -y \
+        php \
+        php-cli \
+        php-common \
+        php-curl \
+        php-mbstring \
+        php-xml \
+        php-zip
+}
+
 detect_distro() {
     if [[ "${ID:-}" =~ (ubuntu|debian) ]] || [[ "${ID_LIKE:-}" =~ (ubuntu|debian) ]]; then
         DISTRO="debian"
     elif [[ "${ID:-}" =~ (arch) ]] || [[ "${ID_LIKE:-}" =~ (arch) ]]; then
         DISTRO="arch"
+    elif [[ "${ID:-}" =~ (fedora|rhel|centos|rocky|almalinux) ]] || [[ "${ID_LIKE:-}" =~ (fedora|rhel|centos) ]]; then
+        DISTRO="fedora"
     else
         DISTRO="unknown"
     fi
@@ -65,6 +90,9 @@ ensure_php() {
                     ;;
                 arch)
                     install_php_arch
+                    ;;
+                fedora)
+                    install_php_fedora
                     ;;
                 *)
                     echo "Desteklenmeyen Linux dagitimi: ${ID:-bilinmiyor}"

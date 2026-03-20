@@ -407,13 +407,38 @@ fn home_initialization_script() -> &'static str {
     return internal.invoke(cmd, args);
   };
 
+  const relayToShell = (payload) => {
+    try {
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage({ type: 'belgeselsemoflix-shell-command', payload }, '*');
+        return Promise.resolve();
+      }
+    } catch (_) {}
+
+    if (payload.command === 'desktop_open_managed_url') {
+      return invoke('desktop_open_managed_url', payload.args || {});
+    }
+
+    if (payload.command === 'shell_select_tab') {
+      return invoke('shell_select_tab', payload.args || {});
+    }
+
+    return Promise.reject(new Error('Gecersiz shell komutu'));
+  };
+
   window.__BELGESELSEMOFLIX_DESKTOP = {
     isDesktop: true,
     openManagedUrl(url, titleHint) {
-      return invoke('desktop_open_managed_url', { url, titleHint });
+      return relayToShell({
+        command: 'desktop_open_managed_url',
+        args: { url, titleHint }
+      });
     },
     openDownloads() {
-      return invoke('shell_select_tab', { tab: 'downloads' });
+      return relayToShell({
+        command: 'shell_select_tab',
+        args: { tab: 'downloads' }
+      });
     }
   };
 })();

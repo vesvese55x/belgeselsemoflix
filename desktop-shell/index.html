@@ -443,6 +443,23 @@
           event.stopPropagation();
         });
 
+        window.addEventListener("message", (event) => {
+          const data = event.data;
+          if (!data || data.type !== "belgeselsemoflix-shell-command" || !data.payload) {
+            return;
+          }
+
+          const { command, args } = data.payload;
+          if (command === "desktop_open_managed_url") {
+            invoke("desktop_open_managed_url", args || {}).catch(console.error);
+            return;
+          }
+
+          if (command === "shell_select_tab") {
+            invoke("shell_select_tab", args || {}).catch(console.error);
+          }
+        });
+
         invoke("shell_ready").catch(console.error);
       })();
     </script>

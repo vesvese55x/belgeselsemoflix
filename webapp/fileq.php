@@ -17,6 +17,96 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 // FileQ.net API Ayarları
 define('FILEQ_API_KEY', '318co5vm9gtiulsx1jd');
 define('FILEQ_API_URL', 'https://fileq.net/api/file/list');
+define('FILEQ_CACHE_TTL', 900);
+
+function fileqCacheDir() {
+    $desktopDir = getenv('BELGESELSEMOFLIX_DESKTOP_DATA_DIR');
+    if ($desktopDir && is_dir($desktopDir)) {
+        $dir = rtrim($desktopDir, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'fileq-cache';
+    } else {
+        $dir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'belgeselsemoflix-fileq-cache';
+    }
+
+    if (!is_dir($dir)) {
+        @mkdir($dir, 0777, true);
+    }
+
+    return $dir;
+}
+
+function fileqCachePath($cacheKey) {
+    return fileqCacheDir() . DIRECTORY_SEPARATOR . md5($cacheKey) . '.json';
+}
+
+function readFileQCache($cacheKey) {
+    $path = fileqCachePath($cacheKey);
+    if (!is_file($path)) {
+        return false;
+    }
+
+    if ((time() - @filemtime($path)) > FILEQ_CACHE_TTL) {
+        return false;
+    }
+
+    $raw = @file_get_contents($path);
+    if ($raw === false || $raw === '') {
+        return false;
+    }
+
+    $data = json_decode($raw, true);
+    return is_array($data) ? $data : false;
+}
+
+function writeFileQCache($cacheKey, $body) {
+    if (!is_string($body) || trim($body) === '') {
+        return;
+    }
+
+    @file_put_contents(fileqCachePath($cacheKey), $body, LOCK_EX);
+}
+
+function requestFileQJson($url, $cacheKey, $timeout = 30) {
+    $attempts = [
+        ['verify' => true, 'ip_resolve' => CURL_IPRESOLVE_WHATEVER],
+        ['verify' => false, 'ip_resolve' => CURL_IPRESOLVE_V4],
+    ];
+
+    foreach ($attempts as $attempt) {
+        $ch = curl_init();
+        curl_setopt_array($ch, [
+            CURLOPT_URL => $url,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => $timeout,
+            CURLOPT_CONNECTTIMEOUT => 12,
+            CURLOPT_SSL_VERIFYPEER => $attempt['verify'],
+            CURLOPT_SSL_VERIFYHOST => $attempt['verify'] ? 2 : 0,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_USERAGENT => 'BELGESELSEMOFLIX/1.0 (+https://belgeselsemo.com.tr)',
+            CURLOPT_HTTPHEADER => [
+                'Accept: application/json',
+                'Cache-Control: no-cache'
+            ],
+            CURLOPT_IPRESOLVE => $attempt['ip_resolve'],
+        ]);
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $error = curl_error($ch);
+        curl_close($ch);
+
+        if ($response !== false && $httpCode === 200) {
+            $decoded = json_decode($response, true);
+            if (is_array($decoded)) {
+                writeFileQCache($cacheKey, $response);
+                return $decoded;
+            }
+        }
+
+        error_log("FileQ request failed: HTTP {$httpCode} - {$error} - {$url}");
+    }
+
+    return readFileQCache($cacheKey);
+}
 
 /**
  * FileQ.net API'den dosya listesini çeker
@@ -42,24 +132,8 @@ function getFileQFiles($page = 1, $perPage = 100, $fldId = 0, $public = 1) {
     
     $url = FILEQ_API_URL . '?' . http_build_query($params);
     
-    $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, $url);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 30);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
-    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-    
-    $response = curl_exec($ch);
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    $error = curl_error($ch);
-    curl_close($ch);
-    
-    if ($httpCode !== 200) {
-        error_log("FileQ API Error: HTTP $httpCode - $error");
-        return false;
-    }
-    
-    $data = json_decode($response, true);
+    $cacheKey = "files:{$page}:{$perPage}:{$fldId}:{$public}";
+    $data = requestFileQJson($url, $cacheKey, 30);
     
     if (!$data || !isset($data['result'])) {
         error_log("FileQ API Error: Invalid response format");
@@ -135,16 +209,7 @@ function formatFileSize($bytes) {
 // ============================================
 function getFileQStats() {
     $url = 'https://fileq.net/api/account/stats?key=' . FILEQ_API_KEY;
-    $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, $url);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 15);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
-    $response = curl_exec($ch);
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
-    if ($httpCode !== 200) return false;
-    return json_decode($response, true);
+    return requestFileQJson($url, 'stats', 15);
 }
 
 // ============================================
