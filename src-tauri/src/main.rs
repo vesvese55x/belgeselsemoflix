@@ -292,32 +292,15 @@ fn stop_php_server(app: &tauri::AppHandle) {
 }
 
 fn open_managed_url(
-    app: &tauri::AppHandle,
+    _app: &tauri::AppHandle,
     url: Url,
-    title_hint: Option<String>,
+    _title_hint: Option<String>,
 ) -> Result<(), DynError> {
     if !is_allowed_managed_url(&url) {
         return Err("yalnizca fileq.net ve play.google.com izinli".into());
     }
 
-    let title = title_hint.unwrap_or_else(|| managed_label_for_url(&url));
-    let host = url.host_str().unwrap_or_default().to_string();
-
-    {
-        let state = app.state::<AppState>();
-        let mut shell = state.shell.lock().expect("state lock bozuldu");
-
-        if host == "fileq.net" || host.ends_with(".fileq.net") {
-            shell.downloads_url = Some(url.to_string());
-            shell.active_tab = ActiveTab::Downloads;
-        } else {
-            shell.managed_url = Some(url.to_string());
-            shell.managed_title = Some(title);
-            shell.active_tab = ActiveTab::Managed;
-        }
-    }
-
-    sync_main_shell(app)
+    open_in_system_browser(url.as_str())
 }
 
 fn sync_main_shell(app: &tauri::AppHandle) -> Result<(), DynError> {
@@ -371,14 +354,6 @@ fn set_status(app: &tauri::AppHandle, title: &str, detail: &str) {
     let _ = sync_main_shell(app);
 }
 
-fn managed_label_for_url(url: &Url) -> String {
-    match url.host_str().unwrap_or_default() {
-        "play.google.com" => "Play Store".into(),
-        host if host == "fileq.net" || host.ends_with(".fileq.net") => "Indirme".into(),
-        _ => "Ozel Sekme".into(),
-    }
-}
-
 fn is_allowed_managed_url(url: &Url) -> bool {
     if !matches!(url.scheme(), "http" | "https") {
         return false;
@@ -419,10 +394,6 @@ fn home_initialization_script() -> &'static str {
       return invoke('desktop_open_managed_url', payload.args || {});
     }
 
-    if (payload.command === 'shell_select_tab') {
-      return invoke('shell_select_tab', payload.args || {});
-    }
-
     return Promise.reject(new Error('Gecersiz shell komutu'));
   };
 
@@ -435,14 +406,51 @@ fn home_initialization_script() -> &'static str {
       });
     },
     openDownloads() {
-      return relayToShell({
-        command: 'shell_select_tab',
-        args: { tab: 'downloads' }
-      });
+      return Promise.resolve();
     }
   };
 })();
 "#
+}
+
+fn open_in_system_browser(url: &str) -> Result<(), DynError> {
+    #[cfg(target_os = "windows")]
+    {
+        let mut command = Command::new("cmd");
+        command
+            .args(["/C", "start", "", url])
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .creation_flags(CREATE_NO_WINDOW);
+        command.spawn()?;
+        return Ok(());
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        Command::new("open")
+            .arg(url)
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .spawn()?;
+        return Ok(());
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        Command::new("xdg-open")
+            .arg(url)
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .spawn()?;
+        return Ok(());
+    }
+
+    #[allow(unreachable_code)]
+    Err("bu platformda varsayilan tarayici acilamadi".into())
 }
 
 fn wait_for_server(app: &tauri::AppHandle, port: u16) -> Result<(), DynError> {

@@ -10,8 +10,6 @@
         --bg-root: #070809;
         --bg-panel: #0d1013;
         --bg-bar: rgba(20, 17, 18, 0.96);
-        --bg-tab: rgba(255, 255, 255, 0.05);
-        --bg-tab-active: linear-gradient(135deg, #d11e30, #7f1520);
         --text-primary: #f5f0e8;
         --text-muted: rgba(245, 240, 232, 0.65);
         --border-soft: rgba(255, 255, 255, 0.08);
@@ -40,12 +38,11 @@
         height: 100vh;
         max-height: 100vh;
         display: grid;
-        grid-template-rows: 58px 48px 1fr 34px;
+        grid-template-rows: 58px 1fr 34px;
         overflow: hidden;
       }
 
       .titlebar,
-      .tabs,
       .footer {
         position: relative;
         z-index: 10;
@@ -119,36 +116,6 @@
         background: rgba(255, 58, 81, 0.18);
       }
 
-      .tabs {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 0 14px;
-        background: rgba(9, 11, 13, 0.9);
-        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-      }
-
-      .tab {
-        height: 36px;
-        padding: 0 16px;
-        border-radius: 999px;
-        border: 1px solid rgba(255, 255, 255, 0.06);
-        background: var(--bg-tab);
-        color: var(--text-muted);
-        cursor: pointer;
-        font-size: 0.92rem;
-      }
-
-      .tab.active {
-        color: #fff;
-        background: var(--bg-tab-active);
-        border-color: rgba(255, 119, 133, 0.28);
-      }
-
-      .tab.hidden {
-        display: none;
-      }
-
       .content {
         position: relative;
         min-height: 0;
@@ -160,14 +127,10 @@
       .pane {
         position: absolute;
         inset: 0;
-        display: none;
+        display: block;
         background:
           radial-gradient(circle at top right, rgba(122, 19, 34, 0.18), transparent 26%),
           #0c1013;
-      }
-
-      .pane.active {
-        display: block;
       }
 
       .pane iframe {
@@ -268,35 +231,9 @@
         </div>
       </header>
 
-      <nav class="tabs">
-        <button class="tab active" id="homeTab" type="button" data-tab="home">Ana Uygulama</button>
-        <button class="tab" id="downloadsTab" type="button" data-tab="downloads">Indirmeler</button>
-        <button class="tab hidden" id="managedTab" type="button" data-tab="managed">Play Store</button>
-      </nav>
-
       <main class="content">
-        <section class="pane active" id="homePane">
+        <section class="pane" id="homePane">
           <iframe id="homeFrame" title="Ana Uygulama" referrerpolicy="no-referrer"></iframe>
-        </section>
-
-        <section class="pane" id="downloadsPane">
-          <div class="empty-pane" id="downloadsEmpty">
-            <div>
-              <strong>Henüz açık bir indirme sayfası yok.</strong>
-              <div style="margin-top:10px;">fileq.net bağlantısı açıldığında burada görünecek.</div>
-            </div>
-          </div>
-          <iframe id="downloadsFrame" title="Indirmeler" referrerpolicy="no-referrer" style="display:none;"></iframe>
-        </section>
-
-        <section class="pane" id="managedPane">
-          <div class="empty-pane" id="managedEmpty">
-            <div>
-              <strong>Henüz açık bir dış sayfa yok.</strong>
-              <div style="margin-top:10px;">Play Store bağlantısı açıldığında burada görünecek.</div>
-            </div>
-          </div>
-          <iframe id="managedFrame" title="Play Store" referrerpolicy="no-referrer" style="display:none;"></iframe>
         </section>
 
         <section class="status-overlay visible" id="statusOverlay">
@@ -324,40 +261,13 @@
         const state = {
           homeLoaded: false,
           lastHomeUrl: null,
-          lastDownloadsUrl: null,
-          lastManagedUrl: null,
-        };
-
-        const tabs = {
-          home: document.getElementById("homeTab"),
-          downloads: document.getElementById("downloadsTab"),
-          managed: document.getElementById("managedTab"),
-        };
-
-        const panes = {
-          home: document.getElementById("homePane"),
-          downloads: document.getElementById("downloadsPane"),
-          managed: document.getElementById("managedPane"),
         };
 
         const homeFrame = document.getElementById("homeFrame");
-        const downloadsFrame = document.getElementById("downloadsFrame");
-        const downloadsEmpty = document.getElementById("downloadsEmpty");
-        const managedFrame = document.getElementById("managedFrame");
-        const managedEmpty = document.getElementById("managedEmpty");
         const statusOverlay = document.getElementById("statusOverlay");
         const statusTitle = document.getElementById("statusTitle");
         const statusText = document.getElementById("statusText");
         const maximizeBtn = document.getElementById("maximizeBtn");
-
-        function setActiveTab(tab) {
-          Object.entries(tabs).forEach(([key, button]) => {
-            button.classList.toggle("active", key === tab);
-          });
-          Object.entries(panes).forEach(([key, pane]) => {
-            pane.classList.toggle("active", key === tab);
-          });
-        }
 
         function setMaximizeLabel(isMaximized) {
           maximizeBtn.textContent = isMaximized ? "[]" : "+";
@@ -381,9 +291,6 @@
             document.getElementById("footerText").textContent = snapshot.footer_text;
             statusTitle.textContent = snapshot.status_title;
             statusText.textContent = snapshot.status_detail;
-            tabs.managed.textContent = snapshot.managed_tab_label;
-            tabs.managed.classList.toggle("hidden", !snapshot.managed_open);
-            setActiveTab(snapshot.active_tab);
             setMaximizeLabel(snapshot.is_maximized);
 
             if (snapshot.home_url && snapshot.home_url !== state.lastHomeUrl) {
@@ -409,15 +316,6 @@
             refreshOverlay(snapshot);
           },
         };
-
-        document.querySelectorAll(".tab").forEach((button) => {
-          button.addEventListener("mousedown", (event) => {
-            event.stopPropagation();
-          });
-          button.addEventListener("click", () => {
-            invoke("shell_select_tab", { tab: button.dataset.tab }).catch(console.error);
-          });
-        });
 
         document.getElementById("minimizeBtn").addEventListener("click", () => {
           invoke("shell_minimize").catch(console.error);
@@ -452,11 +350,6 @@
           const { command, args } = data.payload;
           if (command === "desktop_open_managed_url") {
             invoke("desktop_open_managed_url", args || {}).catch(console.error);
-            return;
-          }
-
-          if (command === "shell_select_tab") {
-            invoke("shell_select_tab", args || {}).catch(console.error);
           }
         });
 
