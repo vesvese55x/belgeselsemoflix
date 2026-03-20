@@ -19,6 +19,19 @@ define('FILEQ_API_KEY', '318co5vm9gtiulsx1jd');
 define('FILEQ_API_URL', 'https://fileq.net/api/file/list');
 define('FILEQ_CACHE_TTL', 900);
 
+$GLOBALS['FILEQ_LAST_ERROR'] = null;
+
+function setFileQError($message, $context = []) {
+    $GLOBALS['FILEQ_LAST_ERROR'] = [
+        'message' => $message,
+        'context' => $context,
+    ];
+}
+
+function getFileQError() {
+    return $GLOBALS['FILEQ_LAST_ERROR'];
+}
+
 function fileqCacheDir() {
     $desktopDir = getenv('BELGESELSEMOFLIX_DESKTOP_DATA_DIR');
     if ($desktopDir && is_dir($desktopDir)) {
@@ -38,13 +51,13 @@ function fileqCachePath($cacheKey) {
     return fileqCacheDir() . DIRECTORY_SEPARATOR . md5($cacheKey) . '.json';
 }
 
-function readFileQCache($cacheKey) {
+function readFileQCache($cacheKey, $allowStale = false) {
     $path = fileqCachePath($cacheKey);
     if (!is_file($path)) {
         return false;
     }
 
-    if ((time() - @filemtime($path)) > FILEQ_CACHE_TTL) {
+    if (!$allowStale && (time() - @filemtime($path)) > FILEQ_CACHE_TTL) {
         return false;
     }
 
@@ -65,34 +78,149 @@ function writeFileQCache($cacheKey, $body) {
     @file_put_contents(fileqCachePath($cacheKey), $body, LOCK_EX);
 }
 
+function extractDohAddresses($decoded) {
+    if (!is_array($decoded) || empty($decoded['Answer']) || !is_array($decoded['Answer'])) {
+        return [];
+    }
+
+    $ips = [];
+    foreach ($decoded['Answer'] as $answer) {
+        if (!is_array($answer)) {
+            continue;
+        }
+
+        $type = $answer['type'] ?? null;
+        $data = trim((string)($answer['data'] ?? ''));
+        if (($type === 1 || $type === 28) && $data !== '') {
+            $ips[] = $data;
+        }
+    }
+
+    return array_values(array_unique($ips));
+}
+
+function resolveHostViaDoh($host) {
+    $endpoints = [
+        [
+            'url' => "https://cloudflare-dns.com/dns-query?name={$host}&type=A",
+            'resolve' => ['cloudflare-dns.com:443:1.1.1.1', 'cloudflare-dns.com:443:1.0.0.1'],
+            'headers' => ['Accept: application/dns-json'],
+        ],
+        [
+            'url' => "https://dns.google/resolve?name={$host}&type=A",
+            'resolve' => ['dns.google:443:8.8.8.8', 'dns.google:443:8.8.4.4'],
+            'headers' => ['Accept: application/dns-json'],
+        ],
+    ];
+
+    foreach ($endpoints as $endpoint) {
+        $ch = curl_init();
+        curl_setopt_array($ch, [
+            CURLOPT_URL => $endpoint['url'],
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 10,
+            CURLOPT_CONNECTTIMEOUT => 5,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_SSL_VERIFYHOST => 2,
+            CURLOPT_HTTPHEADER => $endpoint['headers'],
+            CURLOPT_RESOLVE => $endpoint['resolve'],
+            CURLOPT_USERAGENT => 'BELGESELSEMOFLIX/1.0 (+https://belgeselsemo.com.tr)',
+        ]);
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($response === false || $httpCode !== 200) {
+            continue;
+        }
+
+        $decoded = json_decode($response, true);
+        $ips = extractDohAddresses($decoded);
+        if (!empty($ips)) {
+            return $ips;
+        }
+    }
+
+    return [];
+}
+
+function resolveHostCandidates($host) {
+    $ips = [];
+
+    if (function_exists('gethostbynamel')) {
+        $ipv4 = @gethostbynamel($host);
+        if (is_array($ipv4)) {
+            $ips = array_merge($ips, $ipv4);
+        }
+    }
+
+    if (function_exists('dns_get_record')) {
+        $records = @dns_get_record($host, DNS_A + DNS_AAAA);
+        if (is_array($records)) {
+            foreach ($records as $record) {
+                if (!empty($record['ip'])) {
+                    $ips[] = $record['ip'];
+                }
+                if (!empty($record['ipv6'])) {
+                    $ips[] = $record['ipv6'];
+                }
+            }
+        }
+    }
+
+    if (empty($ips)) {
+        $ips = array_merge($ips, resolveHostViaDoh($host));
+    }
+
+    return array_values(array_unique(array_filter($ips)));
+}
+
+function curlJsonRequest($url, $timeout, $options = []) {
+    $headers = $options['headers'] ?? [];
+    $resolve = $options['resolve'] ?? null;
+    $verify = $options['verify'] ?? true;
+    $ipResolve = $options['ip_resolve'] ?? CURL_IPRESOLVE_WHATEVER;
+
+    $ch = curl_init();
+    curl_setopt_array($ch, [
+        CURLOPT_URL => $url,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT => $timeout,
+        CURLOPT_CONNECTTIMEOUT => 12,
+        CURLOPT_SSL_VERIFYPEER => $verify,
+        CURLOPT_SSL_VERIFYHOST => $verify ? 2 : 0,
+        CURLOPT_FOLLOWLOCATION => true,
+        CURLOPT_USERAGENT => 'BELGESELSEMOFLIX/1.0 (+https://belgeselsemo.com.tr)',
+        CURLOPT_HTTPHEADER => array_merge([
+            'Accept: application/json',
+            'Cache-Control: no-cache'
+        ], $headers),
+        CURLOPT_IPRESOLVE => $ipResolve,
+    ]);
+
+    if (is_array($resolve) && !empty($resolve)) {
+        curl_setopt($ch, CURLOPT_RESOLVE, $resolve);
+    }
+
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $error = curl_error($ch);
+    curl_close($ch);
+
+    return [$response, $httpCode, $error];
+}
+
 function requestFileQJson($url, $cacheKey, $timeout = 30) {
+    $host = parse_url($url, PHP_URL_HOST) ?: 'fileq.net';
     $attempts = [
         ['verify' => true, 'ip_resolve' => CURL_IPRESOLVE_WHATEVER],
         ['verify' => false, 'ip_resolve' => CURL_IPRESOLVE_V4],
     ];
 
     foreach ($attempts as $attempt) {
-        $ch = curl_init();
-        curl_setopt_array($ch, [
-            CURLOPT_URL => $url,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT => $timeout,
-            CURLOPT_CONNECTTIMEOUT => 12,
-            CURLOPT_SSL_VERIFYPEER => $attempt['verify'],
-            CURLOPT_SSL_VERIFYHOST => $attempt['verify'] ? 2 : 0,
-            CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_USERAGENT => 'BELGESELSEMOFLIX/1.0 (+https://belgeselsemo.com.tr)',
-            CURLOPT_HTTPHEADER => [
-                'Accept: application/json',
-                'Cache-Control: no-cache'
-            ],
-            CURLOPT_IPRESOLVE => $attempt['ip_resolve'],
-        ]);
-
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $error = curl_error($ch);
-        curl_close($ch);
+        [$response, $httpCode, $error] = curlJsonRequest($url, $timeout, $attempt);
 
         if ($response !== false && $httpCode === 200) {
             $decoded = json_decode($response, true);
@@ -105,7 +233,38 @@ function requestFileQJson($url, $cacheKey, $timeout = 30) {
         error_log("FileQ request failed: HTTP {$httpCode} - {$error} - {$url}");
     }
 
-    return readFileQCache($cacheKey);
+    $resolvedIps = resolveHostCandidates($host);
+    foreach ($resolvedIps as $ip) {
+        [$response, $httpCode, $error] = curlJsonRequest($url, $timeout, [
+            'verify' => true,
+            'resolve' => ["{$host}:443:{$ip}"],
+        ]);
+
+        if ($response !== false && $httpCode === 200) {
+            $decoded = json_decode($response, true);
+            if (is_array($decoded)) {
+                writeFileQCache($cacheKey, $response);
+                return $decoded;
+            }
+        }
+
+        error_log("FileQ resolved request failed: HTTP {$httpCode} - {$error} - {$url} - {$ip}");
+    }
+
+    $staleCache = readFileQCache($cacheKey, true);
+    if ($staleCache !== false) {
+        setFileQError('FileQ servisine canlı erişim kurulamadı, önbellek kullanıldı.', [
+            'host' => $host,
+            'fallback' => 'stale-cache',
+        ]);
+        return $staleCache;
+    }
+
+    setFileQError('FileQ servisine erişilemedi.', [
+        'host' => $host,
+        'resolved_ips' => $resolvedIps,
+    ]);
+    return false;
 }
 
 /**
@@ -136,6 +295,11 @@ function getFileQFiles($page = 1, $perPage = 100, $fldId = 0, $public = 1) {
     $data = requestFileQJson($url, $cacheKey, 30);
     
     if (!$data || !isset($data['result'])) {
+        if (!getFileQError()) {
+            setFileQError('FileQ API beklenen formatta yanıt vermedi.', [
+                'url' => $url
+            ]);
+        }
         error_log("FileQ API Error: Invalid response format");
         return false;
     }
@@ -212,6 +376,30 @@ function getFileQStats() {
     return requestFileQJson($url, 'stats', 15);
 }
 
+function emitFileQFailure($format, $message, $errorData = null) {
+    http_response_code(503);
+
+    $payload = [
+        'success' => false,
+        'error' => $message,
+        'error_code' => 'fileq_unreachable',
+        'diagnostic' => $errorData['message'] ?? null,
+        'context' => $errorData['context'] ?? null,
+        'total' => 0,
+        'files' => []
+    ];
+
+    if ($format === 'html') {
+        header('Content-Type: text/html; charset=utf-8');
+        $safeMessage = htmlspecialchars($message, ENT_QUOTES, 'UTF-8');
+        $safeDiagnostic = htmlspecialchars($payload['diagnostic'] ?? 'Bilinmeyen hata', ENT_QUOTES, 'UTF-8');
+        echo "<!doctype html><html lang=\"tr\"><head><meta charset=\"utf-8\"><title>FileQ Hatası</title><style>body{font-family:Segoe UI,Arial,sans-serif;background:#111;color:#eee;padding:32px} .card{max-width:900px;margin:0 auto;background:#1d1d1d;border:1px solid #333;border-radius:16px;padding:24px} h1{color:#ff4d5f} code{display:block;margin-top:16px;padding:12px;background:#0f0f0f;border-radius:10px;color:#ffd0d5;white-space:pre-wrap;word-break:break-word}</style></head><body><div class=\"card\"><h1>FileQ verisine erişilemedi</h1><p>{$safeMessage}</p><code>{$safeDiagnostic}</code></div></body></html>";
+        return;
+    }
+
+    echo json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+}
+
 // ============================================
 // ANA İŞLEM
 // ============================================
@@ -227,8 +415,7 @@ try {
         header('Content-Type: application/json; charset=utf-8');
         $stats = getFileQStats();
         if ($stats === false) {
-            http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Stats alınamadı']);
+            emitFileQFailure('json', 'FileQ istatistikleri alınamadı.', getFileQError());
         } else {
             echo json_encode(['success' => true, 'result' => $stats['result'] ?? $stats]);
         }
@@ -239,13 +426,7 @@ try {
     $files = getAllFileQFiles($fldId, $public);
     
     if ($files === false || empty($files)) {
-        http_response_code(500);
-        echo json_encode([
-            'success' => false,
-            'error' => 'Dosyalar yüklenemedi veya hiç dosya bulunamadı',
-            'total' => 0,
-            'files' => []
-        ]);
+        emitFileQFailure($format, 'FileQ dosyaları yüklenemedi veya hiç dosya bulunamadı.', getFileQError());
         exit;
     }
     

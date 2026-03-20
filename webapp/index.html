@@ -1823,9 +1823,22 @@
             try {
                 const r = await fetch('fileq.php?format=json');
                 const d = await r.json();
-                if (d.success) return d.files || [];
+                if (d.success) {
+                    return { success: true, files: d.files || [] };
+                }
+                return {
+                    success: false,
+                    error: d.error || 'FileQ dosyalari alinamadi',
+                    diagnostic: d.diagnostic || '',
+                    errorCode: d.error_code || ''
+                };
             } catch(e) {}
-            return [];
+            return {
+                success: false,
+                error: 'FileQ servisine ulasilamadi',
+                diagnostic: 'Ag, DNS veya TLS kaynakli bir baglanti sorunu olabilir.',
+                errorCode: 'request_failed'
+            };
         }
 
         async function openModal() {
@@ -1852,9 +1865,23 @@
             const list = document.getElementById('rewardFileList');
             list.innerHTML = '<div style="text-align:center;padding:20px;color:#555;"><i class="fas fa-spinner fa-spin"></i> Yükleniyor...</div>';
 
-            const files = await fetchFiles();
+            const result = await fetchFiles();
+            if (!result.success) {
+                const diagnosticHtml = result.diagnostic
+                    ? `<div style="margin-top:8px;font-size:0.78rem;color:#888;line-height:1.5;">${result.diagnostic}</div>`
+                    : '';
+                list.innerHTML = `
+                    <div style="text-align:center;padding:20px;color:#bbb;">
+                        <div style="font-weight:600;color:#ffb4bc;">FileQ listesine erişilemedi</div>
+                        <div style="margin-top:6px;">${result.error}</div>
+                        ${diagnosticHtml}
+                    </div>`;
+                return;
+            }
+
+            const files = result.files;
             if (!files.length) {
-                list.innerHTML = '<div style="text-align:center;padding:20px;color:#555;">Dosya bulunamadı</div>';
+                list.innerHTML = '<div style="text-align:center;padding:20px;color:#555;">Henüz indirilebilir dosya bulunamadı</div>';
                 return;
             }
 
