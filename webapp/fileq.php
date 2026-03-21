@@ -18,6 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 define('FILEQ_API_KEY', '318co5vm9gtiulsx1jd');
 define('FILEQ_API_URL', 'https://fileq.net/api/file/list');
 define('FILEQ_CACHE_TTL', 900);
+define('DESKTOP_LINUX_CHROME_UA', 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36');
 
 $GLOBALS['FILEQ_LAST_ERROR'] = null;
 
@@ -125,7 +126,7 @@ function resolveHostViaDoh($host) {
             CURLOPT_SSL_VERIFYHOST => 2,
             CURLOPT_HTTPHEADER => $endpoint['headers'],
             CURLOPT_RESOLVE => $endpoint['resolve'],
-            CURLOPT_USERAGENT => 'BELGESELSEMOFLIX/1.0 (+https://belgeselsemo.com.tr)',
+            CURLOPT_USERAGENT => DESKTOP_LINUX_CHROME_UA,
         ]);
 
         $response = curl_exec($ch);
@@ -192,7 +193,7 @@ function curlJsonRequest($url, $timeout, $options = []) {
         CURLOPT_SSL_VERIFYPEER => $verify,
         CURLOPT_SSL_VERIFYHOST => $verify ? 2 : 0,
         CURLOPT_FOLLOWLOCATION => true,
-        CURLOPT_USERAGENT => 'BELGESELSEMOFLIX/1.0 (+https://belgeselsemo.com.tr)',
+        CURLOPT_USERAGENT => DESKTOP_LINUX_CHROME_UA,
         CURLOPT_HTTPHEADER => array_merge([
             'Accept: application/json',
             'Cache-Control: no-cache'

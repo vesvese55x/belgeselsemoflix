@@ -29,6 +29,8 @@ const HOST: &str = "127.0.0.1";
 const DEFAULT_PORT: u16 = 8000;
 const MAX_PORT: u16 = 8100;
 const STARTUP_TIMEOUT: Duration = Duration::from_secs(600);
+const DESKTOP_BROWSER_USER_AGENT: &str =
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36";
 const DOWNLOAD_TAB_LABEL: &str = "Indirmeler";
 const HOME_TAB_LABEL: &str = "Ana Uygulama";
 #[cfg(target_os = "windows")]
@@ -107,6 +109,7 @@ fn main() {
             .min_inner_size(1180.0, 760.0)
             .resizable(true)
             .decorations(false)
+            .user_agent(DESKTOP_BROWSER_USER_AGENT)
             .initialization_script_for_all_frames(home_initialization_script())
             .build()?;
 
@@ -634,7 +637,7 @@ fn prefetch_desktop_data(data_dir: &Path, log_file: &mut std::fs::File) -> Resul
         let response = client
             .get(&url)
             .header(reqwest::header::ACCEPT, "application/json")
-            .header(reqwest::header::USER_AGENT, "BELGESELSEMOFLIX Desktop")
+            .header(reqwest::header::USER_AGENT, DESKTOP_BROWSER_USER_AGENT)
             .send()?;
         if !response.status().is_success() {
             return Err(format!("{file} icin HTTP {}", response.status()).into());
