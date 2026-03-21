@@ -44,7 +44,7 @@ class BelgeselSemoFlix {
         this.navigationHistory = []; // Stack for navigation history
         this.currentPage = 'home';
         
-        // Popup engelleyiciyi aktif et
+        // Tek/seri player akisi icin popup korumasi
         this.setupPopupBlocker();
         
         this.init();
@@ -2323,7 +2323,7 @@ class BelgeselSemoFlix {
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen *; web-share"
                     referrerpolicy="no-referrer-when-downgrade"
                     sandbox="allow-forms allow-scripts allow-same-origin allow-presentation allow-modals"
-                    onload="window.checkIframeLoad(this)"
+                    onload="window.checkIframeLoad(this); window.activatePlayerPopupGuard(this);"
                 ></iframe>
         </div>
 
@@ -2587,6 +2587,7 @@ class BelgeselSemoFlix {
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen *; web-share"
                     referrerpolicy="no-referrer-when-downgrade"
                     sandbox="allow-forms allow-scripts allow-same-origin allow-presentation allow-modals"
+                    onload="window.checkIframeLoad(this); window.activatePlayerPopupGuard(this);"
                 ></iframe>
             `;
         } else if (iframe) {
@@ -2628,12 +2629,14 @@ class BelgeselSemoFlix {
     closePlayer() {
         const playerModal = document.getElementById('playerModal');
         const playerWrapper = document.getElementById('playerWrapper');
+        const iframe = document.getElementById('videoIframe');
 
         // Cleanup PlyrPlayerManager
         if (window.PlyrPlayerManager) {
             window.PlyrPlayerManager.destroy();
         }
 
+        window.deactivatePlayerPopupGuard(iframe);
         playerModal.classList.remove('active');
         playerWrapper.innerHTML = '';
         document.body.style.overflow = '';
@@ -3483,32 +3486,21 @@ class BelgeselSemoFlix {
 
     // Popup engelleyici
     setupPopupBlocker() {
-        console.log('🛡️ Popup engelleyici aktif');
-        
-        // window.open'i engelle
-        const originalOpen = window.open;
-        window.open = function(...args) {
-            console.warn('🚫 Popup engellendi:', args[0]);
-            return null;
-        };
+        if (window.__BELGESELSEMOFLIX_POPUP_GUARD_BOUND) {
+            return;
+        }
+        window.__BELGESELSEMOFLIX_POPUP_GUARD_BOUND = true;
 
-        // Reklam linklerini engelle (SADECE ana sayfada, iframe içinde değil)
-        document.addEventListener('click', (e) => {
-            // iframe içindeki tıklamaları kontrol etme
-            if (e.target.closest('iframe') || e.target.tagName === 'IFRAME') {
-                return; // iframe içindeki tıklamalara izin ver
+        window.addEventListener('message', (event) => {
+            const data = event.data;
+            if (!data || typeof data !== 'object') {
+                return;
             }
-            
-            if (e.target.tagName === 'A' && e.target.target === '_blank') {
-                const href = e.target.href || '';
-                const adDomains = ['short.icu', 'ads.', 'popup.', 'click.', 'adserver'];
-                if (adDomains.some(domain => href.includes(domain))) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    console.warn('🚫 Reklam linki engellendi:', href);
-                }
+
+            if (data.type === 'belgeselsemoflix-popup-blocked') {
+                window.showBlockedPopupToast(data.message || "Harici reklam popup'u engellendi");
             }
-        }, true);
+        });
     }
 
     // ============================================
@@ -3923,198 +3915,48 @@ window.copyAndMaybeOpenManagedLink = async function (url, titleHint, button) {
 // Initialize
 let app;
 
-// Global Popup Blocker (Akıllı Mod - Video kontrollerini bozmadan popup engelleme)
-(function () {
-    console.log('🛡️ Akıllı Popup Engelleyici Başlatılıyor...');
-    
-    // 1. window.open'i akıllıca engelle
-    const originalWindowOpen = window.open;
-    let userInteracted = false;
-    let lastInteractionTime = 0;
-    let clickCount = 0;
-    let lastClickTime = 0;
-    
-    // Kullanıcı etkileşimini izle
-    ['click', 'touchstart', 'keydown'].forEach(event => {
-        document.addEventListener(event, (e) => {
-            userInteracted = true;
-            lastInteractionTime = Date.now();
-            
-            // Click sayacı (hızlı ardışık click'leri tespit et)
-            if (event === 'click') {
-                const now = Date.now();
-                if (now - lastClickTime < 500) {
-                    clickCount++;
-                } else {
-                    clickCount = 1;
-                }
-                lastClickTime = now;
-            }
-            
-            // 1 saniye sonra sıfırla (video kontrolleri için daha kısa süre)
-            setTimeout(() => {
-                if (Date.now() - lastInteractionTime >= 1000) {
-                    userInteracted = false;
-                    clickCount = 0;
-                }
-            }, 1000);
-        }, true);
-    });
-    
-    window.open = function (...args) {
-        const url = args[0];
-        const timeSinceInteraction = Date.now() - lastInteractionTime;
-        
-        // Boş popup'ları engelle
-        if (!url || url === '' || url === 'about:blank') {
-            console.log('🚫 Boş popup engellendi');
-            return null;
-        }
-        
-        // İzin verilen domainler (YouTube ve video player domain'leri)
-        const allowedDomains = [
-            'youtube.com', 
-            'youtu.be',
-            'squaredfive.com',
-            'abysscdn.com',
-            'short.icu'
-        ];
-        const isAllowedDomain = allowedDomains.some(domain => url.includes(domain));
-        
-        // Video player domain'inden gelen popup'ları kontrol et
-        if (isAllowedDomain) {
-            // Eğer kullanıcı etkileşimi çok yakın zamanda olduysa (500ms içinde)
-            // ve birden fazla click yoksa, bu muhtemelen reklam
-            if (timeSinceInteraction < 500 && clickCount === 1) {
-                console.log('🚫 Video player reklamı engellendi:', url);
-                return null;
-            }
-            
-            // Kullanıcı gerçekten tıkladıysa izin ver
-            if (userInteracted && timeSinceInteraction < 1000) {
-                console.log('✅ İzin verilen popup:', url);
-                return originalWindowOpen.apply(this, args);
-            }
-        }
-        
-        // Kullanıcı etkileşimi olmadan açılan popup'ları engelle
-        if (!userInteracted || timeSinceInteraction > 1000) {
-            console.log('🚫 Otomatik popup engellendi:', url);
-            return null;
-        }
-        
-        // Şüpheli URL'leri engelle
-        const suspiciousDomains = [
-            'ads.', 'ad.', 'adserver', 'doubleclick', 'googlesyndication',
-            'popads', 'popcash', 'propeller', 'exoclick', 'adsterra',
-            'clickadu', 'hilltopads', 'trafficjunky', 'juicyads'
-        ];
-        const isSuspicious = suspiciousDomains.some(domain => url.toLowerCase().includes(domain));
-        
-        if (isSuspicious) {
-            console.log('🚫 Reklam popup\'u engellendi:', url);
-            return null;
-        }
-        
-        // Diğer popup'ları engelle
-        console.log('🚫 Şüpheli popup engellendi:', url);
-        return null;
-    };
-    
-    // 2. Tüm linkleri kontrol et (iframe içi hariç)
-    document.addEventListener('click', function(e) {
-        // iframe içindeki tıklamaları kontrol etme - video kontrollerine izin ver
-        let element = e.target;
-        while (element) {
-            if (element.tagName === 'IFRAME') {
-                return; // iframe içindeki tıklamalara izin ver
-            }
-            element = element.parentElement;
-        }
-        
-        let target = e.target;
-        
-        // En yakın <a> elementini bul
-        while (target && target.tagName !== 'A') {
-            target = target.parentElement;
-        }
-        
-        if (target && target.tagName === 'A') {
-            const href = target.getAttribute('href');
-            const targetAttr = target.getAttribute('target');
-            
-            // target="_blank" ve şüpheli URL'leri engelle
-            if (targetAttr === '_blank' && href) {
-                // İzin verilen domainler
-                const allowedDomains = ['youtube.com', 'youtu.be'];
-                const isAllowed = allowedDomains.some(domain => href.includes(domain));
-                
-                if (!isAllowed) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    console.log('🚫 Şüpheli link engellendi:', href);
-                    return false;
-                }
-            }
-        }
-    }, true);
-    
-    // 3. iframe içindeki popup'ları engelle (postMessage ile)
-    window.addEventListener('message', function(e) {
-        // Şüpheli mesajları engelle
-        if (e.data && typeof e.data === 'string') {
-            if (e.data.includes('ad') || e.data.includes('popup') || e.data.includes('redirect')) {
-                console.log('🚫 Şüpheli iframe mesajı engellendi');
-                return false;
-            }
-        }
-    }, true);
-    
-    // 4. beforeunload - kaldırıldı (indirme sayfalarında native popup çıkıyordu)
-    // window.addEventListener('beforeunload', ...) - devre dışı
-    
-    // 5. Focus değişikliklerini izle (popup açılma girişimi)
-    let windowFocused = true;
-    let focusChangeCount = 0;
-    let lastFocusChange = 0;
-    
-    window.addEventListener('blur', function() {
-        const now = Date.now();
-        
-        // Hızlı ardışık focus değişiklikleri popup işareti
-        if (now - lastFocusChange < 1000) {
-            focusChangeCount++;
-        } else {
-            focusChangeCount = 1;
-        }
-        lastFocusChange = now;
-        
-        // Kullanıcı etkileşimi olmadan veya çok hızlı focus değişikliği
-        if (!userInteracted || focusChangeCount > 2) {
-            console.log('🚫 Şüpheli focus değişikliği algılandı');
-            setTimeout(() => {
-                if (document.hasFocus && !document.hasFocus()) {
-                    window.focus();
-                }
-            }, 100);
-        }
-        windowFocused = false;
-    });
-    
-    window.addEventListener('focus', function() {
-        windowFocused = true;
-        // Focus geri döndüğünde sayacı sıfırla
-        setTimeout(() => {
-            focusChangeCount = 0;
-        }, 2000);
-    });
-    
-    console.log('✅ Akıllı Popup Engelleyici Aktif!');
-    console.log('   - window.open akıllıca engelleniyor');
-    console.log('   - Video kontrolleri korunuyor');
-    console.log('   - Reklam popup\'ları engelleniyor');
-    console.log('   - iframe içi etkileşimler serbest');
-})();
+window.showBlockedPopupToast = function(message = "Harici reklam popup'u engellendi") {
+    const toast = document.getElementById('copyToast');
+    if (toast) {
+        toast.innerHTML = '<i class="fas fa-ban" style="color:#ff8080;margin-right:6px;"></i>' + message;
+        toast.classList.add('show');
+        clearTimeout(toast._t);
+        toast._t = setTimeout(() => toast.classList.remove('show'), 2600);
+        return;
+    }
+
+    if (window.customAlert) {
+        window.customAlert(message, 'Popup Engellendi', '🚫');
+    }
+};
+
+window.activatePlayerPopupGuard = function(iframe = document.getElementById('videoIframe')) {
+    if (!iframe || !iframe.contentWindow) {
+        return;
+    }
+
+    try {
+        iframe.contentWindow.postMessage({
+            type: 'belgeselsemoflix-player-popup-guard',
+            active: true
+        }, '*');
+    } catch (error) {
+        console.warn('Player popup guard etkinlestirilemedi:', error);
+    }
+};
+
+window.deactivatePlayerPopupGuard = function(iframe = document.getElementById('videoIframe')) {
+    if (!iframe || !iframe.contentWindow) {
+        return;
+    }
+
+    try {
+        iframe.contentWindow.postMessage({
+            type: 'belgeselsemoflix-player-popup-guard',
+            active: false
+        }, '*');
+    } catch (_) {}
+};
 
 document.addEventListener('DOMContentLoaded', () => {
     app = new BelgeselSemoFlix();
@@ -4122,6 +3964,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Global fonksiyonlar
 window.checkIframeLoad = function(iframe) {
+    window.activatePlayerPopupGuard(iframe);
+
     // Iframe yüklendiğinde reklam engelleyici kontrolü yap
     setTimeout(() => {
         try {

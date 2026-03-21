@@ -29,8 +29,6 @@ const HOST: &str = "127.0.0.1";
 const DEFAULT_PORT: u16 = 8000;
 const MAX_PORT: u16 = 8100;
 const STARTUP_TIMEOUT: Duration = Duration::from_secs(600);
-const DESKTOP_BROWSER_USER_AGENT: &str =
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36";
 const DOWNLOAD_TAB_LABEL: &str = "Indirmeler";
 const HOME_TAB_LABEL: &str = "Ana Uygulama";
 #[cfg(target_os = "windows")]
@@ -109,7 +107,6 @@ fn main() {
             .min_inner_size(1180.0, 760.0)
             .resizable(true)
             .decorations(false)
-            .user_agent(DESKTOP_BROWSER_USER_AGENT)
             .initialization_script_for_all_frames(home_initialization_script())
             .build()?;
 
@@ -372,11 +369,6 @@ fn is_allowed_managed_url(url: &Url) -> bool {
 fn home_initialization_script() -> &'static str {
     r#"
 (() => {
-  const host = window.location.hostname || '';
-  if (host === 'fileq.net' || host.endsWith('.fileq.net')) {
-    window.open = () => null;
-  }
-
   const invoke = (cmd, args = {}) => {
     const internal = window.__TAURI_INTERNALS__;
     if (!internal || typeof internal.invoke !== 'function') {
@@ -399,6 +391,108 @@ fn home_initialization_script() -> &'static str {
 
     return Promise.reject(new Error('Gecersiz shell komutu'));
   };
+
+  const isAllowedManagedHost = (host) =>
+    host === 'fileq.net' || host.endsWith('.fileq.net') || host === 'play.google.com';
+
+  const managedTitleForHost = (host) => {
+    if (host === 'play.google.com') {
+      return 'Play Store';
+    }
+    if (host === 'fileq.net' || host.endsWith('.fileq.net')) {
+      return 'Indirme';
+    }
+    return 'Harici Baglanti';
+  };
+
+  let playerPopupGuardActive = false;
+  const originalWindowOpen = typeof window.open === 'function' ? window.open.bind(window) : null;
+
+  const notifyBlockedPopup = () => {
+    try {
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage({
+          type: 'belgeselsemoflix-popup-blocked',
+          message: "Harici reklam popup'u engellendi"
+        }, '*');
+      }
+    } catch (_) {}
+  };
+
+  const tryHandleExternalUrl = (rawUrl) => {
+    if (!rawUrl) {
+      return false;
+    }
+
+    let parsed;
+    try {
+      parsed = new URL(String(rawUrl), window.location.href);
+    } catch (_) {
+      return false;
+    }
+
+    const host = parsed.hostname || '';
+    if (!isAllowedManagedHost(host)) {
+      return false;
+    }
+
+    relayToShell({
+      command: 'desktop_open_managed_url',
+      args: { url: parsed.toString(), titleHint: managedTitleForHost(host) }
+    }).catch(() => {});
+    return true;
+  };
+
+  window.addEventListener('message', (event) => {
+    const data = event.data;
+    if (!data || typeof data !== 'object') {
+      return;
+    }
+
+    if (data.type === 'belgeselsemoflix-player-popup-guard') {
+      playerPopupGuardActive = !!data.active;
+    }
+  });
+
+  window.open = function(url, ...args) {
+    if (!playerPopupGuardActive) {
+      return originalWindowOpen ? originalWindowOpen(url, ...args) : null;
+    }
+
+    if (tryHandleExternalUrl(url)) {
+      return null;
+    }
+
+    notifyBlockedPopup();
+    return null;
+  };
+
+  document.addEventListener('click', (event) => {
+    if (!playerPopupGuardActive) {
+      return;
+    }
+
+    const link = event.target && event.target.closest ? event.target.closest('a[href]') : null;
+    if (!link) {
+      return;
+    }
+
+    const href = link.getAttribute('href');
+    const target = (link.getAttribute('target') || '').toLowerCase();
+    if (target !== '_blank' && !href) {
+      return;
+    }
+
+    if (tryHandleExternalUrl(href)) {
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    notifyBlockedPopup();
+  }, true);
 
   window.__BELGESELSEMOFLIX_DESKTOP = {
     isDesktop: true,
@@ -637,7 +731,7 @@ fn prefetch_desktop_data(data_dir: &Path, log_file: &mut std::fs::File) -> Resul
         let response = client
             .get(&url)
             .header(reqwest::header::ACCEPT, "application/json")
-            .header(reqwest::header::USER_AGENT, DESKTOP_BROWSER_USER_AGENT)
+            .header(reqwest::header::USER_AGENT, "BELGESELSEMOFLIX Desktop")
             .send()?;
         if !response.status().is_success() {
             return Err(format!("{file} icin HTTP {}", response.status()).into());
