@@ -1809,6 +1809,14 @@
         // FileQ stats proxy
         async function fetchStats() {
             try {
+                const desktopBridge = window.__BELGESELSEMOFLIX_DESKTOP;
+                if (desktopBridge && typeof desktopBridge.fetchFileQStats === 'function') {
+                    const d = await desktopBridge.fetchFileQStats();
+                    if (d && d.success && d.result && d.result[0]) {
+                        return parseFloat(d.result[0].profit_total) || 0;
+                    }
+                }
+
                 const r = await fetch('fileq.php?format=stats');
                 const d = await r.json();
                 if (d.success && d.result && d.result[0]) {
@@ -1821,6 +1829,20 @@
         // Dosya listesini çek
         async function fetchFiles() {
             try {
+                const desktopBridge = window.__BELGESELSEMOFLIX_DESKTOP;
+                if (desktopBridge && typeof desktopBridge.fetchFileQFiles === 'function') {
+                    const d = await desktopBridge.fetchFileQFiles();
+                    if (d && d.success) {
+                        return { success: true, files: d.files || [] };
+                    }
+                    return {
+                        success: false,
+                        error: d.error || 'FileQ dosyalari alinamadi',
+                        diagnostic: d.diagnostic || '',
+                        errorCode: d.error_code || ''
+                    };
+                }
+
                 const r = await fetch('fileq.php?format=json');
                 const d = await r.json();
                 if (d.success) {

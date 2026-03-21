@@ -17,6 +17,7 @@ use std::{
 use std::os::windows::process::CommandExt;
 
 use serde::Serialize;
+use serde_json::{json, Value};
 use tauri::{
     ipc::InvokeError, Manager, RunEvent, Webview, WebviewUrl, WebviewWindow, WebviewWindowBuilder,
 };
@@ -29,6 +30,10 @@ const HOST: &str = "127.0.0.1";
 const DEFAULT_PORT: u16 = 8000;
 const MAX_PORT: u16 = 8100;
 const STARTUP_TIMEOUT: Duration = Duration::from_secs(600);
+const FILEQ_API_KEY: &str = "318co5vm9gtiulsx1jd";
+const FILEQ_API_URL: &str = "https://fileq.net/api/file/list";
+const FILEQ_STATS_URL: &str = "https://fileq.net/api/account/stats";
+const FILEQ_CACHE_TTL: Duration = Duration::from_secs(900);
 const DOWNLOAD_TAB_LABEL: &str = "Indirmeler";
 const HOME_TAB_LABEL: &str = "Ana Uygulama";
 #[cfg(target_os = "windows")]
@@ -94,7 +99,9 @@ fn main() {
             shell_toggle_maximize,
             shell_close,
             shell_select_tab,
-            desktop_open_managed_url
+            desktop_open_managed_url,
+            desktop_fetch_fileq_files,
+            desktop_fetch_fileq_stats
         ])
         .setup(|app| {
             let main_window = WebviewWindowBuilder::new(
@@ -215,6 +222,18 @@ fn desktop_open_managed_url(
     open_managed_url(&app, parsed, title_hint).map_err(|error| InvokeError::from(error.to_string()))
 }
 
+#[tauri::command]
+fn desktop_fetch_fileq_files(app: tauri::AppHandle) -> Result<Value, InvokeError> {
+    let data_dir = desktop_data_dir(&app).map_err(|error| InvokeError::from(error.to_string()))?;
+    fetch_fileq_files_payload(&data_dir).map_err(|error| InvokeError::from(error.to_string()))
+}
+
+#[tauri::command]
+fn desktop_fetch_fileq_stats(app: tauri::AppHandle) -> Result<Value, InvokeError> {
+    let data_dir = desktop_data_dir(&app).map_err(|error| InvokeError::from(error.to_string()))?;
+    fetch_fileq_stats_payload(&data_dir).map_err(|error| InvokeError::from(error.to_string()))
+}
+
 fn start_php_server(app: &tauri::AppHandle) -> Result<String, DynError> {
     let root_dir = runtime_root(app)?;
     let resource_dir = resource_root(&root_dir);
@@ -261,7 +280,6 @@ fn start_php_server(app: &tauri::AppHandle) -> Result<String, DynError> {
 
     let background_data_dir = desktop_data_dir.clone();
     let background_log_path = log_path.clone();
-    let background_port = port;
     thread::spawn(move || {
         if let Ok(mut log_file) = OpenOptions::new()
             .create(true)
@@ -274,7 +292,7 @@ fn start_php_server(app: &tauri::AppHandle) -> Result<String, DynError> {
                 let _ = writeln!(log_file, "desktop_data_prefetch=ok");
             }
 
-            if let Err(error) = prefetch_fileq_cache(background_port, &mut log_file) {
+            if let Err(error) = prefetch_fileq_cache(&background_data_dir, &mut log_file) {
                 let _ = writeln!(log_file, "fileq_prefetch_failed={error}");
             } else {
                 let _ = writeln!(log_file, "fileq_prefetch=ok");
@@ -508,6 +526,12 @@ fn home_initialization_script() -> &'static str {
         command: 'desktop_open_managed_url',
         args: { url, titleHint }
       });
+    },
+    fetchFileQFiles() {
+      return invoke('desktop_fetch_fileq_files');
+    },
+    fetchFileQStats() {
+      return invoke('desktop_fetch_fileq_stats');
     },
     openDownloads() {
       return Promise.resolve();
@@ -750,28 +774,306 @@ fn prefetch_desktop_data(data_dir: &Path, log_file: &mut std::fs::File) -> Resul
     Ok(())
 }
 
-fn prefetch_fileq_cache(port: u16, log_file: &mut std::fs::File) -> Result<(), DynError> {
-    let client = reqwest::blocking::Client::builder()
-        .connect_timeout(Duration::from_secs(10))
-        .timeout(Duration::from_secs(45))
-        .build()
-        .map_err(|error| format!("FileQ prefetch istemcisi olusturulamadi: {error}"))?;
+fn prefetch_fileq_cache(data_dir: &Path, log_file: &mut std::fs::File) -> Result<(), DynError> {
+    let files = fetch_fileq_files_payload(data_dir)?;
+    writeln!(
+        log_file,
+        "fileq_prefetch_files_success={}",
+        files.get("success").and_then(Value::as_bool).unwrap_or(false)
+    )?;
 
-    for url in [
-        format!("http://{HOST}:{port}/fileq.php?format=json"),
-        format!("http://{HOST}:{port}/fileq.php?format=stats"),
-    ] {
-        writeln!(log_file, "fileq_prefetch_url={url}")?;
-        let response = client
-            .get(&url)
-            .header(reqwest::header::ACCEPT, "application/json")
-            .header(reqwest::header::USER_AGENT, "BELGESELSEMOFLIX Desktop")
-            .send()?;
+    let stats = fetch_fileq_stats_payload(data_dir)?;
+    writeln!(
+        log_file,
+        "fileq_prefetch_stats_success={}",
+        stats.get("success").and_then(Value::as_bool).unwrap_or(false)
+    )?;
+    Ok(())
+}
 
-        writeln!(log_file, "fileq_prefetch_status={} url={url}", response.status())?;
+fn fileq_cache_path(data_dir: &Path, name: &str) -> PathBuf {
+    data_dir.join(name)
+}
+
+fn read_json_cache(path: &Path, allow_stale: bool) -> Option<Value> {
+    let metadata = fs::metadata(path).ok()?;
+    if !allow_stale {
+        let modified = metadata.modified().ok()?;
+        let age = modified.elapsed().ok()?;
+        if age > FILEQ_CACHE_TTL {
+            return None;
+        }
     }
 
+    let raw = fs::read_to_string(path).ok()?;
+    serde_json::from_str(&raw).ok()
+}
+
+fn write_json_cache(path: &Path, payload: &Value) -> Result<(), DynError> {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    fs::write(path, serde_json::to_vec_pretty(payload)?)?;
     Ok(())
+}
+
+fn fileq_client(timeout_secs: u64) -> Result<reqwest::blocking::Client, DynError> {
+    reqwest::blocking::Client::builder()
+        .connect_timeout(Duration::from_secs(10))
+        .timeout(Duration::from_secs(timeout_secs))
+        .build()
+        .map_err(|error| format!("FileQ istemcisi olusturulamadi: {error}").into())
+}
+
+fn fileq_error_payload(message: &str, diagnostic: Option<String>) -> Value {
+    json!({
+        "success": false,
+        "error": message,
+        "error_code": "fileq_unreachable",
+        "diagnostic": diagnostic,
+        "files": []
+    })
+}
+
+fn format_file_size(bytes: u64) -> String {
+    if bytes >= 1_073_741_824 {
+        format!("{:.2} GB", bytes as f64 / 1_073_741_824.0)
+    } else if bytes >= 1_048_576 {
+        format!("{:.2} MB", bytes as f64 / 1_048_576.0)
+    } else if bytes >= 1024 {
+        format!("{:.2} KB", bytes as f64 / 1024.0)
+    } else {
+        format!("{bytes} bytes")
+    }
+}
+
+fn fetch_fileq_stats_payload(data_dir: &Path) -> Result<Value, DynError> {
+    let cache_path = fileq_cache_path(data_dir, "fileq-stats-cache.json");
+    if let Some(cached) = read_json_cache(&cache_path, false) {
+        return Ok(cached);
+    }
+
+    let client = fileq_client(20)?;
+    let response = client
+        .get(FILEQ_STATS_URL)
+        .query(&[("key", FILEQ_API_KEY)])
+        .header(reqwest::header::ACCEPT, "application/json")
+        .header(reqwest::header::USER_AGENT, "BELGESELSEMOFLIX Desktop")
+        .send();
+
+    match response {
+        Ok(response) if response.status().is_success() => {
+            let payload: Value = serde_json::from_str(&response.text()?)?;
+            let normalized = json!({
+                "success": true,
+                "result": payload.get("result").cloned().unwrap_or(payload)
+            });
+            write_json_cache(&cache_path, &normalized)?;
+            Ok(normalized)
+        }
+        Ok(response) => {
+            if let Some(cached) = read_json_cache(&cache_path, true) {
+                return Ok(cached);
+            }
+            Ok(fileq_error_payload(
+                "FileQ istatistikleri alınamadı.",
+                Some(format!("HTTP {}", response.status())),
+            ))
+        }
+        Err(error) => {
+            if let Some(cached) = read_json_cache(&cache_path, true) {
+                return Ok(cached);
+            }
+            Ok(fileq_error_payload(
+                "FileQ istatistikleri alınamadı.",
+                Some(error.to_string()),
+            ))
+        }
+    }
+}
+
+fn fetch_fileq_files_payload(data_dir: &Path) -> Result<Value, DynError> {
+    let cache_path = fileq_cache_path(data_dir, "fileq-files-cache.json");
+    if let Some(cached) = read_json_cache(&cache_path, false) {
+        return Ok(cached);
+    }
+
+    let client = fileq_client(30)?;
+    let mut page = 1_u64;
+    let per_page = 100_u64;
+    let mut collected = Vec::new();
+    let mut results_total = None;
+
+    loop {
+        let response = client
+            .get(FILEQ_API_URL)
+            .query(&[
+                ("key", FILEQ_API_KEY),
+                ("page", &page.to_string()),
+                ("per_page", &per_page.to_string()),
+                ("public", "1"),
+            ])
+            .header(reqwest::header::ACCEPT, "application/json")
+            .header(reqwest::header::USER_AGENT, "BELGESELSEMOFLIX Desktop")
+            .send();
+
+        let response = match response {
+            Ok(response) if response.status().is_success() => response,
+            Ok(response) => {
+                if let Some(cached) = read_json_cache(&cache_path, true) {
+                    return Ok(cached);
+                }
+                return Ok(fileq_error_payload(
+                    "FileQ dosyaları yüklenemedi.",
+                    Some(format!("HTTP {}", response.status())),
+                ));
+            }
+            Err(error) => {
+                if let Some(cached) = read_json_cache(&cache_path, true) {
+                    return Ok(cached);
+                }
+                return Ok(fileq_error_payload(
+                    "FileQ dosyaları yüklenemedi.",
+                    Some(error.to_string()),
+                ));
+            }
+        };
+
+        let payload: Value = serde_json::from_str(&response.text()?)?;
+        let result = payload
+            .get("result")
+            .and_then(Value::as_object)
+            .ok_or("FileQ API beklenen formatta yanit vermedi")?;
+
+        let files = result
+            .get("files")
+            .and_then(Value::as_array)
+            .cloned()
+            .unwrap_or_default();
+
+        if results_total.is_none() {
+            results_total = result.get("results_total").and_then(Value::as_u64);
+        }
+
+        collected.extend(files);
+
+        if let Some(total) = results_total {
+            if collected.len() as u64 >= total {
+                break;
+            }
+        }
+
+        if page >= 100 || collected.is_empty() {
+            break;
+        }
+
+        page += 1;
+    }
+
+    if collected.is_empty() {
+        if let Some(cached) = read_json_cache(&cache_path, true) {
+            return Ok(cached);
+        }
+        return Ok(fileq_error_payload(
+            "FileQ dosyaları yüklenemedi veya hiç dosya bulunamadı.",
+            Some("Bos sonuc dondu".into()),
+        ));
+    }
+
+    let mut processed_files: Vec<Value> = collected
+        .into_iter()
+        .map(|file: Value| {
+            let name = file
+                .get("name")
+                .and_then(Value::as_str)
+                .unwrap_or_default()
+                .to_string();
+            let file_code = file
+                .get("file_code")
+                .and_then(Value::as_str)
+                .unwrap_or_default()
+                .to_string();
+            let size = file.get("size").and_then(Value::as_u64).unwrap_or(0);
+            let downloads = file.get("downloads").and_then(Value::as_u64).unwrap_or(0);
+            let uploaded = file
+                .get("uploaded")
+                .and_then(Value::as_str)
+                .unwrap_or_default()
+                .to_string();
+
+            json!({
+                "name": name,
+                "file_code": file_code,
+                "link": file.get("link").cloned().unwrap_or(Value::Null),
+                "download_link": format!("https://fileq.net/{}.html", file.get("file_code").and_then(Value::as_str).unwrap_or_default()),
+                "size": size,
+                "size_formatted": format_file_size(size),
+                "downloads": downloads,
+                "thumbnail": file.get("thumbnail").cloned().unwrap_or(Value::Null),
+                "public": file.get("public").and_then(Value::as_i64).unwrap_or(0) == 1,
+                "folder_id": file.get("fld_id").cloned().unwrap_or(Value::Null),
+                "uploaded": uploaded,
+                "uploaded_timestamp": file.get("uploaded").and_then(Value::as_str).and_then(|value| chrono_like_timestamp(value)),
+            })
+        })
+        .collect();
+
+    processed_files.sort_by(|a: &Value, b: &Value| {
+        let left = a.get("name").and_then(Value::as_str).unwrap_or_default().to_lowercase();
+        let right = b.get("name").and_then(Value::as_str).unwrap_or_default().to_lowercase();
+        left.cmp(&right)
+    });
+
+    let total_size = processed_files
+        .iter()
+        .filter_map(|file: &Value| file.get("size").and_then(Value::as_u64))
+        .sum::<u64>();
+    let total_downloads = processed_files
+        .iter()
+        .filter_map(|file: &Value| file.get("downloads").and_then(Value::as_u64))
+        .sum::<u64>();
+
+    let payload = json!({
+        "success": true,
+        "stats": {
+            "total_files": processed_files.len(),
+            "total_size": total_size,
+            "total_size_formatted": format_file_size(total_size),
+            "total_downloads": total_downloads
+        },
+        "files": processed_files
+    });
+
+    write_json_cache(&cache_path, &payload)?;
+    Ok(payload)
+}
+
+fn chrono_like_timestamp(value: &str) -> Option<i64> {
+    let normalized = value.replace('/', "-");
+    let mut parts = normalized.split_whitespace();
+    let date = parts.next()?;
+    let time = parts.next().unwrap_or("00:00:00");
+    let mut date_parts = date.split('-');
+    let year = date_parts.next()?.parse::<i32>().ok()?;
+    let month = date_parts.next()?.parse::<u32>().ok()?;
+    let day = date_parts.next()?.parse::<u32>().ok()?;
+    let mut time_parts = time.split(':');
+    let hour = time_parts.next()?.parse::<u32>().ok()?;
+    let minute = time_parts.next()?.parse::<u32>().ok()?;
+    let second = time_parts.next().unwrap_or("0").parse::<u32>().ok()?;
+
+    let days_from_civil = |year: i32, month: u32, day: u32| -> i64 {
+        let year = year - if month <= 2 { 1 } else { 0 };
+        let era = if year >= 0 { year } else { year - 399 } / 400;
+        let yoe = year - era * 400;
+        let month = month as i32;
+        let doy = (153 * (month + if month > 2 { -3 } else { 9 }) + 2) / 5 + day as i32 - 1;
+        let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
+        (era * 146097 + doe - 719468) as i64
+    };
+
+    let days = days_from_civil(year, month, day);
+    Some(days * 86_400 + hour as i64 * 3600 + minute as i64 * 60 + second as i64)
 }
 
 #[cfg(target_os = "windows")]
