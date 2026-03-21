@@ -52,6 +52,7 @@ class BelgeselSemoFlix {
     }
 
     async init() {
+        await (window.__BELGESEL_STORAGE_READY || Promise.resolve());
         this.showLoading();
         await this.loadData();
         this.buildCategoryMappings();
@@ -59,6 +60,18 @@ class BelgeselSemoFlix {
         this.setupEventListeners();
         this.renderPage('home');
         this.hideLoading();
+    }
+
+    syncDesktopStorageKey(key) {
+        if (window.__BELGESEL_STORAGE_SYNC__ && typeof window.__BELGESEL_STORAGE_SYNC__.saveKey === 'function') {
+            window.__BELGESEL_STORAGE_SYNC__.saveKey(key);
+        }
+    }
+
+    removeDesktopStorageKey(key) {
+        if (window.__BELGESEL_STORAGE_SYNC__ && typeof window.__BELGESEL_STORAGE_SYNC__.removeKey === 'function') {
+            window.__BELGESEL_STORAGE_SYNC__.removeKey(key);
+        }
     }
 
     // ============================================
@@ -2961,6 +2974,7 @@ class BelgeselSemoFlix {
             this.favorites.push(docId);
         }
         localStorage.setItem('favorites', JSON.stringify(this.favorites));
+        this.syncDesktopStorageKey('favorites');
         this.updateFavoriteIcons();
     }
 
@@ -2972,6 +2986,7 @@ class BelgeselSemoFlix {
             this.watchlist.push(docId);
         }
         localStorage.setItem('watchlist', JSON.stringify(this.watchlist));
+        this.syncDesktopStorageKey('watchlist');
         this.updateWatchlistIcons();
     }
 
@@ -3119,6 +3134,7 @@ class BelgeselSemoFlix {
         }
 
         localStorage.setItem('continueWatching', JSON.stringify(this.continueWatching));
+        this.syncDesktopStorageKey('continueWatching');
 
         // İzleme geçmişine de ekle
         this.addToWatchHistory(docId, watchData.duration);
@@ -3131,6 +3147,7 @@ class BelgeselSemoFlix {
             duration: duration
         });
         localStorage.setItem('watchHistory', JSON.stringify(this.watchHistory));
+        this.syncDesktopStorageKey('watchHistory');
     }
 
     // ============================================
@@ -3145,6 +3162,7 @@ class BelgeselSemoFlix {
             this.watched.push(docId);
         }
         localStorage.setItem('watched', JSON.stringify(this.watched));
+        this.syncDesktopStorageKey('watched');
         this.updateWatchedIcons();
     }
 
@@ -3177,6 +3195,7 @@ class BelgeselSemoFlix {
             delete this.notes[docId];
         }
         localStorage.setItem('notes', JSON.stringify(this.notes));
+        this.syncDesktopStorageKey('notes');
     }
 
     getNote(docId) {
@@ -3300,6 +3319,7 @@ class BelgeselSemoFlix {
     resetAllStats() {
         if (!confirm('Tüm kullanım verileriniz (favoriler, izleme listesi, notlar, geçmiş) silinecek. Emin misiniz?')) return;
         ['favorites', 'watchlist', 'continueWatching', 'watched', 'notes', 'watchHistory'].forEach(k => localStorage.removeItem(k));
+        ['favorites', 'watchlist', 'continueWatching', 'watched', 'notes', 'watchHistory'].forEach(k => this.removeDesktopStorageKey(k));
         this.favorites = [];
         this.watchlist = [];
         this.continueWatching = [];
@@ -3979,7 +3999,8 @@ window.deactivatePlayerPopupGuard = function(iframe = document.getElementById('v
     } catch (_) {}
 };
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    await (window.__BELGESEL_STORAGE_READY || Promise.resolve());
     app = new BelgeselSemoFlix();
 });
 

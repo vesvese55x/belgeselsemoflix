@@ -181,6 +181,11 @@ jobs:
       - name: Build Windows installer
         run: npm run tauri build -- --bundles nsis
 
+      - name: Build Windows assets pack
+        shell: pwsh
+        run: |
+          ./scripts/build-windows-assets-pack.ps1
+
       - name: Smoke test bundled PHP startup on Windows
         shell: pwsh
         run: |
@@ -221,10 +226,20 @@ jobs:
           New-Item -ItemType Directory -Force -Path "release-artifacts/windows" | Out-Null
           Copy-Item "src-tauri/target/release/bundle/nsis/*.exe" "release-artifacts/windows/" -Force
 
+      - name: Prepare Windows portable artifact bundle
+        shell: pwsh
+        run: |
+          ./scripts/prepare-windows-portable.ps1
+
       - uses: actions/upload-artifact@v4
         with:
           name: belgeselsemoflix-1.0-windows
           path: release-artifacts/windows/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: belgeselsemoflix-1.0-windows-portable
+          path: release-artifacts/windows-portable/
 
   macos:
     runs-on: macos-14

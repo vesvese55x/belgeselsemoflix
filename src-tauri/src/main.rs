@@ -1,6 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use std::{
+    collections::HashMap,
     env,
     error::Error,
     fs::{self, OpenOptions},
@@ -30,9 +31,9 @@ const HOST: &str = "127.0.0.1";
 const DEFAULT_PORT: u16 = 8000;
 const MAX_PORT: u16 = 8100;
 const STARTUP_TIMEOUT: Duration = Duration::from_secs(600);
-const FILEQ_API_KEY: &str = "862pmfvp1b6a7oenzf5";
-const FILEQ_API_URL: &str = "https://filespayouts.com/api/file/list";
-const FILEQ_STATS_URL: &str = "https://filespayouts.com/api/account/info";
+const FILEQ_API_KEY: &str = "318co5vm9gtiulsx1jd";
+const FILEQ_API_URL: &str = "https://fileq.net/api/file/list";
+const FILEQ_STATS_URL: &str = "https://fileq.net/api/account/stats";
 const FILEQ_CACHE_TTL: Duration = Duration::from_secs(900);
 const DOWNLOAD_TAB_LABEL: &str = "Indirmeler";
 const HOME_TAB_LABEL: &str = "Ana Uygulama";
@@ -100,6 +101,9 @@ fn main() {
             shell_close,
             shell_select_tab,
             desktop_open_managed_url,
+            desktop_storage_load,
+            desktop_storage_save,
+            desktop_storage_remove,
             desktop_fetch_fileq_files,
             desktop_fetch_fileq_stats
         ])
@@ -223,6 +227,32 @@ fn desktop_open_managed_url(
 }
 
 #[tauri::command]
+fn desktop_storage_load(app: tauri::AppHandle) -> Result<Value, InvokeError> {
+    let data_dir = desktop_data_dir(&app).map_err(|error| InvokeError::from(error.to_string()))?;
+    load_desktop_storage_entries(&data_dir).map_err(|error| InvokeError::from(error.to_string()))
+}
+
+#[tauri::command]
+fn desktop_storage_save(
+    app: tauri::AppHandle,
+    entries: HashMap<String, String>,
+) -> Result<Value, InvokeError> {
+    let data_dir = desktop_data_dir(&app).map_err(|error| InvokeError::from(error.to_string()))?;
+    save_desktop_storage_entries(&data_dir, &entries)
+        .map_err(|error| InvokeError::from(error.to_string()))
+}
+
+#[tauri::command]
+fn desktop_storage_remove(
+    app: tauri::AppHandle,
+    keys: Vec<String>,
+) -> Result<Value, InvokeError> {
+    let data_dir = desktop_data_dir(&app).map_err(|error| InvokeError::from(error.to_string()))?;
+    remove_desktop_storage_entries(&data_dir, &keys)
+        .map_err(|error| InvokeError::from(error.to_string()))
+}
+
+#[tauri::command]
 fn desktop_fetch_fileq_files(app: tauri::AppHandle) -> Result<Value, InvokeError> {
     let data_dir = desktop_data_dir(&app).map_err(|error| InvokeError::from(error.to_string()))?;
     fetch_fileq_files_payload(&data_dir).map_err(|error| InvokeError::from(error.to_string()))
@@ -237,13 +267,8 @@ fn desktop_fetch_fileq_stats(app: tauri::AppHandle) -> Result<Value, InvokeError
 fn start_php_server(app: &tauri::AppHandle) -> Result<String, DynError> {
     let root_dir = runtime_root(app)?;
     let resource_dir = resource_root(&root_dir);
-    let webapp_dir = resource_dir.join("webapp");
     let port = pick_available_port()?;
     let log_path = startup_log_path(app)?;
-
-    if !webapp_dir.is_dir() {
-        return Err(format!("webapp klasoru bulunamadi: {}", webapp_dir.display()).into());
-    }
 
     let mut log_file = OpenOptions::new()
         .create(true)
@@ -251,11 +276,13 @@ fn start_php_server(app: &tauri::AppHandle) -> Result<String, DynError> {
         .open(&log_path)?;
     writeln!(log_file, "== BELGESELSEMOFLIX startup ==")?;
     writeln!(log_file, "resource_dir={}", resource_dir.display())?;
-    writeln!(log_file, "webapp_dir={}", webapp_dir.display())?;
     writeln!(log_file, "port={port}")?;
 
     let desktop_data_dir = desktop_data_dir(app)?;
     writeln!(log_file, "desktop_data_dir={}", desktop_data_dir.display())?;
+
+    let webapp_dir = resolve_runtime_webapp_dir(&resource_dir, &desktop_data_dir, &mut log_file)?;
+    writeln!(log_file, "webapp_dir={}", webapp_dir.display())?;
 
     let mut command = startup_command(&resource_dir, &webapp_dir, port, &mut log_file)?;
     let error_log = log_file.try_clone()?;
@@ -322,7 +349,7 @@ fn open_managed_url(
     _title_hint: Option<String>,
 ) -> Result<(), DynError> {
     if !is_allowed_managed_url(&url) {
-        return Err("yalnizca filespayouts.com ve play.google.com izinli".into());
+        return Err("yalnizca fileq.net ve play.google.com izinli".into());
     }
 
     open_in_system_browser(url.as_str())
@@ -388,7 +415,7 @@ fn is_allowed_managed_url(url: &Url) -> bool {
         return false;
     };
 
-    host == "filespayouts.com" || host.ends_with(".filespayouts.com") || host == "play.google.com"
+    host == "fileq.net" || host.ends_with(".fileq.net") || host == "play.google.com"
 }
 
 fn home_initialization_script() -> &'static str {
@@ -418,13 +445,13 @@ fn home_initialization_script() -> &'static str {
   };
 
   const isAllowedManagedHost = (host) =>
-    host === 'filespayouts.com' || host.endsWith('.filespayouts.com') || host === 'play.google.com';
+    host === 'fileq.net' || host.endsWith('.fileq.net') || host === 'play.google.com';
 
   const managedTitleForHost = (host) => {
     if (host === 'play.google.com') {
       return 'Play Store';
     }
-    if (host === 'filespayouts.com' || host.endsWith('.filespayouts.com')) {
+    if (host === 'fileq.net' || host.endsWith('.fileq.net')) {
       return 'Indirme';
     }
     return 'Harici Baglanti';
@@ -526,6 +553,15 @@ fn home_initialization_script() -> &'static str {
         command: 'desktop_open_managed_url',
         args: { url, titleHint }
       });
+    },
+    loadPersistentStorage() {
+      return invoke('desktop_storage_load');
+    },
+    savePersistentStorage(entries) {
+      return invoke('desktop_storage_save', { entries });
+    },
+    removePersistentStorage(keys) {
+      return invoke('desktop_storage_remove', { keys });
     },
     fetchFileQFiles() {
       return invoke('desktop_fetch_fileq_files');
@@ -657,6 +693,79 @@ fn resource_root(root_dir: &Path) -> PathBuf {
     }
 }
 
+fn resolve_runtime_webapp_dir(
+    resource_dir: &Path,
+    desktop_data_dir: &Path,
+    log_file: &mut std::fs::File,
+) -> Result<PathBuf, DynError> {
+    let direct_webapp_dir = resource_dir.join("webapp");
+    if direct_webapp_dir.is_dir() {
+        return Ok(direct_webapp_dir);
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        return extract_windows_assets_pack(resource_dir, desktop_data_dir, log_file);
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        let _ = desktop_data_dir;
+        let _ = log_file;
+        Err(format!("webapp klasoru bulunamadi: {}", direct_webapp_dir.display()).into())
+    }
+}
+
+#[cfg(target_os = "windows")]
+fn extract_windows_assets_pack(
+    resource_dir: &Path,
+    desktop_data_dir: &Path,
+    log_file: &mut std::fs::File,
+) -> Result<PathBuf, DynError> {
+    let pack_path = resource_dir.join("assets.pack");
+    if !pack_path.is_file() {
+        return Err(format!("webapp klasoru bulunamadi: {}", resource_dir.join("webapp").display()).into());
+    }
+
+    let extract_root = desktop_data_dir.join("portable-runtime");
+    let unpack_dir = extract_root.join("assets");
+    if unpack_dir.exists() {
+        fs::remove_dir_all(&unpack_dir)?;
+    }
+    fs::create_dir_all(&extract_root)?;
+
+    writeln!(log_file, "assets_pack={}", pack_path.display())?;
+    writeln!(log_file, "assets_unpack_dir={}", unpack_dir.display())?;
+
+    let status = Command::new("powershell")
+        .args([
+            "-NoProfile",
+            "-NonInteractive",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            "Expand-Archive -LiteralPath $args[0] -DestinationPath $args[1] -Force",
+        ])
+        .arg(&pack_path)
+        .arg(&unpack_dir)
+        .status()?;
+
+    if !status.success() {
+        return Err("assets.pack acilamadi".into());
+    }
+
+    let extracted_webapp = unpack_dir.join("webapp");
+    if extracted_webapp.is_dir() {
+        return Ok(extracted_webapp);
+    }
+
+    if unpack_dir.join("index.php").is_file() {
+        return Ok(unpack_dir);
+    }
+
+    Err("assets.pack icinden webapp klasoru cikmadi".into())
+}
+
 fn startup_script(root_dir: &Path) -> PathBuf {
     if cfg!(target_os = "windows") {
         root_dir.join("run.bat")
@@ -739,6 +848,68 @@ fn desktop_data_dir(app: &tauri::AppHandle) -> Result<PathBuf, DynError> {
     }
     fs::create_dir_all(&data_dir)?;
     Ok(data_dir)
+}
+
+fn desktop_storage_path(data_dir: &Path) -> PathBuf {
+    data_dir.join("desktop-storage.json")
+}
+
+fn read_desktop_storage_map(data_dir: &Path) -> Result<HashMap<String, String>, DynError> {
+    let path = desktop_storage_path(data_dir);
+    if !path.is_file() {
+        return Ok(HashMap::new());
+    }
+
+    let raw = fs::read_to_string(path)?;
+    let entries = serde_json::from_str::<HashMap<String, String>>(&raw).unwrap_or_default();
+    Ok(entries)
+}
+
+fn write_desktop_storage_map(
+    data_dir: &Path,
+    entries: &HashMap<String, String>,
+) -> Result<(), DynError> {
+    let path = desktop_storage_path(data_dir);
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    fs::write(path, serde_json::to_vec_pretty(entries)?)?;
+    Ok(())
+}
+
+fn load_desktop_storage_entries(data_dir: &Path) -> Result<Value, DynError> {
+    let entries = read_desktop_storage_map(data_dir)?;
+    Ok(json!({
+        "success": true,
+        "entries": entries
+    }))
+}
+
+fn save_desktop_storage_entries(
+    data_dir: &Path,
+    entries: &HashMap<String, String>,
+) -> Result<Value, DynError> {
+    let mut current = read_desktop_storage_map(data_dir)?;
+    for (key, value) in entries {
+        current.insert(key.clone(), value.clone());
+    }
+    write_desktop_storage_map(data_dir, &current)?;
+    Ok(json!({
+        "success": true,
+        "saved": entries.len()
+    }))
+}
+
+fn remove_desktop_storage_entries(data_dir: &Path, keys: &[String]) -> Result<Value, DynError> {
+    let mut current = read_desktop_storage_map(data_dir)?;
+    for key in keys {
+        current.remove(key);
+    }
+    write_desktop_storage_map(data_dir, &current)?;
+    Ok(json!({
+        "success": true,
+        "removed": keys.len()
+    }))
 }
 
 fn prefetch_desktop_data(data_dir: &Path, log_file: &mut std::fs::File) -> Result<(), DynError> {
@@ -1005,7 +1176,7 @@ fn fetch_fileq_files_payload(data_dir: &Path) -> Result<Value, DynError> {
                 "name": name,
                 "file_code": file_code,
                 "link": file.get("link").cloned().unwrap_or(Value::Null),
-                "download_link": format!("https://filespayouts.com/{}.html", file.get("file_code").and_then(Value::as_str).unwrap_or_default()),
+                "download_link": format!("https://fileq.net/{}.html", file.get("file_code").and_then(Value::as_str).unwrap_or_default()),
                 "size": size,
                 "size_formatted": format_file_size(size),
                 "downloads": downloads,

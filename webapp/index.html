@@ -840,7 +840,7 @@
                 <!-- İndirme talimatı notu -->
                 <div style="margin-top:12px;background:rgba(255,152,0,0.08);border:1px solid rgba(255,152,0,0.25);border-radius:10px;padding:10px 14px;font-size:0.82rem;color:#ffb74d;line-height:1.6;">
                     <i class="fas fa-info-circle"></i> <strong>İpucu:</strong>
-                    filespayouts.com'daki <strong style="color:#2196f3;">mavi İndir butonuna</strong> ilk tıklamada reklam sekmesi açılabilir — kapat, <strong>tekrar tıkla</strong>, dosya iner.
+                    fileq.net'teki <strong style="color:#2196f3;">mavi İndir butonuna</strong> ilk tıklamada reklam sekmesi açılabilir — kapat, <strong>tekrar tıkla</strong>, dosya iner.
                 </div>
             </div>
 
@@ -1364,6 +1364,83 @@
         // LOGIN & PREMIUM SYSTEM
         // ============================================
         const AUTH_STORAGE_KEY = 'belgeselsemo_auth';
+        const DESKTOP_STORAGE_KEYS = [
+            'favorites',
+            'watchlist',
+            'continueWatching',
+            'watched',
+            'notes',
+            'watchHistory',
+            'belgeselsemo_auth',
+            'bsflix_download_reward'
+        ];
+
+        function getDesktopStorageBridge() {
+            const bridge = window.__BELGESELSEMOFLIX_DESKTOP;
+            if (!bridge || typeof bridge.loadPersistentStorage !== 'function') {
+                return null;
+            }
+            return bridge;
+        }
+
+        async function hydrateDesktopStorage() {
+            const bridge = getDesktopStorageBridge();
+            if (!bridge) return false;
+
+            try {
+                const payload = await bridge.loadPersistentStorage();
+                const entries = payload && payload.entries ? payload.entries : {};
+                Object.entries(entries).forEach(([key, value]) => {
+                    if (typeof value === 'string') {
+                        localStorage.setItem(key, value);
+                    }
+                });
+                return true;
+            } catch (error) {
+                console.warn('Desktop storage hydrate basarisiz oldu:', error);
+                return false;
+            }
+        }
+
+        async function saveDesktopStorageKey(key) {
+            const bridge = getDesktopStorageBridge();
+            if (!bridge) return;
+
+            const raw = localStorage.getItem(key);
+            if (raw === null) {
+                await bridge.removePersistentStorage([key]).catch((error) => {
+                    console.warn(`Desktop storage key kaldirilamadi: ${key}`, error);
+                });
+                return;
+            }
+
+            await bridge.savePersistentStorage({ [key]: raw }).catch((error) => {
+                console.warn(`Desktop storage key kaydedilemedi: ${key}`, error);
+            });
+        }
+
+        async function removeDesktopStorageKey(key) {
+            const bridge = getDesktopStorageBridge();
+            if (!bridge) return;
+            await bridge.removePersistentStorage([key]).catch((error) => {
+                console.warn(`Desktop storage key silinemedi: ${key}`, error);
+            });
+        }
+
+        async function clearDesktopStorageKeys(keys = DESKTOP_STORAGE_KEYS) {
+            const bridge = getDesktopStorageBridge();
+            if (!bridge) return;
+            await bridge.removePersistentStorage(keys).catch((error) => {
+                console.warn('Desktop storage keys temizlenemedi:', error);
+            });
+        }
+
+        window.__BELGESEL_STORAGE_READY = hydrateDesktopStorage();
+        window.__BELGESEL_STORAGE_SYNC__ = {
+            saveKey: saveDesktopStorageKey,
+            removeKey: removeDesktopStorageKey,
+            clearKeys: clearDesktopStorageKeys
+        };
         
         let currentUser = null;
         window.currentUser = null; // global erişim için
@@ -1465,6 +1542,7 @@
         // Save auth to localStorage
         function saveAuth(userData) {
             localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(userData));
+            saveDesktopStorageKey(AUTH_STORAGE_KEY);
             currentUser = userData;
             window.currentUser = userData;
         }
@@ -1483,6 +1561,7 @@
         // Clear auth
         function clearAuth() {
             localStorage.removeItem(AUTH_STORAGE_KEY);
+            removeDesktopStorageKey(AUTH_STORAGE_KEY);
             currentUser = null;
             window.currentUser = null;
         }
@@ -1549,6 +1628,7 @@
         
         // Initialize login system
         async function initLoginSystem() {
+            await (window.__BELGESEL_STORAGE_READY || Promise.resolve());
             // Wait for app to initialize first (so background content loads)
             if (window.app) {
                 // App already loaded
@@ -1722,6 +1802,7 @@
                 todayDownloads:  state.todayDownloads,
                 pendingFile:     state.pendingFile
             }));
+            saveDesktopStorageKey(STORAGE_KEY);
         }
 
         function isPremiumActive() {
@@ -1811,7 +1892,7 @@
             const desktopBridge = window.__BELGESELSEMOFLIX_DESKTOP;
             const sources = [
                 async () => {
-                    const r = await fetch('filespayouts.php?format=stats');
+                    const r = await fetch('fileq.php?format=stats');
                     return await r.json();
                 }
             ];
@@ -1823,13 +1904,11 @@
             for (const load of sources) {
                 try {
                     const d = await load();
-                    const result = d && d.result;
-                    const statsRow = Array.isArray(result) ? result[0] : result;
-                    if (d && d.success && statsRow) {
-                        return parseFloat(statsRow.profit_total || statsRow.profit || 0) || 0;
+                    if (d && d.success && d.result && d.result[0]) {
+                        return parseFloat(d.result[0].profit_total) || 0;
                     }
                 } catch (e) {
-                    console.warn('FilesPayouts stats kaynagi basarisiz oldu:', e);
+                    console.warn('FileQ stats kaynagi basarisiz oldu:', e);
                 }
             }
 
@@ -1841,7 +1920,7 @@
             const desktopBridge = window.__BELGESELSEMOFLIX_DESKTOP;
             const sources = [
                 async () => {
-                    const r = await fetch('filespayouts.php?format=json');
+                    const r = await fetch('fileq.php?format=json');
                     return await r.json();
                 }
             ];
@@ -1861,18 +1940,18 @@
 
                     bestFailure = {
                         success: false,
-                        error: d.error || 'FilesPayouts dosyalari alinamadi',
+                        error: d.error || 'FileQ dosyalari alinamadi',
                         diagnostic: d.diagnostic || '',
                         errorCode: d.error_code || ''
                     };
                 } catch (e) {
-                    console.warn('FilesPayouts liste kaynagi basarisiz oldu:', e);
+                    console.warn('FileQ liste kaynagi basarisiz oldu:', e);
                 }
             }
 
             return bestFailure || {
                 success: false,
-                error: 'FilesPayouts servisine ulasilamadi',
+                error: 'FileQ servisine ulasilamadi',
                 diagnostic: 'Ag, DNS veya TLS kaynakli bir baglanti sorunu olabilir.',
                 errorCode: 'request_failed'
             };
@@ -1909,7 +1988,7 @@
                     : '';
                 list.innerHTML = `
                     <div style="text-align:center;padding:20px;color:#bbb;">
-                        <div style="font-weight:600;color:#ffb4bc;">FilesPayouts listesine erişilemedi</div>
+                        <div style="font-weight:600;color:#ffb4bc;">FileQ listesine erişilemedi</div>
                         <div style="margin-top:6px;">${result.error}</div>
                         ${diagnosticHtml}
                     </div>`;
@@ -1989,7 +2068,7 @@
             if (isDesktop) {
                 descEl.innerHTML = `
                     <span style="color:#4caf50;"><i class="fas fa-globe"></i> Link hazirlandi. Varsayilan tarayici aciliyor...</span><br>
-                    <span style="color:#b3b3b3;font-size:0.8rem;">Asagidaki filespayouts.com sayfasi masaustu uygulama icinde degil, sistem tarayicisinda acilir.</span>
+                    <span style="color:#b3b3b3;font-size:0.8rem;">Asagidaki fileq.net sayfasi masaustu uygulama icinde degil, sistem tarayicisinda acilir.</span>
                     <div style="margin-top:8px;background:rgba(255,255,255,0.05);border-radius:6px;padding:6px 10px;font-size:0.75rem;color:#fff;word-break:break-all;">${file.download_link}</div>`;
 
                 requestAnimationFrame(() => {
@@ -2115,6 +2194,8 @@
 
         // Public init
         function init() {
+            if (window.__BELGESELSEMO_DOWNLOAD_REWARD_INIT) return;
+            window.__BELGESELSEMO_DOWNLOAD_REWARD_INIT = true;
             load();
             updateBar();
             startTimer();
@@ -2137,9 +2218,14 @@
         return _origCanAccessPremium ? _origCanAccessPremium() : false;
     };
 
-    document.addEventListener('DOMContentLoaded', () => DownloadReward.init());
+    document.addEventListener('DOMContentLoaded', async () => {
+        await (window.__BELGESEL_STORAGE_READY || Promise.resolve());
+        DownloadReward.init();
+    });
     // Eğer DOMContentLoaded zaten geçtiyse direkt çalıştır
-    if (document.readyState !== 'loading') DownloadReward.init();
+    if (document.readyState !== 'loading') {
+        (window.__BELGESEL_STORAGE_READY || Promise.resolve()).then(() => DownloadReward.init());
+    }
     </script>
 
     <!-- COPY TOAST -->
