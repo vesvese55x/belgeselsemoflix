@@ -840,7 +840,7 @@
                 <!-- İndirme talimatı notu -->
                 <div style="margin-top:12px;background:rgba(255,152,0,0.08);border:1px solid rgba(255,152,0,0.25);border-radius:10px;padding:10px 14px;font-size:0.82rem;color:#ffb74d;line-height:1.6;">
                     <i class="fas fa-info-circle"></i> <strong>İpucu:</strong>
-                    fileq.net'teki <strong style="color:#2196f3;">mavi İndir butonuna</strong> ilk tıklamada reklam sekmesi açılabilir — kapat, <strong>tekrar tıkla</strong>, dosya iner.
+                    filespayouts.com'daki <strong style="color:#2196f3;">mavi İndir butonuna</strong> ilk tıklamada reklam sekmesi açılabilir — kapat, <strong>tekrar tıkla</strong>, dosya iner.
                 </div>
             </div>
 
@@ -1811,7 +1811,7 @@
             const desktopBridge = window.__BELGESELSEMOFLIX_DESKTOP;
             const sources = [
                 async () => {
-                    const r = await fetch('fileq.php?format=stats');
+                    const r = await fetch('filespayouts.php?format=stats');
                     return await r.json();
                 }
             ];
@@ -1823,11 +1823,13 @@
             for (const load of sources) {
                 try {
                     const d = await load();
-                    if (d && d.success && d.result && d.result[0]) {
-                        return parseFloat(d.result[0].profit_total) || 0;
+                    const result = d && d.result;
+                    const statsRow = Array.isArray(result) ? result[0] : result;
+                    if (d && d.success && statsRow) {
+                        return parseFloat(statsRow.profit_total || statsRow.profit || 0) || 0;
                     }
                 } catch (e) {
-                    console.warn('FileQ stats kaynagi basarisiz oldu:', e);
+                    console.warn('FilesPayouts stats kaynagi basarisiz oldu:', e);
                 }
             }
 
@@ -1839,7 +1841,7 @@
             const desktopBridge = window.__BELGESELSEMOFLIX_DESKTOP;
             const sources = [
                 async () => {
-                    const r = await fetch('fileq.php?format=json');
+                    const r = await fetch('filespayouts.php?format=json');
                     return await r.json();
                 }
             ];
@@ -1859,18 +1861,18 @@
 
                     bestFailure = {
                         success: false,
-                        error: d.error || 'FileQ dosyalari alinamadi',
+                        error: d.error || 'FilesPayouts dosyalari alinamadi',
                         diagnostic: d.diagnostic || '',
                         errorCode: d.error_code || ''
                     };
                 } catch (e) {
-                    console.warn('FileQ liste kaynagi basarisiz oldu:', e);
+                    console.warn('FilesPayouts liste kaynagi basarisiz oldu:', e);
                 }
             }
 
             return bestFailure || {
                 success: false,
-                error: 'FileQ servisine ulasilamadi',
+                error: 'FilesPayouts servisine ulasilamadi',
                 diagnostic: 'Ag, DNS veya TLS kaynakli bir baglanti sorunu olabilir.',
                 errorCode: 'request_failed'
             };
@@ -1907,7 +1909,7 @@
                     : '';
                 list.innerHTML = `
                     <div style="text-align:center;padding:20px;color:#bbb;">
-                        <div style="font-weight:600;color:#ffb4bc;">FileQ listesine erişilemedi</div>
+                        <div style="font-weight:600;color:#ffb4bc;">FilesPayouts listesine erişilemedi</div>
                         <div style="margin-top:6px;">${result.error}</div>
                         ${diagnosticHtml}
                     </div>`;
@@ -1987,7 +1989,7 @@
             if (isDesktop) {
                 descEl.innerHTML = `
                     <span style="color:#4caf50;"><i class="fas fa-globe"></i> Link hazirlandi. Varsayilan tarayici aciliyor...</span><br>
-                    <span style="color:#b3b3b3;font-size:0.8rem;">Asagidaki fileq.net sayfasi masaustu uygulama icinde degil, sistem tarayicisinda acilir.</span>
+                    <span style="color:#b3b3b3;font-size:0.8rem;">Asagidaki filespayouts.com sayfasi masaustu uygulama icinde degil, sistem tarayicisinda acilir.</span>
                     <div style="margin-top:8px;background:rgba(255,255,255,0.05);border-radius:6px;padding:6px 10px;font-size:0.75rem;color:#fff;word-break:break-all;">${file.download_link}</div>`;
 
                 requestAnimationFrame(() => {

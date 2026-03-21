@@ -30,9 +30,9 @@ const HOST: &str = "127.0.0.1";
 const DEFAULT_PORT: u16 = 8000;
 const MAX_PORT: u16 = 8100;
 const STARTUP_TIMEOUT: Duration = Duration::from_secs(600);
-const FILEQ_API_KEY: &str = "318co5vm9gtiulsx1jd";
-const FILEQ_API_URL: &str = "https://fileq.net/api/file/list";
-const FILEQ_STATS_URL: &str = "https://fileq.net/api/account/stats";
+const FILEQ_API_KEY: &str = "862pmfvp1b6a7oenzf5";
+const FILEQ_API_URL: &str = "https://filespayouts.com/api/file/list";
+const FILEQ_STATS_URL: &str = "https://filespayouts.com/api/account/info";
 const FILEQ_CACHE_TTL: Duration = Duration::from_secs(900);
 const DOWNLOAD_TAB_LABEL: &str = "Indirmeler";
 const HOME_TAB_LABEL: &str = "Ana Uygulama";
@@ -322,7 +322,7 @@ fn open_managed_url(
     _title_hint: Option<String>,
 ) -> Result<(), DynError> {
     if !is_allowed_managed_url(&url) {
-        return Err("yalnizca fileq.net ve play.google.com izinli".into());
+        return Err("yalnizca filespayouts.com ve play.google.com izinli".into());
     }
 
     open_in_system_browser(url.as_str())
@@ -388,7 +388,7 @@ fn is_allowed_managed_url(url: &Url) -> bool {
         return false;
     };
 
-    host == "fileq.net" || host.ends_with(".fileq.net") || host == "play.google.com"
+    host == "filespayouts.com" || host.ends_with(".filespayouts.com") || host == "play.google.com"
 }
 
 fn home_initialization_script() -> &'static str {
@@ -418,13 +418,13 @@ fn home_initialization_script() -> &'static str {
   };
 
   const isAllowedManagedHost = (host) =>
-    host === 'fileq.net' || host.endsWith('.fileq.net') || host === 'play.google.com';
+    host === 'filespayouts.com' || host.endsWith('.filespayouts.com') || host === 'play.google.com';
 
   const managedTitleForHost = (host) => {
     if (host === 'play.google.com') {
       return 'Play Store';
     }
-    if (host === 'fileq.net' || host.endsWith('.fileq.net')) {
+    if (host === 'filespayouts.com' || host.endsWith('.filespayouts.com')) {
       return 'Indirme';
     }
     return 'Harici Baglanti';
@@ -1005,7 +1005,7 @@ fn fetch_fileq_files_payload(data_dir: &Path) -> Result<Value, DynError> {
                 "name": name,
                 "file_code": file_code,
                 "link": file.get("link").cloned().unwrap_or(Value::Null),
-                "download_link": format!("https://fileq.net/{}.html", file.get("file_code").and_then(Value::as_str).unwrap_or_default()),
+                "download_link": format!("https://filespayouts.com/{}.html", file.get("file_code").and_then(Value::as_str).unwrap_or_default()),
                 "size": size,
                 "size_formatted": format_file_size(size),
                 "downloads": downloads,
