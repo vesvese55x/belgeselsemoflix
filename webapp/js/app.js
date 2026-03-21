@@ -3916,18 +3916,39 @@ window.copyAndMaybeOpenManagedLink = async function (url, titleHint, button) {
 let app;
 
 window.showBlockedPopupToast = function(message = "Harici reklam popup'u engellendi") {
-    const toast = document.getElementById('copyToast');
-    if (toast) {
-        toast.innerHTML = '<i class="fas fa-ban" style="color:#ff8080;margin-right:6px;"></i>' + message;
-        toast.classList.add('show');
-        clearTimeout(toast._t);
-        toast._t = setTimeout(() => toast.classList.remove('show'), 2600);
-        return;
+    let toast = document.getElementById('blockedPopupToast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'blockedPopupToast';
+        toast.style.position = 'fixed';
+        toast.style.top = '24px';
+        toast.style.right = '24px';
+        toast.style.maxWidth = '320px';
+        toast.style.padding = '10px 14px';
+        toast.style.borderRadius = '14px';
+        toast.style.background = 'rgba(18, 18, 18, 0.96)';
+        toast.style.border = '1px solid rgba(255, 128, 128, 0.28)';
+        toast.style.boxShadow = '0 18px 50px rgba(0, 0, 0, 0.45)';
+        toast.style.color = '#fff';
+        toast.style.fontSize = '0.85rem';
+        toast.style.lineHeight = '1.4';
+        toast.style.zIndex = '2147483647';
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(-10px)';
+        toast.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
+        toast.style.pointerEvents = 'none';
+        document.body.appendChild(toast);
     }
 
-    if (window.customAlert) {
-        window.customAlert(message, 'Popup Engellendi', '🚫');
-    }
+    toast.innerHTML = '<i class="fas fa-ban" style="color:#ff8080;margin-right:6px;"></i>' + message;
+    toast.style.opacity = '1';
+    toast.style.transform = 'translateY(0)';
+    clearTimeout(toast._t);
+    toast._t = setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(-10px)';
+    }, 1800);
+    return;
 };
 
 window.activatePlayerPopupGuard = function(iframe = document.getElementById('videoIframe')) {

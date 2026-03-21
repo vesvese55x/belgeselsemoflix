@@ -261,6 +261,7 @@ fn start_php_server(app: &tauri::AppHandle) -> Result<String, DynError> {
 
     let background_data_dir = desktop_data_dir.clone();
     let background_log_path = log_path.clone();
+    let background_port = port;
     thread::spawn(move || {
         if let Ok(mut log_file) = OpenOptions::new()
             .create(true)
@@ -271,6 +272,12 @@ fn start_php_server(app: &tauri::AppHandle) -> Result<String, DynError> {
                 let _ = writeln!(log_file, "desktop_data_prefetch_failed={error}");
             } else {
                 let _ = writeln!(log_file, "desktop_data_prefetch=ok");
+            }
+
+            if let Err(error) = prefetch_fileq_cache(background_port, &mut log_file) {
+                let _ = writeln!(log_file, "fileq_prefetch_failed={error}");
+            } else {
+                let _ = writeln!(log_file, "fileq_prefetch=ok");
             }
         }
     });
@@ -738,6 +745,30 @@ fn prefetch_desktop_data(data_dir: &Path, log_file: &mut std::fs::File) -> Resul
         }
         let payload = response.text()?;
         fs::write(data_dir.join(file), payload)?;
+    }
+
+    Ok(())
+}
+
+fn prefetch_fileq_cache(port: u16, log_file: &mut std::fs::File) -> Result<(), DynError> {
+    let client = reqwest::blocking::Client::builder()
+        .connect_timeout(Duration::from_secs(10))
+        .timeout(Duration::from_secs(45))
+        .build()
+        .map_err(|error| format!("FileQ prefetch istemcisi olusturulamadi: {error}"))?;
+
+    for url in [
+        format!("http://{HOST}:{port}/fileq.php?format=json"),
+        format!("http://{HOST}:{port}/fileq.php?format=stats"),
+    ] {
+        writeln!(log_file, "fileq_prefetch_url={url}")?;
+        let response = client
+            .get(&url)
+            .header(reqwest::header::ACCEPT, "application/json")
+            .header(reqwest::header::USER_AGENT, "BELGESELSEMOFLIX Desktop")
+            .send()?;
+
+        writeln!(log_file, "fileq_prefetch_status={} url={url}", response.status())?;
     }
 
     Ok(())
