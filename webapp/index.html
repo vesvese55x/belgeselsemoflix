@@ -1808,54 +1808,67 @@
 
         // FileQ stats proxy
         async function fetchStats() {
-            try {
-                const desktopBridge = window.__BELGESELSEMOFLIX_DESKTOP;
-                if (desktopBridge && typeof desktopBridge.fetchFileQStats === 'function') {
-                    const d = await desktopBridge.fetchFileQStats();
+            const desktopBridge = window.__BELGESELSEMOFLIX_DESKTOP;
+            const sources = [
+                async () => {
+                    const r = await fetch('fileq.php?format=stats');
+                    return await r.json();
+                }
+            ];
+
+            if (desktopBridge && typeof desktopBridge.fetchFileQStats === 'function') {
+                sources.push(() => desktopBridge.fetchFileQStats());
+            }
+
+            for (const load of sources) {
+                try {
+                    const d = await load();
                     if (d && d.success && d.result && d.result[0]) {
                         return parseFloat(d.result[0].profit_total) || 0;
                     }
+                } catch (e) {
+                    console.warn('FileQ stats kaynagi basarisiz oldu:', e);
                 }
+            }
 
-                const r = await fetch('fileq.php?format=stats');
-                const d = await r.json();
-                if (d.success && d.result && d.result[0]) {
-                    return parseFloat(d.result[0].profit_total) || 0;
-                }
-            } catch(e) {}
             return null;
         }
 
         // Dosya listesini çek
         async function fetchFiles() {
-            try {
-                const desktopBridge = window.__BELGESELSEMOFLIX_DESKTOP;
-                if (desktopBridge && typeof desktopBridge.fetchFileQFiles === 'function') {
-                    const d = await desktopBridge.fetchFileQFiles();
+            const desktopBridge = window.__BELGESELSEMOFLIX_DESKTOP;
+            const sources = [
+                async () => {
+                    const r = await fetch('fileq.php?format=json');
+                    return await r.json();
+                }
+            ];
+
+            if (desktopBridge && typeof desktopBridge.fetchFileQFiles === 'function') {
+                sources.push(() => desktopBridge.fetchFileQFiles());
+            }
+
+            let bestFailure = null;
+
+            for (const load of sources) {
+                try {
+                    const d = await load();
                     if (d && d.success) {
                         return { success: true, files: d.files || [] };
                     }
-                    return {
+
+                    bestFailure = {
                         success: false,
                         error: d.error || 'FileQ dosyalari alinamadi',
                         diagnostic: d.diagnostic || '',
                         errorCode: d.error_code || ''
                     };
+                } catch (e) {
+                    console.warn('FileQ liste kaynagi basarisiz oldu:', e);
                 }
+            }
 
-                const r = await fetch('fileq.php?format=json');
-                const d = await r.json();
-                if (d.success) {
-                    return { success: true, files: d.files || [] };
-                }
-                return {
-                    success: false,
-                    error: d.error || 'FileQ dosyalari alinamadi',
-                    diagnostic: d.diagnostic || '',
-                    errorCode: d.error_code || ''
-                };
-            } catch(e) {}
-            return {
+            return bestFailure || {
                 success: false,
                 error: 'FileQ servisine ulasilamadi',
                 diagnostic: 'Ag, DNS veya TLS kaynakli bir baglanti sorunu olabilir.',
