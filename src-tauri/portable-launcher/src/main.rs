@@ -6,23 +6,22 @@ mod launcher {
         env,
         error::Error,
         fs::{self, File},
-        io,
         path::{Path, PathBuf},
         process::{Command, Stdio},
-        time::{Duration, SystemTime, UNIX_EPOCH},
+        time::{Duration, UNIX_EPOCH},
     };
 
-    use rfd::{MessageButtons, MessageDialog, MessageLevel};
     use reqwest::blocking::Client;
+    use rfd::{MessageButtons, MessageDialog, MessageLevel};
     use zip::ZipArchive;
+
+    #[cfg(target_os = "windows")]
+    use std::os::windows::process::CommandExt;
 
     const CREATE_NO_WINDOW: u32 = 0x0800_0000;
     const WEBVIEW2_BOOTSTRAPPER_URL: &str = "https://go.microsoft.com/fwlink/p/?LinkId=2124703";
 
     type DynError = Box<dyn Error + Send + Sync>;
-
-    #[cfg(target_os = "windows")]
-    use std::os::windows::process::CommandExt;
 
     pub fn run() -> Result<(), DynError> {
         let exe_path = env::current_exe()?;
@@ -200,18 +199,7 @@ mod launcher {
     }
 
     fn webview_runtime_exists_in(root: &Path) -> bool {
-        let entries = match fs::read_dir(root) {
-            Ok(entries) => entries,
-            Err(_) => return false,
-        };
-
-        for entry in entries.flatten() {
-            if entry.path().join("msedgewebview2.exe").is_file() {
-                return true;
-            }
-        }
-
-        false
+        find_file_recursive(root, "msedgewebview2.exe").is_some()
     }
 
     fn marker_value(metadata: &fs::Metadata) -> Result<String, DynError> {
@@ -230,6 +218,25 @@ mod launcher {
             .set_description(error)
             .set_buttons(MessageButtons::Ok)
             .show();
+    }
+
+    fn find_file_recursive(root: &Path, filename: &str) -> Option<PathBuf> {
+        let entries = fs::read_dir(root).ok()?;
+
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_file() {
+                if path.file_name().and_then(|name| name.to_str()) == Some(filename) {
+                    return Some(path);
+                }
+            } else if path.is_dir() {
+                if let Some(found) = find_file_recursive(&path, filename) {
+                    return Some(found);
+                }
+            }
+        }
+
+        None
     }
 }
 

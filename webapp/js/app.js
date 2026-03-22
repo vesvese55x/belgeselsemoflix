@@ -2414,6 +2414,7 @@ class BelgeselSemoFlix {
 
                 html += `
         <div class="episodes-section">
+          <div class="episodes-scroll-area">
                     <h3>📺 Bölümler (${episodes.length} Bölüm)</h3>
                     
                     <!--Sezon Tab'ları -->
@@ -2759,7 +2760,7 @@ class BelgeselSemoFlix {
             `;
         }
 
-        html += `</div>`;
+                html += `</div></div>`;
         resultsContainer.innerHTML = html;
     }
 

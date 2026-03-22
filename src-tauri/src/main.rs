@@ -803,7 +803,6 @@ fn extract_windows_assets_pack(
 
     let extract_root = desktop_data_dir.join("portable-runtime");
     let unpack_dir = extract_root.join("assets");
-    let archive_path = extract_root.join("assets.zip");
     let marker_path = extract_root.join("assets.marker");
     let metadata = fs::metadata(&pack_path)?;
     let marker_value = format!(
@@ -829,13 +828,11 @@ fn extract_windows_assets_pack(
         fs::remove_dir_all(&unpack_dir)?;
     }
     fs::create_dir_all(&extract_root)?;
-    fs::copy(&pack_path, &archive_path)?;
 
     writeln!(log_file, "assets_pack={}", pack_path.display())?;
-    writeln!(log_file, "assets_archive={}", archive_path.display())?;
     writeln!(log_file, "assets_unpack_dir={}", unpack_dir.display())?;
 
-    let archive_file = File::open(&archive_path)?;
+    let archive_file = File::open(&pack_path)?;
     let mut archive = match ZipArchive::new(archive_file) {
         Ok(archive) => archive,
         Err(error) => {
@@ -847,8 +844,6 @@ fn extract_windows_assets_pack(
         writeln!(log_file, "assets_extract_failed={error}")?;
         return Err("assets.pack acilamadi".into());
     }
-
-    let _ = fs::remove_file(&archive_path);
 
     if extracted_webapp.is_dir() {
         fs::write(marker_path, marker_value)?;
@@ -990,18 +985,10 @@ fn windows_webview2_installed() -> bool {
 
 #[cfg(target_os = "windows")]
 fn webview_runtime_exists_in(root: &Path) -> bool {
-    let entries = match fs::read_dir(root) {
-        Ok(entries) => entries,
-        Err(_) => return false,
-    };
-
-    for entry in entries.flatten() {
-        if entry.path().join("msedgewebview2.exe").is_file() {
-            return true;
-        }
-    }
-
-    false
+    find_file_recursive(root, "msedgewebview2.exe")
+        .ok()
+        .flatten()
+        .is_some()
 }
 
 fn startup_script(root_dir: &Path) -> PathBuf {

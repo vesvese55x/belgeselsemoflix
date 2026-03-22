@@ -8,21 +8,12 @@ edition = "2021"
 rust-version = "1.77.2"
 default-run = "belgeselsemoflix"
 
-[features]
-default = []
-portable-launcher = []
-
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 
 [[bin]]
 name = "belgeselsemoflix"
 path = "src/main.rs"
-
-[[bin]]
-name = "portable_launcher"
-path = "src/bin/portable_launcher.rs"
-required-features = ["portable-launcher"]
 
 [dependencies]
 reqwest = { version = "0.12", default-features = false, features = ["blocking", "rustls-tls"] }

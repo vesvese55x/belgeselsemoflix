@@ -19,7 +19,8 @@ if "%WEBAPP_DIR%"=="" set "WEBAPP_DIR=%CD%\webapp"
 set "BUNDLED_PHP_ROOT=%CD%\runtime\windows"
 set "PHP_CMD="
 set "PHP_DIR="
-set "PHP_ARGS=-d cli_server.color=0 -d opcache.enable=0 -d opcache.enable_cli=0"
+set "PHP_ARGS=-d cli_server.color=0"
+set "USE_BUNDLED_PHP=0"
 set "EXIT_CODE=0"
 
 if not exist "%WEBAPP_DIR%" (
@@ -32,6 +33,7 @@ if exist "%BUNDLED_PHP_ROOT%" (
   for /f "delims=" %%F in ('dir /s /b "%BUNDLED_PHP_ROOT%\php.exe" 2^>nul') do (
     set "PHP_CMD=%%~fF"
     set "PHP_DIR=%%~dpF"
+    set "USE_BUNDLED_PHP=1"
     goto bundled_php_found
   )
 )
@@ -53,10 +55,10 @@ if not "!PHP_CMD!"=="" (
 )
 
 if not "!PHP_DIR!"=="" set "PATH=!PHP_DIR!;%PATH%"
-if exist "!PHP_DIR!php.ini" (
-  set "PHP_ARGS=!PHP_ARGS! -c php.ini"
+if "!USE_BUNDLED_PHP!"=="1" (
+  set "PHP_ARGS=-n -d cli_server.color=0 -d extension_dir=ext -d extension=curl -d extension=openssl -d extension=mbstring -d extension=fileinfo -d extension=sodium -d opcache.enable=0 -d opcache.enable_cli=0 -d opcache.jit=0 -d opcache.jit_buffer_size=0 -d curl.cainfo= -d openssl.cafile="
 ) else (
-  set "PHP_ARGS=!PHP_ARGS! -n"
+  set "PHP_ARGS=!PHP_ARGS! -d opcache.enable=0 -d opcache.enable_cli=0 -d opcache.jit=0 -d opcache.jit_buffer_size=0"
 )
 
 echo PHP komutu: !PHP_CMD!
