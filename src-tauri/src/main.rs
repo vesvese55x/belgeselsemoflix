@@ -866,40 +866,26 @@ fn startup_command(
 ) -> Result<Command, DynError> {
     #[cfg(target_os = "windows")]
     {
-        let php_exe = windows_compatible_path(&resolve_windows_php(resource_dir)?);
-        let php_dir =
-            windows_compatible_path(php_exe.parent().ok_or("php klasoru bulunamadi")?.as_ref());
+        let script_path = startup_script(resource_dir);
+        if !script_path.is_file() {
+            return Err(format!("baslangic scripti bulunamadi: {}", script_path.display()).into());
+        }
+
         let resource_dir = windows_compatible_path(resource_dir);
         let webapp_dir = windows_compatible_path(webapp_dir);
 
-        writeln!(log_file, "php_exe={}", php_exe.display())?;
-        writeln!(log_file, "php_dir={}", php_dir.display())?;
+        writeln!(log_file, "startup_script={}", script_path.display())?;
         writeln!(log_file, "windows_resource_dir={}", resource_dir.display())?;
         writeln!(log_file, "windows_webapp_dir={}", webapp_dir.display())?;
-
-        let php_ini = php_dir.join("php.ini");
-
-        let mut command = Command::new(&php_exe);
+        let mut command = Command::new("cmd");
         command
+            .args(["/C"])
+            .arg(script_path)
             .current_dir(&resource_dir)
-            .env("PATH", windows_path_with_php(&php_dir)?)
             .creation_flags(CREATE_NO_WINDOW)
-            .arg("-d")
-            .arg("cli_server.color=0");
-
-        if php_ini.is_file() {
-            writeln!(log_file, "php_ini={}", php_ini.display())?;
-            command.arg("-c").arg(&php_ini);
-        } else {
-            writeln!(log_file, "php_ini=none")?;
-            command.arg("-n");
-        }
-
-        command
-            .arg("-S")
-            .arg(format!("{HOST}:{port}"))
-            .arg("-t")
-            .arg(webapp_dir);
+            .env("BELGESELSEMOFLIX_HOST", HOST)
+            .env("BELGESELSEMOFLIX_PORT", port.to_string())
+            .env("BELGESELSEMOFLIX_WEBAPP_DIR", webapp_dir);
         return Ok(command);
     }
 

@@ -1364,15 +1364,18 @@
         // LOGIN & PREMIUM SYSTEM
         // ============================================
         const AUTH_STORAGE_KEY = 'belgeselsemo_auth';
-        const DESKTOP_STORAGE_KEYS = [
+        const USER_SCOPED_STORAGE_KEYS = [
             'favorites',
             'watchlist',
             'continueWatching',
             'watched',
             'notes',
             'watchHistory',
-            'belgeselsemo_auth',
             'bsflix_download_reward'
+        ];
+        const DESKTOP_STORAGE_KEYS = [
+            'belgeselsemo_auth',
+            ...USER_SCOPED_STORAGE_KEYS
         ];
 
         function getDesktopStorageBridge() {
@@ -1444,6 +1447,71 @@
         
         let currentUser = null;
         window.currentUser = null; // global erişim için
+
+        function getUserStorageScope(user = currentUser) {
+            if (user && user.email) {
+                return `user:${String(user.email).trim().toLowerCase()}`;
+            }
+            return 'guest:anonymous';
+        }
+
+        function getScopedStorageKey(key, scope = getUserStorageScope()) {
+            return `__bs_scope__:${scope}:${key}`;
+        }
+
+        function refreshAppScopedState() {
+            if (!window.app) return;
+            window.app.favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
+            window.app.watchlist = JSON.parse(localStorage.getItem('watchlist') || '[]');
+            window.app.continueWatching = JSON.parse(localStorage.getItem('continueWatching') || '[]');
+            window.app.watched = JSON.parse(localStorage.getItem('watched') || '[]');
+            window.app.notes = JSON.parse(localStorage.getItem('notes') || '{}');
+            window.app.watchHistory = JSON.parse(localStorage.getItem('watchHistory') || '[]');
+        }
+
+        async function persistCurrentScopedData(scope = getUserStorageScope()) {
+            for (const key of USER_SCOPED_STORAGE_KEYS) {
+                const value = localStorage.getItem(key);
+                const scopedKey = getScopedStorageKey(key, scope);
+                if (value === null) {
+                    localStorage.removeItem(scopedKey);
+                    await removeDesktopStorageKey(scopedKey);
+                } else {
+                    localStorage.setItem(scopedKey, value);
+                    await saveDesktopStorageKey(scopedKey);
+                }
+            }
+        }
+
+        async function applyScopedData(scope = getUserStorageScope()) {
+            for (const key of USER_SCOPED_STORAGE_KEYS) {
+                localStorage.removeItem(key);
+                const scopedValue = localStorage.getItem(getScopedStorageKey(key, scope));
+                if (typeof scopedValue === 'string') {
+                    localStorage.setItem(key, scopedValue);
+                }
+            }
+            refreshAppScopedState();
+        }
+
+        async function switchUserScopedStorage(nextUser) {
+            const previousScope = getUserStorageScope(currentUser);
+            await persistCurrentScopedData(previousScope);
+
+            currentUser = nextUser;
+            window.currentUser = nextUser;
+
+            if (nextUser) {
+                localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(nextUser));
+                await saveDesktopStorageKey(AUTH_STORAGE_KEY);
+            } else {
+                localStorage.removeItem(AUTH_STORAGE_KEY);
+                await removeDesktopStorageKey(AUTH_STORAGE_KEY);
+            }
+
+            const nextScope = getUserStorageScope(nextUser);
+            await applyScopedData(nextScope);
+        }
         
         // Custom Confirm Dialog
         function customConfirm(message, title = 'Onay', icon = '❓') {
@@ -1540,11 +1608,8 @@
         window.customAlert = customAlert;
         
         // Save auth to localStorage
-        function saveAuth(userData) {
-            localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(userData));
-            saveDesktopStorageKey(AUTH_STORAGE_KEY);
-            currentUser = userData;
-            window.currentUser = userData;
+        async function saveAuth(userData) {
+            await switchUserScopedStorage(userData);
         }
         
         // Load auth from localStorage
@@ -1559,11 +1624,8 @@
         }
         
         // Clear auth
-        function clearAuth() {
-            localStorage.removeItem(AUTH_STORAGE_KEY);
-            removeDesktopStorageKey(AUTH_STORAGE_KEY);
-            currentUser = null;
-            window.currentUser = null;
+        async function clearAuth() {
+            await switchUserScopedStorage(null);
         }
         
         // Show/hide login overlay
@@ -1646,9 +1708,11 @@
             if (auth) {
                 currentUser = auth;
                 window.currentUser = auth;
+                applyScopedData(getUserStorageScope(auth));
                 hideLogin();
                 updateUserInfo();
             } else {
+                applyScopedData(getUserStorageScope(null));
                 showLogin();
             }
             
@@ -1691,7 +1755,7 @@
                             loginTime: new Date().toISOString()
                         };
                         
-                        saveAuth(userData);
+                        await saveAuth(userData);
                         hideLogin();
                         updateUserInfo();
                         
@@ -1724,14 +1788,15 @@
                     loginTime: new Date().toISOString()
                 };
                 
-                saveAuth(userData);
-                hideLogin();
-                updateUserInfo();
-                
-                // Reload app
-                if (window.app) {
-                    window.app.renderPage(window.app.state.currentPage);
-                }
+                saveAuth(userData).then(() => {
+                    hideLogin();
+                    updateUserInfo();
+                    
+                    // Reload app
+                    if (window.app) {
+                        window.app.renderPage(window.app.state.currentPage);
+                    }
+                });
             });
             
             // Logout
@@ -1743,12 +1808,12 @@
                 );
                 
                 if (confirmed) {
-                    clearAuth();
+                    await clearAuth();
                     showLogin();
                     updateUserInfo();
-                    
-                    // Reload page
-                    location.reload();
+                    if (window.app) {
+                        window.app.renderPage(window.app.state.currentPage);
+                    }
                 }
             });
         }
