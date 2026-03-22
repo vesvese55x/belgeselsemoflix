@@ -111,7 +111,9 @@ fn main() {
         ])
         .setup(|app| {
             #[cfg(target_os = "windows")]
-            ensure_windows_webview2_runtime()?;
+            if let Err(error) = ensure_windows_webview2_runtime() {
+                return Err(std::io::Error::other(error.to_string()).into());
+            }
 
             let main_window = WebviewWindowBuilder::new(
                 app,
