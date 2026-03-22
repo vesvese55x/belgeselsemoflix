@@ -717,6 +717,13 @@ fn resolve_runtime_webapp_dir(
     desktop_data_dir: &Path,
     log_file: &mut std::fs::File,
 ) -> Result<PathBuf, DynError> {
+    if let Some(override_dir) = env::var_os("BELGESELSEMOFLIX_WEBAPP_DIR").map(PathBuf::from) {
+        writeln!(log_file, "env_webapp_dir={}", override_dir.display())?;
+        if override_dir.join("index.php").is_file() {
+            return Ok(override_dir);
+        }
+    }
+
     let direct_webapp_dir = resource_dir.join("webapp");
     if direct_webapp_dir.is_dir() {
         return Ok(direct_webapp_dir);
@@ -916,6 +923,11 @@ fn startup_command(
 }
 
 fn desktop_data_dir(app: &tauri::AppHandle) -> Result<PathBuf, DynError> {
+    if let Some(env_dir) = env::var_os("BELGESELSEMOFLIX_DESKTOP_DATA_DIR").map(PathBuf::from) {
+        fs::create_dir_all(&env_dir)?;
+        return Ok(env_dir);
+    }
+
     let mut data_dir = env::temp_dir().join("belgeselsemoflix-desktop-data");
     if let Ok(app_data_dir) = app.path().app_data_dir() {
         data_dir = app_data_dir.join("desktop-data");

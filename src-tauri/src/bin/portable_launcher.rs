@@ -114,6 +114,15 @@ mod launcher {
             return Ok(());
         }
 
+        let _ = MessageDialog::new()
+            .set_level(MessageLevel::Info)
+            .set_title("BELGESELSEMOFLIX Portable")
+            .set_description(
+                "WebView2 Runtime bulunamadi.\nGerekli bileşen simdi arka planda indirilecek ve kurulacak.",
+            )
+            .set_buttons(MessageButtons::Ok)
+            .show();
+
         let installer_path = env::temp_dir().join("belgeselsemoflix-webview2-bootstrapper.exe");
         let response = Client::builder()
             .connect_timeout(Duration::from_secs(20))
@@ -142,6 +151,13 @@ mod launcher {
         if !status.success() && !windows_webview2_installed() {
             return Err("WebView2 Runtime kurulumu basarisiz oldu".into());
         }
+
+        let _ = MessageDialog::new()
+            .set_level(MessageLevel::Info)
+            .set_title("BELGESELSEMOFLIX Portable")
+            .set_description("WebView2 Runtime kurulumu tamamlandi. Uygulama baslatiliyor.")
+            .set_buttons(MessageButtons::Ok)
+            .show();
 
         Ok(())
     }
