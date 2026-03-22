@@ -884,6 +884,7 @@ fn startup_command(
             return Err(format!("baslangic scripti bulunamadi: {}", script_path.display()).into());
         }
 
+        let script_path = windows_compatible_path(&script_path);
         let resource_dir = windows_compatible_path(resource_dir);
         let webapp_dir = windows_compatible_path(webapp_dir);
 
@@ -892,7 +893,7 @@ fn startup_command(
         writeln!(log_file, "windows_webapp_dir={}", webapp_dir.display())?;
         let mut command = Command::new("cmd");
         command
-            .args(["/C"])
+            .args(["/C", "call"])
             .arg(script_path)
             .current_dir(&resource_dir)
             .creation_flags(CREATE_NO_WINDOW)
