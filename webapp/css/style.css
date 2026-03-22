@@ -1413,7 +1413,7 @@ body.has-guest-bar .modal-content {
     padding: 2rem;
     background: var(--bg-card);
     flex: 1 1 auto;
-    min-height: 250px;
+    min-height: 360px;
     max-height: none;
     overflow: hidden;
     display: block !important;
@@ -1422,8 +1422,8 @@ body.has-guest-bar .modal-content {
 /* Büyük ekranlarda bölümlere daha çok alan */
 @media (min-width: 1200px) {
     .episodes-section {
-        min-height: 220px;
-        max-height: 280px;
+        min-height: 420px;
+        max-height: none;
         flex: 1;
         overflow: hidden;
     }
@@ -1491,7 +1491,8 @@ body.has-guest-bar .modal-content {
 }
 
 .episodes-carousel {
-    max-height: min(42vh, 420px);
+    height: min(42vh, 420px);
+    min-height: 220px;
     overflow-y: auto;
     overflow-x: hidden;
     padding-right: 0.5rem;
@@ -2782,13 +2783,13 @@ body.tool-has-tabs .tool-iframe-container {
     }
 
     .episode-card {
-        width: 180px;
+        width: 100%;
     }
 
     .episodes-section {
         padding: 1rem;
-        min-height: 180px;
-        max-height: 400px;
+        min-height: 320px;
+        max-height: none;
     }
 
     .episodes-section h3 {
@@ -2832,13 +2833,13 @@ body.tool-has-tabs .tool-iframe-container {
     }
 
     .episode-card {
-        width: 220px;
+        width: 100%;
     }
 
     .episodes-section {
         padding: 1.75rem;
-        min-height: 190px;
-        max-height: 450px;
+        min-height: 360px;
+        max-height: none;
     }
 
     .modal-poster-fixed {
@@ -3028,13 +3029,13 @@ body.tool-has-tabs .tool-iframe-container {
     }
 
     .episode-card {
-        width: 200px;
+        width: 100%;
     }
 
     .episodes-section {
         padding: 1.5rem;
-        min-height: 190px;
-        max-height: 450px;
+        min-height: 340px;
+        max-height: none;
     }
 
     .episodes-section h3 {

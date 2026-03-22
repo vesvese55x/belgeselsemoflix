@@ -18,6 +18,8 @@ use std::{
 use std::os::windows::process::CommandExt;
 #[cfg(target_os = "windows")]
 use std::time::UNIX_EPOCH;
+#[cfg(target_os = "windows")]
+use std::fs::File;
 
 use serde::Serialize;
 use serde_json::{json, Value};
@@ -25,6 +27,8 @@ use tauri::{
     ipc::InvokeError, Manager, RunEvent, Webview, WebviewUrl, WebviewWindow, WebviewWindowBuilder,
 };
 use url::Url;
+#[cfg(target_os = "windows")]
+use zip::ZipArchive;
 
 const APP_TITLE: &str = "BELGESELSEMOFLIX 1.0";
 const APP_FOOTER: &str = "BELGESELSEMO.COM.TR";
@@ -831,25 +835,20 @@ fn extract_windows_assets_pack(
     writeln!(log_file, "assets_archive={}", archive_path.display())?;
     writeln!(log_file, "assets_unpack_dir={}", unpack_dir.display())?;
 
-    let status = Command::new("powershell")
-        .args([
-            "-NoProfile",
-            "-NonInteractive",
-            "-ExecutionPolicy",
-            "Bypass",
-            "-Command",
-            "Expand-Archive -LiteralPath $args[0] -DestinationPath $args[1] -Force",
-        ])
-        .arg(&archive_path)
-        .arg(&unpack_dir)
-        .creation_flags(CREATE_NO_WINDOW)
-        .status()?;
-
-    let _ = fs::remove_file(&archive_path);
-
-    if !status.success() {
+    let archive_file = File::open(&archive_path)?;
+    let mut archive = match ZipArchive::new(archive_file) {
+        Ok(archive) => archive,
+        Err(error) => {
+            writeln!(log_file, "assets_open_failed={error}")?;
+            return Err("assets.pack acilamadi".into());
+        }
+    };
+    if let Err(error) = archive.extract(&unpack_dir) {
+        writeln!(log_file, "assets_extract_failed={error}")?;
         return Err("assets.pack acilamadi".into());
     }
+
+    let _ = fs::remove_file(&archive_path);
 
     if extracted_webapp.is_dir() {
         fs::write(marker_path, marker_value)?;
