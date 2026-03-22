@@ -156,22 +156,58 @@ mod launcher {
 
     fn windows_webview2_installed() -> bool {
         for scope in ["HKLM", "HKCU"] {
-            let key = format!(
-                r"{}\SOFTWARE\Microsoft\EdgeUpdate\Clients\{{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}}",
-                scope
-            );
-            let output = Command::new("reg")
-                .args(["query", &key, "/v", "pv"])
-                .creation_flags(CREATE_NO_WINDOW)
-                .stdin(Stdio::null())
-                .stdout(Stdio::piped())
-                .stderr(Stdio::null())
-                .output();
+            for key in [
+                format!(
+                    r"{}\SOFTWARE\Microsoft\EdgeUpdate\Clients\{{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}}",
+                    scope
+                ),
+                format!(
+                    r"{}\SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\{{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}}",
+                    scope
+                ),
+            ] {
+                let output = Command::new("reg")
+                    .args(["query", &key, "/v", "pv"])
+                    .creation_flags(CREATE_NO_WINDOW)
+                    .stdin(Stdio::null())
+                    .stdout(Stdio::piped())
+                    .stderr(Stdio::null())
+                    .output();
 
-            if let Ok(output) = output {
-                if output.status.success() && !output.stdout.is_empty() {
-                    return true;
+                if let Ok(output) = output {
+                    if output.status.success() && !output.stdout.is_empty() {
+                        return true;
+                    }
                 }
+            }
+        }
+
+        for base in [
+            env::var_os("ProgramFiles(x86)").map(PathBuf::from),
+            env::var_os("ProgramFiles").map(PathBuf::from),
+            env::var_os("LOCALAPPDATA").map(PathBuf::from),
+        ]
+        .into_iter()
+        .flatten()
+        {
+            let candidate = base.join("Microsoft").join("EdgeWebView").join("Application");
+            if webview_runtime_exists_in(&candidate) {
+                return true;
+            }
+        }
+
+        false
+    }
+
+    fn webview_runtime_exists_in(root: &Path) -> bool {
+        let entries = match fs::read_dir(root) {
+            Ok(entries) => entries,
+            Err(_) => return false,
+        };
+
+        for entry in entries.flatten() {
+            if entry.path().join("msedgewebview2.exe").is_file() {
+                return true;
             }
         }
 

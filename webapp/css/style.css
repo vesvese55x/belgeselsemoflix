@@ -1415,7 +1415,7 @@ body.has-guest-bar .modal-content {
     flex: 1 1 auto;
     min-height: 250px;
     max-height: none;
-    overflow-y: auto;
+    overflow: hidden;
     display: block !important;
 }
 
@@ -1425,7 +1425,7 @@ body.has-guest-bar .modal-content {
         min-height: 220px;
         max-height: 280px;
         flex: 1;
-        overflow-y: visible;
+        overflow: hidden;
     }
 }
 
@@ -1449,26 +1449,10 @@ body.has-guest-bar .modal-content {
     display: flex;
     gap: 0.75rem;
     margin-bottom: 1.5rem;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    overflow-y: hidden;
+    flex-wrap: wrap;
+    overflow: visible;
     border-bottom: 2px solid rgba(255, 255, 255, 0.1);
-    padding-bottom: 0.75rem;
-    scroll-behavior: smooth;
-}
-
-.season-tabs::-webkit-scrollbar {
-    height: 8px;
-}
-
-.season-tabs::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 4px;
-}
-
-.season-tabs::-webkit-scrollbar-thumb {
-    background: var(--accent);
-    border-radius: 4px;
+    padding-bottom: 0.5rem;
 }
 
 .season-tab {
@@ -1482,8 +1466,6 @@ body.has-guest-bar .modal-content {
     cursor: pointer;
     transition: all 0.3s;
     border-bottom: 3px solid transparent;
-    flex: 0 0 auto;
-    white-space: nowrap;
 }
 
 .season-tab:hover {
@@ -1506,6 +1488,27 @@ body.has-guest-bar .modal-content {
 .season-group.active {
     display: block;
     margin-bottom: 0;
+}
+
+.episodes-carousel {
+    max-height: min(42vh, 420px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 0.5rem;
+}
+
+.episodes-carousel::-webkit-scrollbar {
+    width: 8px;
+}
+
+.episodes-carousel::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+}
+
+.episodes-carousel::-webkit-scrollbar-thumb {
+    background: var(--accent);
+    border-radius: 4px;
 }
 
 /* Küçük ekranlarda tab'lar */
