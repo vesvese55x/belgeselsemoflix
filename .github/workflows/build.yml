@@ -173,6 +173,8 @@ jobs:
             'extension=mbstring',
             'extension=fileinfo',
             'extension=sodium',
+            'opcache.enable=0',
+            'opcache.enable_cli=0',
             'curl.cainfo=',
             'openssl.cafile='
           )
@@ -190,7 +192,7 @@ jobs:
       - name: Build Windows portable launcher
         shell: pwsh
         run: |
-          cargo build --manifest-path src-tauri/Cargo.toml --release --bin portable_launcher
+          cargo build --manifest-path src-tauri/Cargo.toml --release --bin portable_launcher --features portable-launcher
 
       - name: Smoke test bundled PHP startup on Windows
         shell: pwsh

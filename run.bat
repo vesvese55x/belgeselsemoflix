@@ -19,7 +19,7 @@ if "%WEBAPP_DIR%"=="" set "WEBAPP_DIR=%CD%\webapp"
 set "BUNDLED_PHP_ROOT=%CD%\runtime\windows"
 set "PHP_CMD="
 set "PHP_DIR="
-set "PHP_ARGS=-d cli_server.color=0"
+set "PHP_ARGS=-d cli_server.color=0 -d opcache.enable=0 -d opcache.enable_cli=0"
 set "EXIT_CODE=0"
 
 if not exist "%WEBAPP_DIR%" (

@@ -1414,8 +1414,9 @@ body.has-guest-bar .modal-content {
     background: var(--bg-card);
     flex: 1 1 auto;
     min-height: 360px;
-    max-height: none;
-    overflow: hidden;
+    max-height: min(56vh, 560px);
+    overflow-y: auto;
+    overflow-x: hidden;
     display: block !important;
 }
 
@@ -1423,9 +1424,9 @@ body.has-guest-bar .modal-content {
 @media (min-width: 1200px) {
     .episodes-section {
         min-height: 420px;
-        max-height: none;
+        max-height: min(58vh, 620px);
         flex: 1;
-        overflow: hidden;
+        overflow-y: auto;
     }
 }
 
@@ -1491,23 +1492,22 @@ body.has-guest-bar .modal-content {
 }
 
 .episodes-carousel {
-    height: min(42vh, 420px);
-    min-height: 220px;
-    overflow-y: auto;
-    overflow-x: hidden;
-    padding-right: 0.5rem;
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+    padding-right: 0;
 }
 
-.episodes-carousel::-webkit-scrollbar {
+.episodes-section::-webkit-scrollbar {
     width: 8px;
 }
 
-.episodes-carousel::-webkit-scrollbar-track {
+.episodes-section::-webkit-scrollbar-track {
     background: rgba(255, 255, 255, 0.05);
     border-radius: 4px;
 }
 
-.episodes-carousel::-webkit-scrollbar-thumb {
+.episodes-section::-webkit-scrollbar-thumb {
     background: var(--accent);
     border-radius: 4px;
 }
@@ -2789,7 +2789,7 @@ body.tool-has-tabs .tool-iframe-container {
     .episodes-section {
         padding: 1rem;
         min-height: 320px;
-        max-height: none;
+        max-height: min(50vh, 460px);
     }
 
     .episodes-section h3 {
@@ -2839,7 +2839,7 @@ body.tool-has-tabs .tool-iframe-container {
     .episodes-section {
         padding: 1.75rem;
         min-height: 360px;
-        max-height: none;
+        max-height: min(54vh, 520px);
     }
 
     .modal-poster-fixed {
@@ -3035,7 +3035,7 @@ body.tool-has-tabs .tool-iframe-container {
     .episodes-section {
         padding: 1.5rem;
         min-height: 340px;
-        max-height: none;
+        max-height: min(52vh, 500px);
     }
 
     .episodes-section h3 {
