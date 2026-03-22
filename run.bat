@@ -20,9 +20,11 @@ set "BUNDLED_PHP_ROOT=%CD%\runtime\windows"
 set "PHP_CMD="
 set "PHP_DIR="
 set "PHP_ARGS=-d cli_server.color=0"
+set "EXIT_CODE=0"
 
 if not exist "%WEBAPP_DIR%" (
   echo Web uygulama klasoru bulunamadi: %WEBAPP_DIR%
+  popd >nul 2>nul
   exit /b 1
 )
 
@@ -61,7 +63,19 @@ echo PHP komutu: !PHP_CMD!
 echo PHP klasoru: !PHP_DIR!
 echo Web klasoru: %WEBAPP_DIR%
 echo Server baslatiliyor: http://%HOST%:%PORT%/index.php
+if not "!PHP_DIR!"=="" (
+  pushd "!PHP_DIR!" >nul 2>nul
+  if errorlevel 1 (
+    echo PHP klasorune gecilemedi: !PHP_DIR!
+    set "EXIT_CODE=1"
+    goto cleanup
+  )
+)
 "!PHP_CMD!" !PHP_ARGS! -S %HOST%:%PORT% -t "%WEBAPP_DIR%"
 set "EXIT_CODE=%ERRORLEVEL%"
+:cleanup
+if not "!PHP_DIR!"=="" (
+  popd >nul 2>nul
+)
 popd >nul 2>nul
 exit /b %EXIT_CODE%

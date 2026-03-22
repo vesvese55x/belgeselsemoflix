@@ -699,7 +699,13 @@ fn startup_log_path(app: &tauri::AppHandle) -> Result<PathBuf, DynError> {
 
 fn resource_root(root_dir: &Path) -> PathBuf {
     let updater_dir = root_dir.join("_up_");
-    if updater_dir.exists() {
+    let has_runtime_payload = updater_dir.join("webapp").exists()
+        || updater_dir.join("runtime").exists()
+        || updater_dir.join("run.bat").exists()
+        || updater_dir.join("run.sh").exists()
+        || updater_dir.join("run.command").exists();
+
+    if updater_dir.exists() && has_runtime_payload {
         updater_dir
     } else {
         root_dir.to_path_buf()

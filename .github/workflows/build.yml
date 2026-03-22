@@ -182,6 +182,16 @@ jobs:
       - name: Build Windows installer
         run: npm run tauri build -- --config src-tauri/tauri.windows.conf.json --bundles nsis
 
+      - name: Build Windows assets pack
+        shell: pwsh
+        run: |
+          ./scripts/build-windows-assets-pack.ps1
+
+      - name: Build Windows portable launcher
+        shell: pwsh
+        run: |
+          cargo build --manifest-path src-tauri/Cargo.toml --release --bin portable_launcher
+
       - name: Smoke test bundled PHP startup on Windows
         shell: pwsh
         run: |
