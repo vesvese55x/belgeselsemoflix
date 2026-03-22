@@ -9,6 +9,11 @@ mod launcher {
         io::{Read, Write},
         path::{Path, PathBuf},
         process::{Command, Stdio},
+        sync::{
+            atomic::{AtomicBool, Ordering},
+            Arc,
+        },
+        thread,
         time::{Duration, UNIX_EPOCH},
     };
 
@@ -107,90 +112,286 @@ mod launcher {
             return Ok(());
         }
 
-        show_webview2_status(
-            "WebView2 indiriliyor...\nLütfen bekleyiniz.\nAnlayışınız için çok teşekkür ederiz.",
-        );
+        let status_dir = env::temp_dir().join("belgeselsemoflix-webview2-status");
+        fs::create_dir_all(&status_dir)?;
+        let status_file = status_dir.join(format!(
+            "status-{}-{}.txt",
+            std::process::id(),
+            UNIX_EPOCH.elapsed().unwrap_or_default().as_millis()
+        ));
+        fs::write(
+            &status_file,
+            "STATE|WebView2 indiriliyor...\nLütfen bekleyiniz.\nAnlayışınız için çok teşekkür ederiz.",
+        )?;
+        let status_window = start_webview2_status_window(&status_file);
+        let installer_path = env::temp_dir().join(format!(
+            "belgeselsemoflix-webview2-bootstrapper-{}-{}.exe",
+            std::process::id(),
+            UNIX_EPOCH.elapsed().unwrap_or_default().as_millis()
+        ));
 
-        let installer_path = env::temp_dir().join("belgeselsemoflix-webview2-bootstrapper.exe");
-        let mut response = Client::builder()
-            .connect_timeout(Duration::from_secs(20))
-            .timeout(Duration::from_secs(300))
-            .build()?
-            .get(WEBVIEW2_BOOTSTRAPPER_URL)
-            .header(reqwest::header::USER_AGENT, "BELGESELSEMOFLIX Portable Launcher")
-            .send()?;
+        let install_result: Result<(), DynError> = (|| {
+            let _ = remove_file_with_retries(&installer_path);
+            let mut response = Client::builder()
+                .connect_timeout(Duration::from_secs(20))
+                .timeout(Duration::from_secs(300))
+                .build()?
+                .get(WEBVIEW2_BOOTSTRAPPER_URL)
+                .header(reqwest::header::USER_AGENT, "BELGESELSEMOFLIX Portable Launcher")
+                .send()?;
 
-        if !response.status().is_success() {
-            return Err(format!("WebView2 bootstrapper indirilemedi: HTTP {}", response.status()).into());
-        }
-
-        let total_bytes = response.content_length();
-        let mut installer_file = File::create(&installer_path)?;
-        let mut downloaded_bytes: u64 = 0;
-        let mut buffer = [0u8; 64 * 1024];
-        let mut next_update_percent = 0u64;
-
-        loop {
-            let read = response.read(&mut buffer)?;
-            if read == 0 {
-                break;
+            if !response.status().is_success() {
+                return Err(format!(
+                    "WebView2 bootstrapper indirilemedi: HTTP {}",
+                    response.status()
+                )
+                .into());
             }
 
-            installer_file.write_all(&buffer[..read])?;
-            downloaded_bytes += read as u64;
+            let total_bytes = response.content_length();
+            let mut installer_file = File::create(&installer_path)?;
+            let mut downloaded_bytes: u64 = 0;
+            let mut buffer = [0u8; 64 * 1024];
+            let mut next_update_percent = 0u64;
 
-            if let Some(total) = total_bytes {
-                if total > 0 {
-                    let percent = ((downloaded_bytes.saturating_mul(100)) / total).min(100);
-                    if percent >= next_update_percent {
-                        show_webview2_status(&format!(
-                            "WebView2 indiriliyor... %{percent}\nLütfen bekleyiniz.\nAnlayışınız için çok teşekkür ederiz."
-                        ));
-                        next_update_percent = percent.saturating_add(20);
+            loop {
+                let read = response.read(&mut buffer)?;
+                if read == 0 {
+                    break;
+                }
+
+                installer_file.write_all(&buffer[..read])?;
+                downloaded_bytes += read as u64;
+
+                if let Some(total) = total_bytes {
+                    if total > 0 {
+                        let percent = ((downloaded_bytes.saturating_mul(100)) / total).min(100);
+                        if percent >= next_update_percent {
+                            write_webview2_status(
+                                &status_file,
+                                &format!(
+                                    "WebView2 indiriliyor... %{percent}\nLütfen bekleyiniz.\nAnlayışınız için çok teşekkür ederiz."
+                                ),
+                                Some(percent),
+                            );
+                            next_update_percent = percent.saturating_add(20);
+                        }
                     }
                 }
             }
+
+            write_webview2_status(
+                &status_file,
+                "WebView2 kuruluyor...\nBu işlem 1-2 dk sürebilir. Lütfen bekleyiniz.\nAnlayışınız için çok teşekkür ederiz.",
+                None,
+            );
+
+            let status = Command::new(&installer_path)
+                .args(["/silent", "/install"])
+                .creation_flags(CREATE_NO_WINDOW)
+                .stdin(Stdio::null())
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .status()?;
+
+            write_webview2_status(
+                &status_file,
+                "Kurulum doğrulanıyor...\nLütfen bekleyiniz.\nAnlayışınız için çok teşekkür ederiz.",
+                None,
+            );
+
+            let _ = remove_file_with_retries(&installer_path);
+
+            if !status.success() && !windows_webview2_installed() {
+                return Err("WebView2 Runtime kurulumu basarisiz oldu".into());
+            }
+
+            Ok(())
+        })();
+
+        match &install_result {
+            Ok(_) => {
+                let _ = fs::write(
+                    &status_file,
+                    "DONE|WebView2 Runtime kurulumu tamamlandı.\nUygulama başlatılıyor.",
+                );
+            }
+            Err(error) => {
+                let _ = fs::write(
+                    &status_file,
+                    format!("DONE|{}\nLütfen yeniden deneyiniz.", error),
+                );
+            }
         }
 
-        show_webview2_status(
-            "WebView2 kuruluyor...\nBu işlem 1-2 dk sürebilir. Lütfen bekleyiniz.\nAnlayışınız için çok teşekkür ederiz.",
+        if let Some(handle) = status_window {
+            let _ = handle.join();
+        }
+        let _ = fs::remove_file(&status_file);
+        let _ = remove_file_with_retries(&installer_path);
+
+        install_result
+    }
+
+    fn write_webview2_status(path: &Path, message: &str, percent: Option<u64>) {
+        let payload = match percent {
+            Some(percent) => format!("PROGRESS|{percent}|{message}"),
+            None => format!("STATE|{message}"),
+        };
+        let _ = fs::write(path, payload);
+    }
+
+    fn start_webview2_status_window(status_file: &Path) -> Option<thread::JoinHandle<()>> {
+        let script_path = env::temp_dir().join(format!(
+            "belgeselsemoflix-webview2-status-{}-{}.ps1",
+            std::process::id(),
+            UNIX_EPOCH.elapsed().unwrap_or_default().as_millis()
+        ));
+
+        let script = format!(
+            r#"
+Add-Type -AssemblyName System.Windows.Forms
+Add-Type -AssemblyName System.Drawing
+
+$statusFile = "{status_file}"
+
+$form = New-Object System.Windows.Forms.Form
+$form.Text = "BELGESELSEMOFLIX"
+$form.StartPosition = "CenterScreen"
+$form.Size = New-Object System.Drawing.Size(470, 210)
+$form.FormBorderStyle = "FixedDialog"
+$form.MaximizeBox = $false
+$form.MinimizeBox = $false
+$form.TopMost = $true
+$form.BackColor = [System.Drawing.Color]::FromArgb(28,28,30)
+$form.ForeColor = [System.Drawing.Color]::White
+
+$title = New-Object System.Windows.Forms.Label
+$title.Text = "WebView2 Runtime Hazırlanıyor"
+$title.Font = New-Object System.Drawing.Font("Segoe UI", 14, [System.Drawing.FontStyle]::Bold)
+$title.AutoSize = $false
+$title.Size = New-Object System.Drawing.Size(410, 30)
+$title.Location = New-Object System.Drawing.Point(24, 22)
+$title.ForeColor = [System.Drawing.Color]::White
+$form.Controls.Add($title)
+
+$message = New-Object System.Windows.Forms.Label
+$message.Text = "Lütfen bekleyiniz."
+$message.Font = New-Object System.Drawing.Font("Segoe UI", 10)
+$message.AutoSize = $false
+$message.Size = New-Object System.Drawing.Size(410, 60)
+$message.Location = New-Object System.Drawing.Point(24, 62)
+$message.ForeColor = [System.Drawing.Color]::Gainsboro
+$form.Controls.Add($message)
+
+$progress = New-Object System.Windows.Forms.ProgressBar
+$progress.Style = "Marquee"
+$progress.MarqueeAnimationSpeed = 25
+$progress.Minimum = 0
+$progress.Maximum = 100
+$progress.Size = New-Object System.Drawing.Size(410, 18)
+$progress.Location = New-Object System.Drawing.Point(24, 132)
+$form.Controls.Add($progress)
+
+$footer = New-Object System.Windows.Forms.Label
+$footer.Text = "Anlayışınız için çok teşekkür ederiz."
+$footer.Font = New-Object System.Drawing.Font("Segoe UI", 9)
+$footer.AutoSize = $false
+$footer.Size = New-Object System.Drawing.Size(410, 20)
+$footer.Location = New-Object System.Drawing.Point(24, 156)
+$footer.ForeColor = [System.Drawing.Color]::Silver
+$form.Controls.Add($footer)
+
+$timer = New-Object System.Windows.Forms.Timer
+$timer.Interval = 300
+$timer.Add_Tick({{
+    if (-not (Test-Path $statusFile)) {{
+        return
+    }}
+
+    $content = Get-Content $statusFile -Raw -ErrorAction SilentlyContinue
+    if ([string]::IsNullOrWhiteSpace($content)) {{
+        return
+    }}
+
+    if ($content.StartsWith("PROGRESS|")) {{
+        $parts = $content.Split("|", 3)
+        if ($parts.Length -eq 3) {{
+            $percent = [int]$parts[1]
+            $message.Text = $parts[2]
+            $progress.Style = "Continuous"
+            if ($percent -lt 0) {{ $percent = 0 }}
+            if ($percent -gt 100) {{ $percent = 100 }}
+            $progress.Value = $percent
+        }}
+    }} elseif ($content.StartsWith("STATE|")) {{
+        $message.Text = $content.Substring(6)
+        $progress.Style = "Marquee"
+        $progress.MarqueeAnimationSpeed = 25
+    }} elseif ($content.StartsWith("DONE|")) {{
+        $message.Text = $content.Substring(5)
+        $progress.Style = "Continuous"
+        $progress.Value = 100
+        $timer.Stop()
+        $closeTimer = New-Object System.Windows.Forms.Timer
+        $closeTimer.Interval = 1000
+        $closeTimer.Add_Tick({{
+            $closeTimer.Stop()
+            $form.Close()
+        }})
+        $closeTimer.Start()
+    }}
+}})
+
+$timer.Start()
+[void]$form.ShowDialog()
+"#,
+            status_file = status_file.display()
         );
 
-        let status = Command::new(&installer_path)
-            .args(["/silent", "/install"])
+        if fs::write(&script_path, script).is_err() {
+            return None;
+        }
+
+        let launched = Command::new("powershell.exe")
+            .args([
+                "-NoProfile",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                &script_path.to_string_lossy(),
+            ])
             .creation_flags(CREATE_NO_WINDOW)
             .stdin(Stdio::null())
             .stdout(Stdio::null())
             .stderr(Stdio::null())
-            .status()?;
+            .spawn();
 
-        show_webview2_status(
-            "Kurulum doğrulanıyor...\nLütfen bekleyiniz.\nAnlayışınız için çok teşekkür ederiz.",
-        );
+        let mut child = match launched {
+            Ok(child) => child,
+            Err(_) => return None,
+        };
 
-        let _ = fs::remove_file(&installer_path);
-
-        if !status.success() && !windows_webview2_installed() {
-            return Err("WebView2 Runtime kurulumu basarisiz oldu".into());
-        }
-
-        let _ = MessageDialog::new()
-            .set_level(MessageLevel::Info)
-            .set_title("BELGESELSEMOFLIX")
-            .set_description("WebView2 Runtime kurulumu tamamlandı. Uygulama başlatılıyor.")
-            .set_buttons(MessageButtons::Ok)
-            .show();
-
-        Ok(())
+        Some(thread::spawn(move || {
+            let _ = child.wait();
+            let _ = fs::remove_file(script_path);
+        }))
     }
 
-    fn show_webview2_status(message: &str) {
-        let _ = MessageDialog::new()
-            .set_level(MessageLevel::Info)
-            .set_title("BELGESELSEMOFLIX")
-            .set_description(message)
-            .set_buttons(MessageButtons::Ok)
-            .show();
+    fn remove_file_with_retries(path: &Path) -> Result<(), DynError> {
+        if !path.exists() {
+            return Ok(());
+        }
+
+        for _ in 0..10 {
+            match fs::remove_file(path) {
+                Ok(_) => return Ok(()),
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+                Err(_) => thread::sleep(Duration::from_millis(250)),
+            }
+        }
+
+        Ok(())
     }
 
     fn windows_webview2_installed() -> bool {
