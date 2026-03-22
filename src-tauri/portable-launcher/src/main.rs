@@ -241,12 +241,6 @@ mod launcher {
     }
 
     fn start_webview2_status_window(status_file: &Path) -> Option<thread::JoinHandle<()>> {
-        let script_path = env::temp_dir().join(format!(
-            "belgeselsemoflix-webview2-status-{}-{}.ps1",
-            std::process::id(),
-            UNIX_EPOCH.elapsed().unwrap_or_default().as_millis()
-        ));
-
         let script = format!(
             r#"
 Add-Type -AssemblyName System.Windows.Forms
@@ -254,10 +248,33 @@ Add-Type -AssemblyName System.Drawing
 
 $statusFile = "{status_file}"
 
+function Read-SharedText([string]$path) {{
+    if (-not (Test-Path $path)) {{
+        return $null
+    }}
+
+    $fileStream = [System.IO.File]::Open(
+        $path,
+        [System.IO.FileMode]::Open,
+        [System.IO.FileAccess]::Read,
+        [System.IO.FileShare]::ReadWrite
+    )
+    try {{
+        $reader = New-Object System.IO.StreamReader($fileStream, [System.Text.Encoding]::UTF8, $true)
+        try {{
+            return $reader.ReadToEnd()
+        }} finally {{
+            $reader.Dispose()
+        }}
+    }} finally {{
+        $fileStream.Dispose()
+    }}
+}}
+
 $form = New-Object System.Windows.Forms.Form
 $form.Text = "BELGESELSEMOFLIX"
 $form.StartPosition = "CenterScreen"
-$form.Size = New-Object System.Drawing.Size(470, 230)
+$form.Size = New-Object System.Drawing.Size(470, 242)
 $form.FormBorderStyle = "FixedDialog"
 $form.MaximizeBox = $false
 $form.MinimizeBox = $false
@@ -278,7 +295,7 @@ $message = New-Object System.Windows.Forms.Label
 $message.Text = "Lütfen bekleyiniz."
 $message.Font = New-Object System.Drawing.Font("Segoe UI", 10)
 $message.AutoSize = $false
-$message.Size = New-Object System.Drawing.Size(410, 72)
+$message.Size = New-Object System.Drawing.Size(410, 82)
 $message.Location = New-Object System.Drawing.Point(24, 62)
 $message.ForeColor = [System.Drawing.Color]::Gainsboro
 $form.Controls.Add($message)
@@ -289,15 +306,15 @@ $progress.MarqueeAnimationSpeed = 25
 $progress.Minimum = 0
 $progress.Maximum = 100
 $progress.Size = New-Object System.Drawing.Size(410, 18)
-$progress.Location = New-Object System.Drawing.Point(24, 144)
+$progress.Location = New-Object System.Drawing.Point(24, 154)
 $form.Controls.Add($progress)
 
 $footer = New-Object System.Windows.Forms.Label
 $footer.Text = "Anlayışınız için çok teşekkür ederiz.`r`n"
 $footer.Font = New-Object System.Drawing.Font("Segoe UI", 9)
 $footer.AutoSize = $false
-$footer.Size = New-Object System.Drawing.Size(410, 32)
-$footer.Location = New-Object System.Drawing.Point(24, 172)
+$footer.Size = New-Object System.Drawing.Size(410, 36)
+$footer.Location = New-Object System.Drawing.Point(24, 180)
 $footer.ForeColor = [System.Drawing.Color]::Silver
 $form.Controls.Add($footer)
 
@@ -308,7 +325,7 @@ $timer.Add_Tick({{
         return
     }}
 
-    $content = Get-Content $statusFile -Raw -Encoding UTF8 -ErrorAction SilentlyContinue
+    $content = Read-SharedText $statusFile
     if ([string]::IsNullOrWhiteSpace($content)) {{
         return
     }}
@@ -348,19 +365,22 @@ $timer.Start()
             status_file = status_file.display()
         );
 
-        let mut script_bytes = vec![0xEF, 0xBB, 0xBF];
-        script_bytes.extend_from_slice(script.as_bytes());
-        if fs::write(&script_path, script_bytes).is_err() {
-            return None;
+        let mut encoded = Vec::with_capacity(script.len() * 2);
+        for unit in script.encode_utf16() {
+            encoded.extend_from_slice(&unit.to_le_bytes());
         }
+        let encoded_command = {
+            use base64::Engine as _;
+            base64::engine::general_purpose::STANDARD.encode(encoded)
+        };
 
         let launched = Command::new("powershell.exe")
             .args([
                 "-NoProfile",
                 "-ExecutionPolicy",
                 "Bypass",
-                "-File",
-                &script_path.to_string_lossy(),
+                "-EncodedCommand",
+                &encoded_command,
             ])
             .creation_flags(CREATE_NO_WINDOW)
             .stdin(Stdio::null())
@@ -375,7 +395,6 @@ $timer.Start()
 
         Some(thread::spawn(move || {
             let _ = child.wait();
-            let _ = fs::remove_file(script_path);
         }))
     }
 
