@@ -180,12 +180,7 @@ jobs:
           & $phpExe.FullName -c "$phpDir\\php.ini" -v
 
       - name: Build Windows installer
-        run: npm run tauri build -- --bundles nsis
-
-      - name: Build Windows assets pack
-        shell: pwsh
-        run: |
-          ./scripts/build-windows-assets-pack.ps1
+        run: npm run tauri build -- --config src-tauri/tauri.windows.conf.json --bundles nsis
 
       - name: Smoke test bundled PHP startup on Windows
         shell: pwsh

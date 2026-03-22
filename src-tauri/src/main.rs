@@ -764,6 +764,7 @@ fn extract_windows_assets_pack(
         ])
         .arg(&archive_path)
         .arg(&unpack_dir)
+        .creation_flags(CREATE_NO_WINDOW)
         .status()?;
 
     let _ = fs::remove_file(&archive_path);
