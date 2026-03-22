@@ -1,6 +1,6 @@
 param(
     [string]$SourceDir = "webapp",
-    [string]$OutPath = "dist/windows-portable/assets.pack"
+    [string]$OutPath = "assets.pack"
 )
 
 $ErrorActionPreference = "Stop"

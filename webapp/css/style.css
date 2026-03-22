@@ -1524,34 +1524,16 @@ body.has-guest-bar .modal-content {
 }
 
 .episodes-slider {
-    display: flex;
-    gap: 1.5rem;
-    overflow-x: auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1.25rem;
+    overflow: visible;
     padding: 1rem 0;
-    scroll-behavior: smooth;
-}
-
-.episodes-slider::-webkit-scrollbar {
-    height: 8px;
-}
-
-.episodes-slider::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 4px;
-}
-
-.episodes-slider::-webkit-scrollbar-thumb {
-    background: var(--accent);
-    border-radius: 4px;
-}
-
-.episodes-slider::-webkit-scrollbar-thumb:hover {
-    background: var(--accent-hover);
+    scroll-behavior: auto;
 }
 
 .episode-card {
-    flex: 0 0 auto;
-    width: 250px;
+    width: 100%;
     cursor: pointer;
     transition: all 0.3s;
 }
@@ -1559,7 +1541,7 @@ body.has-guest-bar .modal-content {
 /* Büyük ekranlarda daha kompakt kartlar */
 @media (min-width: 1200px) {
     .episode-card {
-        width: 220px;
+        width: 100%;
     }
 }
 

@@ -741,6 +741,15 @@ fn resolve_runtime_webapp_dir(
 
     #[cfg(target_os = "windows")]
     {
+        if let Some(recursive_webapp_dir) = locate_windows_webapp_dir(resource_dir) {
+            writeln!(
+                log_file,
+                "recursive_webapp_dir={}",
+                recursive_webapp_dir.display()
+            )?;
+            return Ok(recursive_webapp_dir);
+        }
+
         return extract_windows_assets_pack(resource_dir, desktop_data_dir, log_file);
     }
 
@@ -750,6 +759,33 @@ fn resolve_runtime_webapp_dir(
         let _ = log_file;
         Err(format!("webapp klasoru bulunamadi: {}", direct_webapp_dir.display()).into())
     }
+}
+
+#[cfg(target_os = "windows")]
+fn locate_windows_webapp_dir(resource_dir: &Path) -> Option<PathBuf> {
+    let mut roots = vec![resource_dir.to_path_buf()];
+
+    if let Some(parent) = resource_dir.parent() {
+        roots.push(parent.to_path_buf());
+    }
+
+    if let Ok(exe_path) = env::current_exe() {
+        if let Some(exe_dir) = exe_path.parent() {
+            roots.push(exe_dir.to_path_buf());
+        }
+    }
+
+    for root in roots {
+        if let Ok(Some(index_path)) = find_file_recursive(&root, "index.php") {
+            if let Some(parent) = index_path.parent() {
+                if parent.file_name().and_then(|name| name.to_str()) == Some("webapp") {
+                    return Some(parent.to_path_buf());
+                }
+            }
+        }
+    }
+
+    None
 }
 
 #[cfg(target_os = "windows")]
@@ -844,7 +880,29 @@ fn locate_windows_assets_pack(resource_dir: &Path) -> Option<PathBuf> {
         }
     }
 
-    candidates.into_iter().find(|path| path.is_file())
+    if let Some(path) = candidates.into_iter().find(|path| path.is_file()) {
+        return Some(path);
+    }
+
+    let mut roots = vec![resource_dir.to_path_buf()];
+
+    if let Some(parent) = resource_dir.parent() {
+        roots.push(parent.to_path_buf());
+    }
+
+    if let Ok(exe_path) = env::current_exe() {
+        if let Some(exe_dir) = exe_path.parent() {
+            roots.push(exe_dir.to_path_buf());
+        }
+    }
+
+    for root in roots {
+        if let Ok(Some(path)) = find_file_recursive(&root, "assets.pack") {
+            return Some(path);
+        }
+    }
+
+    None
 }
 
 #[cfg(target_os = "windows")]
