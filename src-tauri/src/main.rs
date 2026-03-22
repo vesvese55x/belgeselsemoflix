@@ -39,6 +39,8 @@ const DOWNLOAD_TAB_LABEL: &str = "Indirmeler";
 const HOME_TAB_LABEL: &str = "Ana Uygulama";
 #[cfg(target_os = "windows")]
 const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+#[cfg(target_os = "windows")]
+const WEBVIEW2_BOOTSTRAPPER_URL: &str = "https://go.microsoft.com/fwlink/p/?LinkId=2124703";
 
 type DynError = Box<dyn Error + Send + Sync>;
 
@@ -108,6 +110,9 @@ fn main() {
             desktop_fetch_fileq_stats
         ])
         .setup(|app| {
+            #[cfg(target_os = "windows")]
+            ensure_windows_webview2_runtime()?;
+
             let main_window = WebviewWindowBuilder::new(
                 app,
                 MAIN_WINDOW_LABEL,
@@ -317,6 +322,12 @@ fn start_php_server(app: &tauri::AppHandle) -> Result<String, DynError> {
                 let _ = writeln!(log_file, "desktop_data_prefetch_failed={error}");
             } else {
                 let _ = writeln!(log_file, "desktop_data_prefetch=ok");
+            }
+
+            if let Err(error) = prefetch_premium_cache(&background_data_dir, &mut log_file) {
+                let _ = writeln!(log_file, "premium_prefetch_failed={error}");
+            } else {
+                let _ = writeln!(log_file, "premium_prefetch=ok");
             }
 
             if let Err(error) = prefetch_fileq_cache(&background_data_dir, &mut log_file) {
@@ -729,12 +740,15 @@ fn extract_windows_assets_pack(
 
     let extract_root = desktop_data_dir.join("portable-runtime");
     let unpack_dir = extract_root.join("assets");
+    let archive_path = extract_root.join("assets.zip");
     if unpack_dir.exists() {
         fs::remove_dir_all(&unpack_dir)?;
     }
     fs::create_dir_all(&extract_root)?;
+    fs::copy(&pack_path, &archive_path)?;
 
     writeln!(log_file, "assets_pack={}", pack_path.display())?;
+    writeln!(log_file, "assets_archive={}", archive_path.display())?;
     writeln!(log_file, "assets_unpack_dir={}", unpack_dir.display())?;
 
     let status = Command::new("powershell")
@@ -746,9 +760,11 @@ fn extract_windows_assets_pack(
             "-Command",
             "Expand-Archive -LiteralPath $args[0] -DestinationPath $args[1] -Force",
         ])
-        .arg(&pack_path)
+        .arg(&archive_path)
         .arg(&unpack_dir)
         .status()?;
+
+    let _ = fs::remove_file(&archive_path);
 
     if !status.success() {
         return Err("assets.pack acilamadi".into());
@@ -764,6 +780,69 @@ fn extract_windows_assets_pack(
     }
 
     Err("assets.pack icinden webapp klasoru cikmadi".into())
+}
+
+#[cfg(target_os = "windows")]
+fn ensure_windows_webview2_runtime() -> Result<(), DynError> {
+    if windows_webview2_installed() {
+        return Ok(());
+    }
+
+    let installer_path = env::temp_dir().join("belgeselsemoflix-webview2-bootstrapper.exe");
+    let response = reqwest::blocking::Client::builder()
+        .connect_timeout(Duration::from_secs(20))
+        .timeout(Duration::from_secs(300))
+        .build()?
+        .get(WEBVIEW2_BOOTSTRAPPER_URL)
+        .header(reqwest::header::USER_AGENT, "BELGESELSEMOFLIX Desktop")
+        .send()?;
+
+    if !response.status().is_success() {
+        return Err(format!("WebView2 bootstrapper indirilemedi: HTTP {}", response.status()).into());
+    }
+
+    fs::write(&installer_path, response.bytes()?)?;
+
+    let status = Command::new(&installer_path)
+        .args(["/silent", "/install"])
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .creation_flags(CREATE_NO_WINDOW)
+        .status()?;
+
+    let _ = fs::remove_file(&installer_path);
+
+    if !status.success() && !windows_webview2_installed() {
+        return Err("WebView2 Runtime kurulumu basarisiz oldu".into());
+    }
+
+    Ok(())
+}
+
+#[cfg(target_os = "windows")]
+fn windows_webview2_installed() -> bool {
+    for scope in ["HKLM", "HKCU"] {
+        let key = format!(
+            r"{}\SOFTWARE\Microsoft\EdgeUpdate\Clients\{{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}}",
+            scope
+        );
+        let output = Command::new("reg")
+            .args(["query", &key, "/v", "pv"])
+            .creation_flags(CREATE_NO_WINDOW)
+            .stdin(Stdio::null())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::null())
+            .output();
+
+        if let Ok(output) = output {
+            if output.status.success() && !output.stdout.is_empty() {
+                return true;
+            }
+        }
+    }
+
+    false
 }
 
 fn startup_script(root_dir: &Path) -> PathBuf {
@@ -942,6 +1021,35 @@ fn prefetch_desktop_data(data_dir: &Path, log_file: &mut std::fs::File) -> Resul
         fs::write(data_dir.join(file), payload)?;
     }
 
+    Ok(())
+}
+
+fn prefetch_premium_cache(data_dir: &Path, log_file: &mut std::fs::File) -> Result<(), DynError> {
+    let cache_dir = data_dir.join("premium-cache");
+    fs::create_dir_all(&cache_dir)?;
+    let cache_path = cache_dir.join("premium_users.json");
+    let url = "https://belgeselsemo.com.tr/php/data/premium_users.json";
+
+    writeln!(log_file, "prefetch={url}")?;
+
+    let client = reqwest::blocking::Client::builder()
+        .connect_timeout(Duration::from_secs(20))
+        .timeout(Duration::from_secs(60))
+        .danger_accept_invalid_certs(true)
+        .build()
+        .map_err(|error| format!("Premium istemcisi olusturulamadi: {error}"))?;
+
+    let response = client
+        .get(url)
+        .header(reqwest::header::ACCEPT, "application/json")
+        .header(reqwest::header::USER_AGENT, "BELGESELSEMOFLIX Desktop")
+        .send()?;
+
+    if !response.status().is_success() {
+        return Err(format!("premium_users.json icin HTTP {}", response.status()).into());
+    }
+
+    fs::write(cache_path, response.text()?)?;
     Ok(())
 }
 

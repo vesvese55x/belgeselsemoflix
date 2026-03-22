@@ -35,6 +35,10 @@ if (Test-Path $runtimeWindows) {
     $runtimeTarget = Join-Path $outDir "runtime/windows"
     New-Item -ItemType Directory -Force -Path $runtimeTarget | Out-Null
     Copy-Item (Join-Path $runtimeWindows "*") $runtimeTarget -Recurse -Force
+    $portablePhpZip = Join-Path $runtimeTarget "php.zip"
+    if (Test-Path $portablePhpZip) {
+        Remove-Item $portablePhpZip -Force
+    }
 }
 
 $dlls = Get-ChildItem $releaseDir -Filter *.dll -File -ErrorAction SilentlyContinue

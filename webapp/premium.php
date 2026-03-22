@@ -60,6 +60,9 @@ function verifyWpPassword(string $password, string $storedHash): bool {
 
 $encryptionKey = 'BELGESELSEMO_PREMIUM_2026_SECRET_KEY_XYZ123';
 $jsonUrl       = 'https://belgeselsemo.com.tr/php/data/premium_users.json';
+$desktopDataDir = getenv('BELGESELSEMOFLIX_DESKTOP_DATA_DIR');
+$cacheDir = $desktopDataDir ? rtrim($desktopDataDir, "\\/") . DIRECTORY_SEPARATOR . 'premium-cache' : null;
+$cachePath = $cacheDir ? $cacheDir . DIRECTORY_SEPARATOR . 'premium_users.json' : null;
 
 // ── JSON dosyasını remote'tan oku ─────────────────────────────────────────────
 $jsonRaw = @file_get_contents($jsonUrl);
@@ -69,6 +72,17 @@ if ($jsonRaw === false) {
     curl_setopt($ch, CURLOPT_TIMEOUT, 10);
     $jsonRaw = curl_exec($ch);
     curl_close($ch);
+}
+
+if ($jsonRaw) {
+    if ($cachePath) {
+        if (!is_dir($cacheDir)) {
+            @mkdir($cacheDir, 0777, true);
+        }
+        @file_put_contents($cachePath, $jsonRaw);
+    }
+} elseif ($cachePath && is_file($cachePath)) {
+    $jsonRaw = @file_get_contents($cachePath);
 }
 
 if (!$jsonRaw) {
