@@ -1,5 +1,6 @@
 node_modules/
 src-tauri/target/
+src-tauri/portable-launcher/target/
 dist/
 portable/
 .DS_Store

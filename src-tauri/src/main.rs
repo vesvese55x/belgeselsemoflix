@@ -20,6 +20,8 @@ use std::os::windows::process::CommandExt;
 use std::time::UNIX_EPOCH;
 #[cfg(target_os = "windows")]
 use std::fs::File;
+#[cfg(target_os = "windows")]
+use std::io::Cursor;
 
 use serde::Serialize;
 use serde_json::{json, Value};
@@ -97,8 +99,8 @@ fn main() {
         .manage(AppState {
             server_process: Mutex::new(None),
             shell: Mutex::new(ShellState {
-                status_title: "Hazirlaniyor...".into(),
-                status_detail: "Yerel PHP sunucusu arka planda baslatiliyor.".into(),
+                status_title: "Hazırlanıyor...".into(),
+                status_detail: "Yerel PHP sunucusu arka planda başlatılıyor.".into(),
                 ..Default::default()
             }),
         })
@@ -143,8 +145,8 @@ fn main() {
                         let state = app_handle.state::<AppState>();
                         let mut shell = state.shell.lock().expect("state lock bozuldu");
                         shell.home_url = Some(url);
-                        shell.status_title = "Hazir".into();
-                        shell.status_detail = "Ana uygulama hazir.".into();
+                        shell.status_title = "Hazır".into();
+                        shell.status_detail = "Ana uygulama hazır.".into();
                         shell.active_tab = ActiveTab::Home;
                     }
                     let _ = sync_main_shell(&app_handle);
@@ -154,7 +156,7 @@ fn main() {
                         "{}\n\nDetaylar icin uygulama loglarini kontrol edin.",
                         error
                     );
-                    set_status(&app_handle, "Baslatma Hatasi", &detail);
+                    set_status(&app_handle, "Başlatma Hatası", &detail);
                 }
             });
 
@@ -832,16 +834,21 @@ fn extract_windows_assets_pack(
     writeln!(log_file, "assets_pack={}", pack_path.display())?;
     writeln!(log_file, "assets_unpack_dir={}", unpack_dir.display())?;
 
-    let archive_file = File::open(&pack_path)?;
-    let mut archive = match ZipArchive::new(archive_file) {
+    let archive_bytes = fs::read(&pack_path)?;
+    let archive_cursor = Cursor::new(archive_bytes);
+    let mut archive = match ZipArchive::new(archive_cursor) {
         Ok(archive) => archive,
         Err(error) => {
             writeln!(log_file, "assets_open_failed={error}")?;
             return Err("assets.pack acilamadi".into());
         }
     };
-    if let Err(error) = archive.extract(&unpack_dir) {
+    if let Err(error) = extract_zip_archive(&mut archive, &unpack_dir) {
         writeln!(log_file, "assets_extract_failed={error}")?;
+        if extracted_webapp.join("index.php").is_file() {
+            writeln!(log_file, "assets_extract_fallback=using_existing_cache")?;
+            return Ok(extracted_webapp);
+        }
         return Err("assets.pack acilamadi".into());
     }
 
@@ -856,6 +863,36 @@ fn extract_windows_assets_pack(
     }
 
     Err("assets.pack icinden webapp klasoru cikmadi".into())
+}
+
+#[cfg(target_os = "windows")]
+fn extract_zip_archive<R: std::io::Read + std::io::Seek>(
+    archive: &mut ZipArchive<R>,
+    target_dir: &Path,
+) -> Result<(), DynError> {
+    fs::create_dir_all(target_dir)?;
+
+    for index in 0..archive.len() {
+        let mut entry = archive.by_index(index)?;
+        let Some(relative_path) = entry.enclosed_name().map(|path| path.to_path_buf()) else {
+            continue;
+        };
+
+        let output_path = target_dir.join(relative_path);
+        if entry.name().ends_with('/') {
+            fs::create_dir_all(&output_path)?;
+            continue;
+        }
+
+        if let Some(parent) = output_path.parent() {
+            fs::create_dir_all(parent)?;
+        }
+
+        let mut output_file = File::create(&output_path)?;
+        std::io::copy(&mut entry, &mut output_file)?;
+    }
+
+    Ok(())
 }
 
 #[cfg(target_os = "windows")]
@@ -1057,6 +1094,17 @@ fn desktop_data_dir(app: &tauri::AppHandle) -> Result<PathBuf, DynError> {
     if let Some(env_dir) = env::var_os("BELGESELSEMOFLIX_DESKTOP_DATA_DIR").map(PathBuf::from) {
         fs::create_dir_all(&env_dir)?;
         return Ok(env_dir);
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        if let Some(local_app_data) = env::var_os("LOCALAPPDATA").map(PathBuf::from) {
+            let data_dir = local_app_data
+                .join("com.vesvese55x.belgeselsemoflix")
+                .join("desktop-data");
+            fs::create_dir_all(&data_dir)?;
+            return Ok(data_dir);
+        }
     }
 
     let mut data_dir = env::temp_dir().join("belgeselsemoflix-desktop-data");

@@ -1447,6 +1447,7 @@
         
         let currentUser = null;
         window.currentUser = null; // global erişim için
+        let loginHandlersBound = false;
 
         function getUserStorageScope(user = currentUser) {
             if (user && user.email) {
@@ -1690,19 +1691,11 @@
         
         // Initialize login system
         async function initLoginSystem() {
+            bindLoginHandlers();
             await (window.__BELGESEL_STORAGE_READY || Promise.resolve());
-            // Wait for app to initialize first (so background content loads)
-            if (window.app) {
-                // App already loaded
-                checkAndShowLogin();
-            } else {
-                // Wait for app to load
-                window.addEventListener('load', () => {
-                    setTimeout(checkAndShowLogin, 100);
-                });
-            }
+            checkAndShowLogin();
         }
-        
+
         function checkAndShowLogin() {
             const auth = loadAuth();
             if (auth) {
@@ -1715,8 +1708,27 @@
                 applyScopedData(getUserStorageScope(null));
                 showLogin();
             }
-            
-            // Login form submit
+
+            renderAfterLoginStateChange();
+        }
+
+        function renderAfterLoginStateChange() {
+            if (window.app) {
+                window.app.renderPage(window.app.state.currentPage);
+                return;
+            }
+
+            window.addEventListener('load', () => {
+                if (window.app) {
+                    window.app.renderPage(window.app.state.currentPage);
+                }
+            }, { once: true });
+        }
+
+        function bindLoginHandlers() {
+            if (loginHandlersBound) return;
+            loginHandlersBound = true;
+
             document.getElementById('loginForm').addEventListener('submit', async (e) => {
                 e.preventDefault();
                 
@@ -1724,6 +1736,7 @@
                 const password = document.getElementById('loginPassword').value;
                 const errorDiv = document.getElementById('loginError');
                 const submitBtn = e.target.querySelector('.login-btn-premium');
+                const guestBtn = document.getElementById('guestLoginBtn');
                 
                 if (!email || !password) {
                     errorDiv.textContent = '❌ Lütfen tüm alanları doldurun!';
@@ -1733,6 +1746,7 @@
                 
                 // Disable button and show loading
                 submitBtn.disabled = true;
+                guestBtn.disabled = true;
                 submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Kontrol ediliyor...';
                 errorDiv.classList.remove('show');
                 
@@ -1758,11 +1772,7 @@
                         await saveAuth(userData);
                         hideLogin();
                         updateUserInfo();
-                        
-                        // Reload app
-                        if (window.app) {
-                            window.app.renderPage(window.app.state.currentPage);
-                        }
+                        renderAfterLoginStateChange();
                     } else {
                         // Hata göster
                         errorDiv.textContent = `❌ ${result.error}`;
@@ -1775,12 +1785,21 @@
                 } finally {
                     // Re-enable button
                     submitBtn.disabled = false;
+                    guestBtn.disabled = false;
                     submitBtn.innerHTML = '<i class="fas fa-crown"></i> Premium Üye Girişi';
                 }
             });
             
             // Guest login
-            document.getElementById('guestLoginBtn').addEventListener('click', () => {
+            document.getElementById('guestLoginBtn').addEventListener('click', async () => {
+                const guestBtn = document.getElementById('guestLoginBtn');
+                const submitBtn = document.querySelector('.login-btn-premium');
+                const errorDiv = document.getElementById('loginError');
+
+                guestBtn.disabled = true;
+                submitBtn.disabled = true;
+                errorDiv.classList.remove('show');
+
                 const userData = {
                     name: 'Misafir',
                     email: 'guest@belgeselsemo.com',
@@ -1788,15 +1807,15 @@
                     loginTime: new Date().toISOString()
                 };
                 
-                saveAuth(userData).then(() => {
+                try {
+                    await saveAuth(userData);
                     hideLogin();
                     updateUserInfo();
-                    
-                    // Reload app
-                    if (window.app) {
-                        window.app.renderPage(window.app.state.currentPage);
-                    }
-                });
+                    renderAfterLoginStateChange();
+                } finally {
+                    guestBtn.disabled = false;
+                    submitBtn.disabled = false;
+                }
             });
             
             // Logout
@@ -1811,9 +1830,7 @@
                     await clearAuth();
                     showLogin();
                     updateUserInfo();
-                    if (window.app) {
-                        window.app.renderPage(window.app.state.currentPage);
-                    }
+                    renderAfterLoginStateChange();
                 }
             });
         }

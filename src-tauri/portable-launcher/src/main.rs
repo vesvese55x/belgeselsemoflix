@@ -88,9 +88,10 @@ mod launcher {
         }
         fs::create_dir_all(&unpack_dir)?;
 
-        let archive_file = File::open(pack_path)?;
-        let mut archive = ZipArchive::new(archive_file)?;
-        archive.extract(&unpack_dir)?;
+        let archive_bytes = fs::read(pack_path)?;
+        let archive_cursor = std::io::Cursor::new(archive_bytes);
+        let mut archive = ZipArchive::new(archive_cursor)?;
+        extract_zip_archive(&mut archive, &unpack_dir)?;
 
         if !extracted_webapp.join("index.php").is_file() {
             return Err("assets.pack icinden webapp klasoru cikmadi".into());
@@ -107,9 +108,9 @@ mod launcher {
 
         let _ = MessageDialog::new()
             .set_level(MessageLevel::Info)
-            .set_title("BELGESELSEMOFLIX Portable")
+            .set_title("BELGESELSEMOFLIX")
             .set_description(
-                "WebView2 Runtime bulunamadi.\nGerekli bileşen simdi arka planda indirilecek ve kurulacak.\nBu islem 1-2 dk surebilir. Lutfen bekleyiniz.",
+                "WebView2 Runtime bulunamadı.\nGerekli bileşen şimdi arka planda indirilecek ve kurulacak.\nBu işlem 1-2 dk sürebilir. Lütfen bekleyiniz.",
             )
             .set_buttons(MessageButtons::Ok)
             .show();
@@ -145,8 +146,8 @@ mod launcher {
 
         let _ = MessageDialog::new()
             .set_level(MessageLevel::Info)
-            .set_title("BELGESELSEMOFLIX Portable")
-            .set_description("WebView2 Runtime kurulumu tamamlandi. Uygulama baslatiliyor.")
+            .set_title("BELGESELSEMOFLIX")
+            .set_description("WebView2 Runtime kurulumu tamamlandı. Uygulama başlatılıyor.")
             .set_buttons(MessageButtons::Ok)
             .show();
 
@@ -185,6 +186,7 @@ mod launcher {
             env::var_os("ProgramFiles(x86)").map(PathBuf::from),
             env::var_os("ProgramFiles").map(PathBuf::from),
             env::var_os("LOCALAPPDATA").map(PathBuf::from),
+            env::var_os("PROGRAMW6432").map(PathBuf::from),
         ]
         .into_iter()
         .flatten()
@@ -214,10 +216,39 @@ mod launcher {
     pub fn show_error(error: &str) {
         let _ = MessageDialog::new()
             .set_level(MessageLevel::Error)
-            .set_title("BELGESELSEMOFLIX Portable")
+            .set_title("BELGESELSEMOFLIX")
             .set_description(error)
             .set_buttons(MessageButtons::Ok)
             .show();
+    }
+
+    fn extract_zip_archive<R: std::io::Read + std::io::Seek>(
+        archive: &mut ZipArchive<R>,
+        target_dir: &Path,
+    ) -> Result<(), DynError> {
+        fs::create_dir_all(target_dir)?;
+
+        for index in 0..archive.len() {
+            let mut entry = archive.by_index(index)?;
+            let Some(relative_path) = entry.enclosed_name().map(|path| path.to_path_buf()) else {
+                continue;
+            };
+
+            let output_path = target_dir.join(relative_path);
+            if entry.name().ends_with('/') {
+                fs::create_dir_all(&output_path)?;
+                continue;
+            }
+
+            if let Some(parent) = output_path.parent() {
+                fs::create_dir_all(parent)?;
+            }
+
+            let mut output_file = File::create(&output_path)?;
+            std::io::copy(&mut entry, &mut output_file)?;
+        }
+
+        Ok(())
     }
 
     fn find_file_recursive(root: &Path, filename: &str) -> Option<PathBuf> {

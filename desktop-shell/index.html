@@ -244,9 +244,9 @@
 
         <section class="status-overlay visible" id="statusOverlay">
           <div class="status-card">
-            <div class="status-chip">Desktop Shell</div>
-            <div class="status-title" id="statusTitle">Hazirlaniyor...</div>
-            <p class="status-text" id="statusText">Yerel PHP sunucusu arka planda baslatiliyor.</p>
+            <div class="status-chip">BELGESELSEMOFLIX</div>
+            <div class="status-title" id="statusTitle">Hazırlanıyor...</div>
+            <p class="status-text" id="statusText">Yerel PHP sunucusu arka planda başlatılıyor.</p>
           </div>
         </section>
       </main>
@@ -287,7 +287,7 @@
         }
 
         function refreshOverlay(snapshot) {
-          const startupFailed = snapshot.status_title === "Baslatma Hatasi";
+          const startupFailed = snapshot.status_title === "Başlatma Hatası";
           const shouldShow = startupFailed || !state.homeLoaded;
           statusOverlay.classList.toggle("visible", shouldShow);
         }

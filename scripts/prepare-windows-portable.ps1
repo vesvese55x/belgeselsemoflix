@@ -32,7 +32,7 @@ if (Test-Path $outDir) {
 
 New-Item -ItemType Directory -Force -Path $outDir | Out-Null
 
-Copy-Item $launcherExe (Join-Path $outDir "BELGESELSEMOFLIX-Portable.exe") -Force
+Copy-Item $launcherExe (Join-Path $outDir "belgeselsemoflix.exe") -Force
 Copy-Item $coreExe (Join-Path $outDir "core.exe") -Force
 Copy-Item $runBat (Join-Path $outDir "run.bat") -Force
 Copy-Item $assetsPack (Join-Path $outDir "assets.pack") -Force
