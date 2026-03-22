@@ -117,7 +117,7 @@ mod launcher {
         ));
         fs::write(
             &status_file,
-            "STATE|WebView2 indiriliyor...\nLütfen bekleyiniz.\nAnlayışınız için çok teşekkür ederiz.",
+            "PROGRESS|0|WebView2 indiriliyor...\nLütfen bekleyiniz.\nAnlayışınız için çok teşekkür ederiz.",
         )?;
         let status_window = start_webview2_status_window(&status_file);
         let installer_path = env::temp_dir().join(format!(
@@ -148,7 +148,8 @@ mod launcher {
             let mut installer_file = File::create(&installer_path)?;
             let mut downloaded_bytes: u64 = 0;
             let mut buffer = [0u8; 64 * 1024];
-            let mut next_update_percent = 0u64;
+            let mut next_update_percent = 10u64;
+            let mut download_progress_set = false;
 
             loop {
                 let read = response.read(&mut buffer)?;
@@ -161,7 +162,8 @@ mod launcher {
 
                 if let Some(total) = total_bytes {
                     if total > 0 {
-                        let percent = ((downloaded_bytes.saturating_mul(100)) / total).min(100);
+                        let raw_percent = ((downloaded_bytes.saturating_mul(100)) / total).min(100);
+                        let percent = ((raw_percent.saturating_mul(33)) / 100).min(33);
                         if percent >= next_update_percent {
                             write_webview2_status(
                                 &status_file,
@@ -170,7 +172,8 @@ mod launcher {
                                 ),
                                 Some(percent),
                             );
-                            next_update_percent = percent.saturating_add(20);
+                            next_update_percent = percent.saturating_add(5);
+                            download_progress_set = true;
                         }
                     }
                 }
@@ -179,10 +182,18 @@ mod launcher {
             installer_file.flush()?;
             drop(installer_file);
 
+            if !download_progress_set {
+                write_webview2_status(
+                    &status_file,
+                    "WebView2 indiriliyor... %33\nLütfen bekleyiniz.\nAnlayışınız için çok teşekkür ederiz.",
+                    Some(33),
+                );
+            }
+
             write_webview2_status(
                 &status_file,
-                "WebView2 kuruluyor...\nBu işlem 1-2 dk sürebilir. Lütfen bekleyiniz.\nAnlayışınız için çok teşekkür ederiz.",
-                None,
+                "WebView2 kuruluyor... %66\nBu işlem 1-2 dk sürebilir. Lütfen bekleyiniz.\nAnlayışınız için çok teşekkür ederiz.",
+                Some(66),
             );
 
             let status = Command::new(&installer_path)
@@ -195,8 +206,8 @@ mod launcher {
 
             write_webview2_status(
                 &status_file,
-                "Kurulum doğrulanıyor...\nLütfen bekleyiniz.\nAnlayışınız için çok teşekkür ederiz.",
-                None,
+                "Kurulum doğrulanıyor... %100\nLütfen bekleyiniz.\nAnlayışınız için çok teşekkür ederiz.",
+                Some(100),
             );
 
             let _ = remove_file_with_retries(&installer_path);
