@@ -1424,10 +1424,11 @@ body.has-guest-bar .modal-content {
     flex-direction: column;
     height: 100%;
     min-height: 0;
-    max-height: min(58vh, 620px);
+    max-height: min(62vh, 680px);
     overflow-y: auto;
     overflow-x: hidden;
     padding-right: 0.55rem;
+    overscroll-behavior: contain;
 }
 
 /* Büyük ekranlarda bölümlere daha çok alan */
@@ -1440,7 +1441,7 @@ body.has-guest-bar .modal-content {
     }
 
     .episodes-scroll-area {
-        max-height: min(62vh, 700px);
+        max-height: min(66vh, 760px);
     }
 }
 
@@ -1503,6 +1504,7 @@ body.has-guest-bar .modal-content {
 .season-group.active {
     display: block;
     margin-bottom: 0;
+    min-height: 1px;
 }
 
 .episodes-carousel {
@@ -1510,6 +1512,7 @@ body.has-guest-bar .modal-content {
     min-height: 0;
     overflow: visible;
     padding-right: 0;
+    flex: 1 1 auto;
 }
 
 .episodes-scroll-area::-webkit-scrollbar {

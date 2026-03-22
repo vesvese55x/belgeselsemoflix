@@ -2426,7 +2426,7 @@ class BelgeselSemoFlix {
                 sortedSeasons.forEach((season, index) => {
                     const seasonEpisodes = seasonGroups[season];
                     html += `
-            <div class="season-tab ${index === 0 ? 'active' : ''}" onclick="app.switchSeason('${season}')">
+            <div class="season-tab ${index === 0 ? 'active' : ''}" onclick="app.switchSeason('${season}', this)">
                 Sezon ${season} (${seasonEpisodes.length})
                     </div>
         `;
@@ -2619,7 +2619,7 @@ class BelgeselSemoFlix {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    switchSeason(season) {
+    switchSeason(season, tabElement) {
         // Tüm tab'lardan active class'ı kaldır
         document.querySelectorAll('.season-tab').forEach(tab => {
             tab.classList.remove('active');
@@ -2631,13 +2631,23 @@ class BelgeselSemoFlix {
         });
 
         // Tıklanan tab'a active ekle
-        event.target.classList.add('active');
+        if (tabElement) {
+            tabElement.classList.add('active');
+        }
 
         // İlgili sezon grubunu göster
-        const seasonGroup = document.querySelector(`.season - group[data - season="${season}"]`);
+        const seasonGroup = document.querySelector(`.season-group[data-season="${season}"]`);
         if (seasonGroup) {
             seasonGroup.classList.add('active');
         }
+
+        requestAnimationFrame(() => {
+            const scrollArea = document.querySelector('.episodes-scroll-area');
+            if (scrollArea) {
+                scrollArea.style.overflowY = 'auto';
+                scrollArea.scrollTop = 0;
+            }
+        });
     }
 
     closePlayer() {

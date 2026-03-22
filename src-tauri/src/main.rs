@@ -359,6 +359,18 @@ fn stop_php_server(app: &tauri::AppHandle) {
     };
 
     if let Some(mut child) = guard.take() {
+        #[cfg(target_os = "windows")]
+        {
+            let pid = child.id().to_string();
+            let _ = Command::new("taskkill")
+                .args(["/PID", &pid, "/T", "/F"])
+                .stdin(Stdio::null())
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .creation_flags(CREATE_NO_WINDOW)
+                .status();
+        }
+
         let _ = child.kill();
         let _ = child.wait();
     }

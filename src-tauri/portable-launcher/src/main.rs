@@ -6,6 +6,7 @@ mod launcher {
         env,
         error::Error,
         fs::{self, File},
+        io::{Read, Write},
         path::{Path, PathBuf},
         process::{Command, Stdio},
         time::{Duration, UNIX_EPOCH},
@@ -106,17 +107,12 @@ mod launcher {
             return Ok(());
         }
 
-        let _ = MessageDialog::new()
-            .set_level(MessageLevel::Info)
-            .set_title("BELGESELSEMOFLIX")
-            .set_description(
-                "WebView2 Runtime bulunamadı.\nGerekli bileşen şimdi arka planda indirilecek ve kurulacak.\nBu işlem 1-2 dk sürebilir. Lütfen bekleyiniz.",
-            )
-            .set_buttons(MessageButtons::Ok)
-            .show();
+        show_webview2_status(
+            "WebView2 indiriliyor...\nLütfen bekleyiniz.\nAnlayışınız için çok teşekkür ederiz.",
+        );
 
         let installer_path = env::temp_dir().join("belgeselsemoflix-webview2-bootstrapper.exe");
-        let response = Client::builder()
+        let mut response = Client::builder()
             .connect_timeout(Duration::from_secs(20))
             .timeout(Duration::from_secs(300))
             .build()?
@@ -128,7 +124,37 @@ mod launcher {
             return Err(format!("WebView2 bootstrapper indirilemedi: HTTP {}", response.status()).into());
         }
 
-        fs::write(&installer_path, response.bytes()?)?;
+        let total_bytes = response.content_length();
+        let mut installer_file = File::create(&installer_path)?;
+        let mut downloaded_bytes: u64 = 0;
+        let mut buffer = [0u8; 64 * 1024];
+        let mut next_update_percent = 0u64;
+
+        loop {
+            let read = response.read(&mut buffer)?;
+            if read == 0 {
+                break;
+            }
+
+            installer_file.write_all(&buffer[..read])?;
+            downloaded_bytes += read as u64;
+
+            if let Some(total) = total_bytes {
+                if total > 0 {
+                    let percent = ((downloaded_bytes.saturating_mul(100)) / total).min(100);
+                    if percent >= next_update_percent {
+                        show_webview2_status(&format!(
+                            "WebView2 indiriliyor... %{percent}\nLütfen bekleyiniz.\nAnlayışınız için çok teşekkür ederiz."
+                        ));
+                        next_update_percent = percent.saturating_add(20);
+                    }
+                }
+            }
+        }
+
+        show_webview2_status(
+            "WebView2 kuruluyor...\nBu işlem 1-2 dk sürebilir. Lütfen bekleyiniz.\nAnlayışınız için çok teşekkür ederiz.",
+        );
 
         let status = Command::new(&installer_path)
             .args(["/silent", "/install"])
@@ -137,6 +163,10 @@ mod launcher {
             .stdout(Stdio::null())
             .stderr(Stdio::null())
             .status()?;
+
+        show_webview2_status(
+            "Kurulum doğrulanıyor...\nLütfen bekleyiniz.\nAnlayışınız için çok teşekkür ederiz.",
+        );
 
         let _ = fs::remove_file(&installer_path);
 
@@ -152,6 +182,15 @@ mod launcher {
             .show();
 
         Ok(())
+    }
+
+    fn show_webview2_status(message: &str) {
+        let _ = MessageDialog::new()
+            .set_level(MessageLevel::Info)
+            .set_title("BELGESELSEMOFLIX")
+            .set_description(message)
+            .set_buttons(MessageButtons::Ok)
+            .show();
     }
 
     fn windows_webview2_installed() -> bool {
