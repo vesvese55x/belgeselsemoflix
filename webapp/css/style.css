@@ -1449,9 +1449,26 @@ body.has-guest-bar .modal-content {
     display: flex;
     gap: 0.75rem;
     margin-bottom: 1.5rem;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
     border-bottom: 2px solid rgba(255, 255, 255, 0.1);
-    padding-bottom: 0.5rem;
+    padding-bottom: 0.75rem;
+    scroll-behavior: smooth;
+}
+
+.season-tabs::-webkit-scrollbar {
+    height: 8px;
+}
+
+.season-tabs::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+}
+
+.season-tabs::-webkit-scrollbar-thumb {
+    background: var(--accent);
+    border-radius: 4px;
 }
 
 .season-tab {
@@ -1465,6 +1482,8 @@ body.has-guest-bar .modal-content {
     cursor: pointer;
     transition: all 0.3s;
     border-bottom: 3px solid transparent;
+    flex: 0 0 auto;
+    white-space: nowrap;
 }
 
 .season-tab:hover {

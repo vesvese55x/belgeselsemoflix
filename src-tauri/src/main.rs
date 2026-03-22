@@ -16,6 +16,8 @@ use std::{
 
 #[cfg(target_os = "windows")]
 use std::os::windows::process::CommandExt;
+#[cfg(target_os = "windows")]
+use std::time::UNIX_EPOCH;
 
 use serde::Serialize;
 use serde_json::{json, Value};
@@ -756,6 +758,27 @@ fn extract_windows_assets_pack(
     let extract_root = desktop_data_dir.join("portable-runtime");
     let unpack_dir = extract_root.join("assets");
     let archive_path = extract_root.join("assets.zip");
+    let marker_path = extract_root.join("assets.marker");
+    let metadata = fs::metadata(&pack_path)?;
+    let marker_value = format!(
+        "{}:{}",
+        metadata.len(),
+        metadata
+            .modified()?
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs()
+    );
+    let extracted_webapp = unpack_dir.join("webapp");
+    let marker_matches = fs::read_to_string(&marker_path)
+        .map(|value| value == marker_value)
+        .unwrap_or(false);
+
+    if marker_matches && extracted_webapp.join("index.php").is_file() {
+        writeln!(log_file, "assets_cache=hit")?;
+        return Ok(extracted_webapp);
+    }
+
     if unpack_dir.exists() {
         fs::remove_dir_all(&unpack_dir)?;
     }
@@ -786,12 +809,13 @@ fn extract_windows_assets_pack(
         return Err("assets.pack acilamadi".into());
     }
 
-    let extracted_webapp = unpack_dir.join("webapp");
     if extracted_webapp.is_dir() {
+        fs::write(marker_path, marker_value)?;
         return Ok(extracted_webapp);
     }
 
     if unpack_dir.join("index.php").is_file() {
+        fs::write(marker_path, marker_value)?;
         return Ok(unpack_dir);
     }
 

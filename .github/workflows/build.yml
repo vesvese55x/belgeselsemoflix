@@ -179,13 +179,13 @@ jobs:
           $phpIniLines | Set-Content -Path "$phpDir\\php.ini" -Encoding ASCII
           & $phpExe.FullName -c "$phpDir\\php.ini" -v
 
-      - name: Build Windows installer
-        run: npm run tauri build -- --config src-tauri/tauri.windows.conf.json --bundles nsis
-
       - name: Build Windows assets pack
         shell: pwsh
         run: |
           ./scripts/build-windows-assets-pack.ps1
+
+      - name: Build Windows installer
+        run: npm run tauri build -- --config src-tauri/tauri.windows.conf.json --bundles nsis
 
       - name: Build Windows portable launcher
         shell: pwsh

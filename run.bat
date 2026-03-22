@@ -54,7 +54,7 @@ if not "!PHP_CMD!"=="" (
 
 if not "!PHP_DIR!"=="" set "PATH=!PHP_DIR!;%PATH%"
 if exist "!PHP_DIR!php.ini" (
-  set "PHP_ARGS=!PHP_ARGS! -c ""!PHP_DIR!php.ini"""
+  set "PHP_ARGS=!PHP_ARGS! -c php.ini"
 ) else (
   set "PHP_ARGS=!PHP_ARGS! -n"
 )

@@ -130,7 +130,9 @@ function resolveHostViaDoh($host) {
 
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
+        if (PHP_VERSION_ID < 80500) {
+            curl_close($ch);
+        }
 
         if ($response === false || $httpCode !== 200) {
             continue;
@@ -207,7 +209,9 @@ function curlJsonRequest($url, $timeout, $options = []) {
     $response = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $error = curl_error($ch);
-    curl_close($ch);
+    if (PHP_VERSION_ID < 80500) {
+        curl_close($ch);
+    }
 
     return [$response, $httpCode, $error];
 }

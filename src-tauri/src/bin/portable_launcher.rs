@@ -6,10 +6,10 @@ mod launcher {
         env,
         error::Error,
         fs::{self, File},
-        io::{self, Write},
+        io,
         path::{Path, PathBuf},
         process::{Command, Stdio},
-        time::Duration,
+        time::{Duration, SystemTime, UNIX_EPOCH},
     };
 
     use rfd::{MessageButtons, MessageDialog, MessageLevel};
@@ -27,7 +27,7 @@ mod launcher {
     pub fn run() -> Result<(), DynError> {
         let exe_path = env::current_exe()?;
         let exe_dir = exe_path.parent().ok_or("Portable klasoru bulunamadi")?;
-        let core_exe = exe_dir.join("BELGESELSEMOFLIX-core.exe");
+        let core_exe = exe_dir.join("core.exe");
         let assets_pack = exe_dir.join("assets.pack");
 
         if !core_exe.is_file() {
@@ -73,15 +73,7 @@ mod launcher {
         fs::create_dir_all(&runtime_root)?;
 
         let metadata = fs::metadata(pack_path)?;
-        let marker_value = format!(
-            "{}:{}",
-            metadata.len(),
-            metadata
-                .modified()?
-                .elapsed()
-                .map(|elapsed| elapsed.as_secs())
-                .unwrap_or(0)
-        );
+        let marker_value = marker_value(&metadata)?;
 
         let extracted_webapp = unpack_dir.join("webapp");
         let marker_matches = fs::read_to_string(&marker_path)
@@ -118,7 +110,7 @@ mod launcher {
             .set_level(MessageLevel::Info)
             .set_title("BELGESELSEMOFLIX Portable")
             .set_description(
-                "WebView2 Runtime bulunamadi.\nGerekli bileşen simdi arka planda indirilecek ve kurulacak.",
+                "WebView2 Runtime bulunamadi.\nGerekli bileşen simdi arka planda indirilecek ve kurulacak.\nBu islem 1-2 dk surebilir. Lutfen bekleyiniz.",
             )
             .set_buttons(MessageButtons::Ok)
             .show();
@@ -184,6 +176,15 @@ mod launcher {
         }
 
         false
+    }
+
+    fn marker_value(metadata: &fs::Metadata) -> Result<String, DynError> {
+        let modified = metadata
+            .modified()?
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs();
+        Ok(format!("{}:{modified}", metadata.len()))
     }
 
     pub fn show_error(error: &str) {

@@ -53,7 +53,9 @@ if (function_exists('curl_init')) {
     $result = curl_exec($ch);
     $httpCode = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
     $curlError = curl_error($ch);
-    curl_close($ch);
+    if (PHP_VERSION_ID < 80500) {
+        curl_close($ch);
+    }
 
     if ($result !== false && $httpCode >= 200 && $httpCode < 300) {
         $payload = $result;
