@@ -9,10 +9,6 @@ mod launcher {
         io::{Read, Write},
         path::{Path, PathBuf},
         process::{Command, Stdio},
-        sync::{
-            atomic::{AtomicBool, Ordering},
-            Arc,
-        },
         thread,
         time::{Duration, UNIX_EPOCH},
     };
@@ -180,6 +176,9 @@ mod launcher {
                 }
             }
 
+            installer_file.flush()?;
+            drop(installer_file);
+
             write_webview2_status(
                 &status_file,
                 "WebView2 kuruluyor...\nBu işlem 1-2 dk sürebilir. Lütfen bekleyiniz.\nAnlayışınız için çok teşekkür ederiz.",
@@ -258,7 +257,7 @@ $statusFile = "{status_file}"
 $form = New-Object System.Windows.Forms.Form
 $form.Text = "BELGESELSEMOFLIX"
 $form.StartPosition = "CenterScreen"
-$form.Size = New-Object System.Drawing.Size(470, 210)
+$form.Size = New-Object System.Drawing.Size(470, 230)
 $form.FormBorderStyle = "FixedDialog"
 $form.MaximizeBox = $false
 $form.MinimizeBox = $false
@@ -279,7 +278,7 @@ $message = New-Object System.Windows.Forms.Label
 $message.Text = "Lütfen bekleyiniz."
 $message.Font = New-Object System.Drawing.Font("Segoe UI", 10)
 $message.AutoSize = $false
-$message.Size = New-Object System.Drawing.Size(410, 60)
+$message.Size = New-Object System.Drawing.Size(410, 72)
 $message.Location = New-Object System.Drawing.Point(24, 62)
 $message.ForeColor = [System.Drawing.Color]::Gainsboro
 $form.Controls.Add($message)
@@ -290,15 +289,15 @@ $progress.MarqueeAnimationSpeed = 25
 $progress.Minimum = 0
 $progress.Maximum = 100
 $progress.Size = New-Object System.Drawing.Size(410, 18)
-$progress.Location = New-Object System.Drawing.Point(24, 132)
+$progress.Location = New-Object System.Drawing.Point(24, 144)
 $form.Controls.Add($progress)
 
 $footer = New-Object System.Windows.Forms.Label
-$footer.Text = "Anlayışınız için çok teşekkür ederiz."
+$footer.Text = "Anlayışınız için çok teşekkür ederiz.`r`n"
 $footer.Font = New-Object System.Drawing.Font("Segoe UI", 9)
 $footer.AutoSize = $false
-$footer.Size = New-Object System.Drawing.Size(410, 20)
-$footer.Location = New-Object System.Drawing.Point(24, 156)
+$footer.Size = New-Object System.Drawing.Size(410, 32)
+$footer.Location = New-Object System.Drawing.Point(24, 172)
 $footer.ForeColor = [System.Drawing.Color]::Silver
 $form.Controls.Add($footer)
 
@@ -309,7 +308,7 @@ $timer.Add_Tick({{
         return
     }}
 
-    $content = Get-Content $statusFile -Raw -ErrorAction SilentlyContinue
+    $content = Get-Content $statusFile -Raw -Encoding UTF8 -ErrorAction SilentlyContinue
     if ([string]::IsNullOrWhiteSpace($content)) {{
         return
     }}
@@ -349,7 +348,9 @@ $timer.Start()
             status_file = status_file.display()
         );
 
-        if fs::write(&script_path, script).is_err() {
+        let mut script_bytes = vec![0xEF, 0xBB, 0xBF];
+        script_bytes.extend_from_slice(script.as_bytes());
+        if fs::write(&script_path, script_bytes).is_err() {
             return None;
         }
 
