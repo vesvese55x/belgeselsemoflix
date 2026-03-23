@@ -1452,6 +1452,12 @@
         let remotePopupHost = null;
         let remotePopupInflight = null;
         let remotePopupVisible = false;
+        let remotePopupTimer = null;
+
+        function isLoginVisible() {
+            const overlay = document.getElementById('loginOverlay');
+            return !!overlay && !overlay.classList.contains('hidden');
+        }
 
         function getRemotePopupMount() {
             let mount = document.getElementById('remotePopupMount');
@@ -1464,6 +1470,10 @@
         }
 
         function clearRemotePopup() {
+            if (remotePopupTimer) {
+                clearTimeout(remotePopupTimer);
+                remotePopupTimer = null;
+            }
             if (remotePopupHost) {
                 remotePopupHost.remove();
                 remotePopupHost = null;
@@ -1473,6 +1483,18 @@
 
         function normalizeRemotePopupHtml(html) {
             return html.replace(/<!--[\s\S]*?-->/g, '').trim();
+        }
+
+        function isValidRemotePopupHtml(html) {
+            if (!html) return false;
+
+            const hasTag = /<[a-z][\s\S]*?>/i.test(html);
+            const hasPopupSignature =
+                /id\s*=\s*["']popup["']/i.test(html) ||
+                /class\s*=\s*["'][^"']*popup-overlay/i.test(html) ||
+                /class\s*=\s*["'][^"']*popup-content/i.test(html);
+
+            return hasTag && hasPopupSignature;
         }
 
         function buildRemotePopupSrcdoc(html) {
@@ -1579,11 +1601,12 @@ ${html}
         async function maybeShowRemotePopup() {
             if (remotePopupVisible) return;
             if (remotePopupInflight) return remotePopupInflight;
+            if (isLoginVisible()) return;
 
             remotePopupInflight = (async () => {
                 try {
                     const html = normalizeRemotePopupHtml(await fetchRemotePopupHtml());
-                    if (!html) return;
+                    if (!isValidRemotePopupHtml(html)) return;
                     renderRemotePopup(html);
                 } catch (error) {
                     console.warn('Remote popup yuklenemedi:', error);
@@ -1593,6 +1616,20 @@ ${html}
             })();
 
             return remotePopupInflight;
+        }
+
+        function scheduleRemotePopup(delayMs = 1500) {
+            if (isLoginVisible()) return;
+            if (remotePopupVisible || remotePopupInflight) return;
+
+            if (remotePopupTimer) {
+                clearTimeout(remotePopupTimer);
+            }
+
+            remotePopupTimer = setTimeout(() => {
+                remotePopupTimer = null;
+                maybeShowRemotePopup();
+            }, delayMs);
         }
 
         window.addEventListener('message', (event) => {
@@ -1856,7 +1893,7 @@ ${html}
                 applyScopedData(getUserStorageScope(auth));
                 hideLogin();
                 updateUserInfo();
-                maybeShowRemotePopup();
+                scheduleRemotePopup();
             } else {
                 applyScopedData(getUserStorageScope(null));
                 clearRemotePopup();
@@ -1926,8 +1963,8 @@ ${html}
                         await saveAuth(userData);
                         hideLogin();
                         updateUserInfo();
-                        await maybeShowRemotePopup();
                         renderAfterLoginStateChange();
+                        scheduleRemotePopup();
                     } else {
                         // Hata göster
                         errorDiv.textContent = `❌ ${result.error}`;
@@ -1966,8 +2003,8 @@ ${html}
                     await saveAuth(userData);
                     hideLogin();
                     updateUserInfo();
-                    await maybeShowRemotePopup();
                     renderAfterLoginStateChange();
+                    scheduleRemotePopup();
                 } finally {
                     guestBtn.disabled = false;
                     submitBtn.disabled = false;
