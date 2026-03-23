@@ -920,7 +920,7 @@ try {
                         <i class="fas fa-clock"></i> 
                         Oluşturulma: <?= date('d.m.Y H:i:s') ?> | 
                         <i class="fas fa-copyright"></i> 
-                        2025 BELGESELSEMOFLIX
+                        2026 BELGESELSEMOFLIX
                     </p>
                 </div>
             </div>
