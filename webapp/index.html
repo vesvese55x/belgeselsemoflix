@@ -1453,6 +1453,7 @@
         let remotePopupInflight = null;
         let remotePopupVisible = false;
         let remotePopupTimer = null;
+        let remotePopupArmed = false;
 
         function isLoginVisible() {
             const overlay = document.getElementById('loginOverlay');
@@ -1497,70 +1498,6 @@
             return hasTag && hasPopupSignature;
         }
 
-        function buildRemotePopupSrcdoc(html) {
-            return `<!DOCTYPE html>
-<html lang="tr">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      width: 100%;
-      height: 100%;
-      background: transparent;
-      overflow: hidden;
-    }
-    body {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    }
-  </style>
-</head>
-<body>
-${html}
-<script>
-(() => {
-  const notifyClose = () => {
-    try {
-      parent.postMessage({ type: 'belgeselsemo-remote-popup-close' }, '*');
-    } catch (_) {}
-  };
-
-  const patchCloseButton = () => {
-    const popup = document.getElementById('popup');
-    if (!popup) return;
-
-    const closeBtn = popup.querySelector('.close-btn');
-    if (closeBtn && !closeBtn.dataset.belgesCloseBound) {
-      closeBtn.dataset.belgesCloseBound = '1';
-      closeBtn.addEventListener('click', () => {
-        setTimeout(notifyClose, 0);
-      });
-    }
-  };
-
-  window.closePopup = window.closePopup || function () {
-    const popup = document.getElementById('popup');
-    if (popup) {
-      popup.style.display = 'none';
-    }
-    notifyClose();
-  };
-
-  window.addEventListener('load', () => {
-    patchCloseButton();
-    const popup = document.getElementById('popup');
-    if (popup && getComputedStyle(popup).display === 'none') {
-      popup.style.display = 'block';
-    }
-  });
-})();
-</script>
-</body>
-</html>`;
-        }
-
         function renderRemotePopup(html) {
             clearRemotePopup();
 
@@ -1570,19 +1507,29 @@ ${html}
             remotePopupHost.style.inset = '0';
             remotePopupHost.style.zIndex = '2147483647';
             remotePopupHost.style.background = 'transparent';
+            remotePopupHost.innerHTML = html;
 
-            const frame = document.createElement('iframe');
-            frame.setAttribute('title', 'BELGESELSEMOFLIX Popup');
-            frame.setAttribute('sandbox', 'allow-scripts allow-popups allow-forms allow-modals allow-top-navigation-by-user-activation');
-            frame.setAttribute('referrerpolicy', 'no-referrer');
-            frame.style.width = '100%';
-            frame.style.height = '100%';
-            frame.style.border = '0';
-            frame.style.background = 'transparent';
-            frame.srcdoc = buildRemotePopupSrcdoc(html);
-
-            remotePopupHost.appendChild(frame);
             getRemotePopupMount().appendChild(remotePopupHost);
+
+            const popup = remotePopupHost.querySelector('#popup');
+            if (popup && getComputedStyle(popup).display === 'none') {
+                popup.style.display = 'block';
+            }
+
+            const closeRemotePopup = () => {
+                clearRemotePopup();
+            };
+
+            window.closePopup = closeRemotePopup;
+
+            const closeBtn = remotePopupHost.querySelector('.close-btn');
+            if (closeBtn) {
+                closeBtn.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    closeRemotePopup();
+                });
+            }
+
             remotePopupVisible = true;
         }
 
@@ -1599,6 +1546,7 @@ ${html}
         }
 
         async function maybeShowRemotePopup() {
+            if (!remotePopupArmed) return;
             if (remotePopupVisible) return;
             if (remotePopupInflight) return remotePopupInflight;
             if (isLoginVisible()) return;
@@ -1619,6 +1567,7 @@ ${html}
         }
 
         function scheduleRemotePopup(delayMs = 1500) {
+            if (!remotePopupArmed) return;
             if (isLoginVisible()) return;
             if (remotePopupVisible || remotePopupInflight) return;
 
@@ -1893,8 +1842,8 @@ ${html}
                 applyScopedData(getUserStorageScope(auth));
                 hideLogin();
                 updateUserInfo();
-                scheduleRemotePopup();
             } else {
+                remotePopupArmed = false;
                 applyScopedData(getUserStorageScope(null));
                 clearRemotePopup();
                 showLogin();
@@ -1963,6 +1912,7 @@ ${html}
                         await saveAuth(userData);
                         hideLogin();
                         updateUserInfo();
+                        remotePopupArmed = true;
                         renderAfterLoginStateChange();
                         scheduleRemotePopup();
                     } else {
@@ -2003,6 +1953,7 @@ ${html}
                     await saveAuth(userData);
                     hideLogin();
                     updateUserInfo();
+                    remotePopupArmed = true;
                     renderAfterLoginStateChange();
                     scheduleRemotePopup();
                 } finally {
@@ -2021,6 +1972,7 @@ ${html}
                 
                 if (confirmed) {
                     await clearAuth();
+                    remotePopupArmed = false;
                     clearRemotePopup();
                     showLogin();
                     updateUserInfo();
