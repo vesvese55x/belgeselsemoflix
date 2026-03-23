@@ -1454,6 +1454,7 @@
         let remotePopupVisible = false;
         let remotePopupTimer = null;
         let remotePopupArmed = false;
+        let remotePopupSessionUnlocked = false;
         let remotePopupReadyWaiter = null;
 
         function isAppReadyForRemotePopup() {
@@ -1491,6 +1492,16 @@
             remotePopupVisible = false;
         }
 
+        function unlockRemotePopupForCurrentSession() {
+            remotePopupSessionUnlocked = true;
+        }
+
+        function lockRemotePopupForCurrentSession() {
+            remotePopupSessionUnlocked = false;
+            remotePopupArmed = false;
+            clearRemotePopup();
+        }
+
         function normalizeRemotePopupHtml(html) {
             return html.replace(/<!--[\s\S]*?-->/g, '').trim();
         }
@@ -1520,8 +1531,8 @@
 
             const parsed = new DOMParser().parseFromString(html, 'text/html');
             const styleTags = Array.from(parsed.querySelectorAll('style'));
-            const bodyNodes = Array.from(parsed.body.childNodes);
             const scriptTags = Array.from(parsed.querySelectorAll('script'));
+            const popupNode = parsed.querySelector('#popup') || parsed.querySelector('.popup-overlay');
 
             styleTags.forEach((styleTag) => {
                 const clonedStyle = document.createElement('style');
@@ -1529,12 +1540,11 @@
                 remotePopupHost.appendChild(clonedStyle);
             });
 
-            bodyNodes.forEach((node) => {
-                if (node.nodeName.toLowerCase() === 'script' || node.nodeName.toLowerCase() === 'style') {
-                    return;
-                }
-                remotePopupHost.appendChild(node.cloneNode(true));
-            });
+            if (!popupNode) {
+                throw new Error('popup.html icinde popup kapsayicisi bulunamadi');
+            }
+
+            remotePopupHost.appendChild(popupNode.cloneNode(true));
 
             getRemotePopupMount().appendChild(remotePopupHost);
 
@@ -1589,6 +1599,7 @@
 
         async function maybeShowRemotePopup() {
             if (!remotePopupArmed) return;
+            if (!remotePopupSessionUnlocked) return;
             if (remotePopupVisible) return;
             if (remotePopupInflight) return remotePopupInflight;
             if (isLoginVisible()) return;
@@ -1610,6 +1621,7 @@
 
         function scheduleRemotePopup(delayMs = 1500) {
             if (!remotePopupArmed) return;
+            if (!remotePopupSessionUnlocked) return;
             if (!isAppReadyForRemotePopup()) return;
             if (isLoginVisible()) return;
             if (remotePopupVisible || remotePopupInflight) return;
@@ -1640,6 +1652,7 @@
         }
 
         function armRemotePopupAfterContentReady() {
+            if (!remotePopupSessionUnlocked) return;
             remotePopupArmed = true;
 
             const waitForReady = (attempt = 0) => {
@@ -1930,9 +1943,8 @@
                 hideLogin();
                 updateUserInfo();
             } else {
-                remotePopupArmed = false;
+                lockRemotePopupForCurrentSession();
                 applyScopedData(getUserStorageScope(null));
-                clearRemotePopup();
                 showLogin();
             }
 
@@ -1997,6 +2009,7 @@
                         };
                         
                         await saveAuth(userData);
+                        unlockRemotePopupForCurrentSession();
                         hideLogin();
                         updateUserInfo();
                         renderAfterLoginStateChange();
@@ -2037,6 +2050,7 @@
                 
                 try {
                     await saveAuth(userData);
+                    unlockRemotePopupForCurrentSession();
                     hideLogin();
                     updateUserInfo();
                     renderAfterLoginStateChange();
@@ -2057,8 +2071,7 @@
                 
                 if (confirmed) {
                     await clearAuth();
-                    remotePopupArmed = false;
-                    clearRemotePopup();
+                    lockRemotePopupForCurrentSession();
                     showLogin();
                     updateUserInfo();
                     renderAfterLoginStateChange();
