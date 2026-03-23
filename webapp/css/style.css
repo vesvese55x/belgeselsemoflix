@@ -948,11 +948,16 @@ body.has-guest-bar .modal-content {
     background: var(--bg-card);
     border: 2px solid rgba(255, 255, 255, 0.1);
     border-radius: 8px;
-    color: var(--text-primary);
+    color: #111;
     font-size: 0.95rem;
     cursor: pointer;
     transition: all 0.3s;
     min-width: 150px;
+}
+
+.filter-select option {
+    color: #111;
+    background: #fff;
 }
 
 .filter-select:hover {
