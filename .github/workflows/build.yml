@@ -1,5 +1,8 @@
 name: build
 
+permissions:
+  contents: write
+
 on:
   push:
     branches:
@@ -337,3 +340,38 @@ jobs:
         with:
           name: belgeselsemoflix-1.0-macos
           path: release-artifacts/macos/
+
+  release:
+    needs:
+      - linux
+      - windows
+      - macos
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts
+
+      - name: Flatten release assets
+        run: |
+          mkdir -p final-release
+          find release-artifacts -type f -exec cp {} final-release/ \;
+          ls -lah final-release
+
+      - name: Publish v1.0 release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0
+          name: BELGESELSEMOFLIX v1.0
+          body: |
+            BELGESELSEMOFLIX masaüstü sürümünün ilk resmi yayını.
+
+            İçerik:
+            - Windows installer
+            - Windows portable
+            - Linux deb/rpm/AppImage/zst
+            - macOS app/dmg
+          files: final-release/*
+          make_latest: true
+          prerelease: false
+          draft: false

@@ -306,7 +306,7 @@ $message = New-Object System.Windows.Forms.Label
 $message.Text = "Lütfen bekleyiniz."
 $message.Font = New-Object System.Drawing.Font("Segoe UI", 10)
 $message.AutoSize = $false
-$message.Size = New-Object System.Drawing.Size(410, 82)
+$message.Size = New-Object System.Drawing.Size(410, 70)
 $message.Location = New-Object System.Drawing.Point(24, 62)
 $message.ForeColor = [System.Drawing.Color]::Gainsboro
 $form.Controls.Add($message)
@@ -324,8 +324,8 @@ $footer = New-Object System.Windows.Forms.Label
 $footer.Text = "BELGESELFLIX'in çalışması için gereklidir. Anlayışınız için teşekkür ederiz.`r`n`r`n`r`n"
 $footer.Font = New-Object System.Drawing.Font("Segoe UI", 9)
 $footer.AutoSize = $false
-$footer.Size = New-Object System.Drawing.Size(410, 72)
-$footer.Location = New-Object System.Drawing.Point(24, 180)
+$footer.Size = New-Object System.Drawing.Size(410, 84)
+$footer.Location = New-Object System.Drawing.Point(24, 176)
 $footer.ForeColor = [System.Drawing.Color]::Silver
 $form.Controls.Add($footer)
 
@@ -356,9 +356,10 @@ $timer.Add_Tick({{
         $progress.Style = "Marquee"
         $progress.MarqueeAnimationSpeed = 25
     }} elseif ($content.StartsWith("DONE|")) {{
-        $message.Text = $content.Substring(5)
+        $message.Text = ""
         $progress.Style = "Continuous"
         $progress.Value = 100
+        $footer.Text = $content.Substring(5) + "`r`n`r`n`r`n"
         $timer.Stop()
         $closeTimer = New-Object System.Windows.Forms.Timer
         $closeTimer.Interval = 1000
