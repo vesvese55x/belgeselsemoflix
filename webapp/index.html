@@ -1454,6 +1454,8 @@
         let remotePopupVisible = false;
         let remotePopupTimer = null;
         let remotePopupArmed = false;
+        let remotePopupSessionUnlocked = false;
+        let remotePopupReadyWaiter = null;
         function isAppReadyForRemotePopup() {
             return window.__BELGESEL_APP_READY__ === true;
         }
@@ -1478,11 +1480,25 @@
                 clearTimeout(remotePopupTimer);
                 remotePopupTimer = null;
             }
+            if (remotePopupReadyWaiter) {
+                clearTimeout(remotePopupReadyWaiter);
+                remotePopupReadyWaiter = null;
+            }
             if (remotePopupHost) {
                 remotePopupHost.remove();
                 remotePopupHost = null;
             }
             remotePopupVisible = false;
+        }
+
+        function unlockRemotePopupForCurrentSession() {
+            remotePopupSessionUnlocked = true;
+        }
+
+        function lockRemotePopupForCurrentSession() {
+            remotePopupSessionUnlocked = false;
+            remotePopupArmed = false;
+            clearRemotePopup();
         }
 
         function normalizeRemotePopupHtml(html) {
@@ -1510,13 +1526,33 @@
             remotePopupHost.style.inset = '0';
             remotePopupHost.style.zIndex = '2147483647';
             remotePopupHost.style.background = 'transparent';
-            remotePopupHost.innerHTML = html;
+            remotePopupHost.style.pointerEvents = 'none';
+
+            const parsed = new DOMParser().parseFromString(html, 'text/html');
+            const styleTags = Array.from(parsed.querySelectorAll('style'));
+            const scriptTags = Array.from(parsed.querySelectorAll('script'));
+            const popupNode = parsed.querySelector('#popup') || parsed.querySelector('.popup-overlay');
+
+            if (!popupNode) {
+                throw new Error('popup.html içinde popup kapsayıcısı bulunamadı');
+            }
+
+            styleTags.forEach((styleTag) => {
+                const clonedStyle = document.createElement('style');
+                clonedStyle.textContent = styleTag.textContent || '';
+                remotePopupHost.appendChild(clonedStyle);
+            });
+
+            remotePopupHost.appendChild(popupNode.cloneNode(true));
 
             getRemotePopupMount().appendChild(remotePopupHost);
 
             const popup = remotePopupHost.querySelector('#popup');
             if (popup && getComputedStyle(popup).display === 'none') {
                 popup.style.display = 'block';
+            }
+            if (popup) {
+                popup.style.pointerEvents = 'auto';
             }
 
             const closeRemotePopup = () => {
@@ -1532,6 +1568,18 @@
                     closeRemotePopup();
                 });
             }
+
+            scriptTags.forEach((scriptTag) => {
+                const scriptContent = (scriptTag.textContent || '').trim();
+                if (!scriptContent) return;
+
+                try {
+                    const runner = new Function('closePopup', scriptContent);
+                    runner(closeRemotePopup);
+                } catch (error) {
+                    console.warn('Remote popup script çalıştırılamadı:', error);
+                }
+            });
 
             remotePopupVisible = true;
         }
@@ -1550,6 +1598,7 @@
 
         async function maybeShowRemotePopup() {
             if (!remotePopupArmed) return;
+            if (!remotePopupSessionUnlocked) return;
             if (remotePopupVisible) return;
             if (remotePopupInflight) return remotePopupInflight;
             if (isLoginVisible()) return;
@@ -1571,6 +1620,7 @@
 
         function scheduleRemotePopup(delayMs = 1500) {
             if (!remotePopupArmed) return;
+            if (!remotePopupSessionUnlocked) return;
             if (!isAppReadyForRemotePopup()) return;
             if (isLoginVisible()) return;
             if (remotePopupVisible || remotePopupInflight) return;
@@ -1585,6 +1635,45 @@
             }, delayMs);
         }
 
+        function isMainContentReadyForRemotePopup() {
+            if (!window.app || !isAppReadyForRemotePopup() || isLoginVisible()) {
+                return false;
+            }
+
+            const mainContent = document.querySelector('.main-content');
+            if (!mainContent) return false;
+
+            const renderedNodes = mainContent.querySelectorAll(
+                '.hero-slider, .cards-grid, .documentary-grid, .category-row, .movie-card, .section-title'
+            );
+
+            return renderedNodes.length > 0 && mainContent.innerText.trim().length > 80;
+        }
+
+        function armRemotePopupAfterContentReady() {
+            if (!remotePopupSessionUnlocked) return;
+            remotePopupArmed = true;
+
+            const waitForReady = (attempt = 0) => {
+                if (!remotePopupArmed || remotePopupVisible || remotePopupInflight) return;
+                if (isLoginVisible()) return;
+
+                if (isMainContentReadyForRemotePopup()) {
+                    scheduleRemotePopup(1500);
+                    return;
+                }
+
+                if (attempt >= 60) return;
+
+                remotePopupReadyWaiter = setTimeout(() => {
+                    remotePopupReadyWaiter = null;
+                    waitForReady(attempt + 1);
+                }, 250);
+            };
+
+            waitForReady();
+        }
+
         window.addEventListener('message', (event) => {
             if (event?.data?.type === 'belgeselsemo-remote-popup-close') {
                 clearRemotePopup();
@@ -1593,7 +1682,7 @@
 
         window.addEventListener('belgeselsemo:app-ready', () => {
             if (remotePopupArmed && !isLoginVisible()) {
-                scheduleRemotePopup(1500);
+                armRemotePopupAfterContentReady();
             }
         });
 
@@ -1852,10 +1941,11 @@
                 applyScopedData(getUserStorageScope(auth));
                 hideLogin();
                 updateUserInfo();
+                unlockRemotePopupForCurrentSession();
+                armRemotePopupAfterContentReady();
             } else {
-                remotePopupArmed = false;
+                lockRemotePopupForCurrentSession();
                 applyScopedData(getUserStorageScope(null));
-                clearRemotePopup();
                 showLogin();
             }
 
@@ -1920,13 +2010,11 @@
                         };
                         
                         await saveAuth(userData);
+                        unlockRemotePopupForCurrentSession();
                         hideLogin();
                         updateUserInfo();
-                        remotePopupArmed = true;
                         renderAfterLoginStateChange();
-                        if (isAppReadyForRemotePopup()) {
-                            scheduleRemotePopup();
-                        }
+                        armRemotePopupAfterContentReady();
                     } else {
                         // Hata göster
                         errorDiv.textContent = `❌ ${result.error}`;
@@ -1963,13 +2051,11 @@
                 
                 try {
                     await saveAuth(userData);
+                    unlockRemotePopupForCurrentSession();
                     hideLogin();
                     updateUserInfo();
-                    remotePopupArmed = true;
                     renderAfterLoginStateChange();
-                    if (isAppReadyForRemotePopup()) {
-                        scheduleRemotePopup();
-                    }
+                    armRemotePopupAfterContentReady();
                 } finally {
                     guestBtn.disabled = false;
                     submitBtn.disabled = false;
@@ -1986,8 +2072,7 @@
                 
                 if (confirmed) {
                     await clearAuth();
-                    remotePopupArmed = false;
-                    clearRemotePopup();
+                    lockRemotePopupForCurrentSession();
                     showLogin();
                     updateUserInfo();
                     renderAfterLoginStateChange();
