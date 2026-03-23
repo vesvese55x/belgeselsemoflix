@@ -1530,7 +1530,6 @@
 
             const parsed = new DOMParser().parseFromString(html, 'text/html');
             const styleTags = Array.from(parsed.querySelectorAll('style'));
-            const scriptTags = Array.from(parsed.querySelectorAll('script'));
             const popupNode = parsed.querySelector('#popup') || parsed.querySelector('.popup-overlay');
 
             if (!popupNode) {
@@ -1568,18 +1567,6 @@
                     closeRemotePopup();
                 });
             }
-
-            scriptTags.forEach((scriptTag) => {
-                const scriptContent = (scriptTag.textContent || '').trim();
-                if (!scriptContent) return;
-
-                try {
-                    const runner = new Function('closePopup', scriptContent);
-                    runner(closeRemotePopup);
-                } catch (error) {
-                    console.warn('Remote popup script çalıştırılamadı:', error);
-                }
-            });
 
             remotePopupVisible = true;
         }
