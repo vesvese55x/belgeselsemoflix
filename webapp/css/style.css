@@ -948,7 +948,7 @@ body.has-guest-bar .modal-content {
     background: var(--bg-card);
     border: 2px solid rgba(255, 255, 255, 0.1);
     border-radius: 8px;
-    color: #111;
+    color: var(--text-primary);
     font-size: 0.95rem;
     cursor: pointer;
     transition: all 0.3s;
