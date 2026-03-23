@@ -1364,6 +1364,7 @@
         // LOGIN & PREMIUM SYSTEM
         // ============================================
         const AUTH_STORAGE_KEY = 'belgeselsemo_auth';
+        const REMOTE_POPUP_URL = 'https://raw.githubusercontent.com/vesvese55x/belgeselsemoflix/main/popup.html';
         const USER_SCOPED_STORAGE_KEYS = [
             'favorites',
             'watchlist',
@@ -1448,6 +1449,157 @@
         let currentUser = null;
         window.currentUser = null; // global erişim için
         let loginHandlersBound = false;
+        let remotePopupHost = null;
+        let remotePopupInflight = null;
+        let remotePopupVisible = false;
+
+        function getRemotePopupMount() {
+            let mount = document.getElementById('remotePopupMount');
+            if (!mount) {
+                mount = document.createElement('div');
+                mount.id = 'remotePopupMount';
+                document.body.appendChild(mount);
+            }
+            return mount;
+        }
+
+        function clearRemotePopup() {
+            if (remotePopupHost) {
+                remotePopupHost.remove();
+                remotePopupHost = null;
+            }
+            remotePopupVisible = false;
+        }
+
+        function normalizeRemotePopupHtml(html) {
+            return html.replace(/<!--[\s\S]*?-->/g, '').trim();
+        }
+
+        function buildRemotePopupSrcdoc(html) {
+            return `<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background: transparent;
+      overflow: hidden;
+    }
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+  </style>
+</head>
+<body>
+${html}
+<script>
+(() => {
+  const notifyClose = () => {
+    try {
+      parent.postMessage({ type: 'belgeselsemo-remote-popup-close' }, '*');
+    } catch (_) {}
+  };
+
+  const patchCloseButton = () => {
+    const popup = document.getElementById('popup');
+    if (!popup) return;
+
+    const closeBtn = popup.querySelector('.close-btn');
+    if (closeBtn && !closeBtn.dataset.belgesCloseBound) {
+      closeBtn.dataset.belgesCloseBound = '1';
+      closeBtn.addEventListener('click', () => {
+        setTimeout(notifyClose, 0);
+      });
+    }
+  };
+
+  window.closePopup = window.closePopup || function () {
+    const popup = document.getElementById('popup');
+    if (popup) {
+      popup.style.display = 'none';
+    }
+    notifyClose();
+  };
+
+  window.addEventListener('load', () => {
+    patchCloseButton();
+    const popup = document.getElementById('popup');
+    if (popup && getComputedStyle(popup).display === 'none') {
+      popup.style.display = 'block';
+    }
+  });
+})();
+</script>
+</body>
+</html>`;
+        }
+
+        function renderRemotePopup(html) {
+            clearRemotePopup();
+
+            remotePopupHost = document.createElement('div');
+            remotePopupHost.id = 'activeRemotePopupHost';
+            remotePopupHost.style.position = 'fixed';
+            remotePopupHost.style.inset = '0';
+            remotePopupHost.style.zIndex = '2147483647';
+            remotePopupHost.style.background = 'transparent';
+
+            const frame = document.createElement('iframe');
+            frame.setAttribute('title', 'BELGESELSEMOFLIX Popup');
+            frame.setAttribute('sandbox', 'allow-scripts allow-popups allow-forms allow-modals allow-top-navigation-by-user-activation');
+            frame.setAttribute('referrerpolicy', 'no-referrer');
+            frame.style.width = '100%';
+            frame.style.height = '100%';
+            frame.style.border = '0';
+            frame.style.background = 'transparent';
+            frame.srcdoc = buildRemotePopupSrcdoc(html);
+
+            remotePopupHost.appendChild(frame);
+            getRemotePopupMount().appendChild(remotePopupHost);
+            remotePopupVisible = true;
+        }
+
+        async function fetchRemotePopupHtml() {
+            const response = await fetch(`${REMOTE_POPUP_URL}?t=${Date.now()}`, {
+                cache: 'no-store'
+            });
+
+            if (!response.ok) {
+                throw new Error(`popup.html HTTP ${response.status}`);
+            }
+
+            return response.text();
+        }
+
+        async function maybeShowRemotePopup() {
+            if (remotePopupVisible) return;
+            if (remotePopupInflight) return remotePopupInflight;
+
+            remotePopupInflight = (async () => {
+                try {
+                    const html = normalizeRemotePopupHtml(await fetchRemotePopupHtml());
+                    if (!html) return;
+                    renderRemotePopup(html);
+                } catch (error) {
+                    console.warn('Remote popup yuklenemedi:', error);
+                } finally {
+                    remotePopupInflight = null;
+                }
+            })();
+
+            return remotePopupInflight;
+        }
+
+        window.addEventListener('message', (event) => {
+            if (event?.data?.type === 'belgeselsemo-remote-popup-close') {
+                clearRemotePopup();
+            }
+        });
 
         function getUserStorageScope(user = currentUser) {
             if (user && user.email) {
@@ -1704,8 +1856,10 @@
                 applyScopedData(getUserStorageScope(auth));
                 hideLogin();
                 updateUserInfo();
+                maybeShowRemotePopup();
             } else {
                 applyScopedData(getUserStorageScope(null));
+                clearRemotePopup();
                 showLogin();
             }
 
@@ -1772,6 +1926,7 @@
                         await saveAuth(userData);
                         hideLogin();
                         updateUserInfo();
+                        await maybeShowRemotePopup();
                         renderAfterLoginStateChange();
                     } else {
                         // Hata göster
@@ -1811,6 +1966,7 @@
                     await saveAuth(userData);
                     hideLogin();
                     updateUserInfo();
+                    await maybeShowRemotePopup();
                     renderAfterLoginStateChange();
                 } finally {
                     guestBtn.disabled = false;
@@ -1828,6 +1984,7 @@
                 
                 if (confirmed) {
                     await clearAuth();
+                    clearRemotePopup();
                     showLogin();
                     updateUserInfo();
                     renderAfterLoginStateChange();
