@@ -12,6 +12,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -40,6 +44,11 @@ jobs:
             rpm \
             squashfs-tools \
             wget
+
+      - name: Restore encrypted webapp
+        env:
+          WEBAPP_ARCHIVE_PASSWORD: ${{ secrets.WEBAPP_ARCHIVE_PASSWORD }}
+        run: python3 scripts/restore_webapp_for_ci.py
 
       - name: Install npm dependencies
         run: npm install
@@ -118,6 +127,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -127,6 +140,13 @@ jobs:
       - uses: swatinem/rust-cache@v2
         with:
           workspaces: src-tauri -> target
+
+      - name: Restore encrypted webapp
+        shell: pwsh
+        env:
+          WEBAPP_ARCHIVE_PASSWORD: ${{ secrets.WEBAPP_ARCHIVE_PASSWORD }}
+        run: |
+          python scripts/restore_webapp_for_ci.py
 
       - name: Install npm dependencies
         run: npm install
@@ -254,6 +274,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -270,6 +294,11 @@ jobs:
       - name: Ensure PHP is available on macOS
         run: |
           brew list php >/dev/null 2>&1 || brew install php
+
+      - name: Restore encrypted webapp
+        env:
+          WEBAPP_ARCHIVE_PASSWORD: ${{ secrets.WEBAPP_ARCHIVE_PASSWORD }}
+        run: python3 scripts/restore_webapp_for_ci.py
 
       - name: Build macOS bundles
         run: npm run tauri build -- --bundles app,dmg

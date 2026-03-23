@@ -7,3 +7,7 @@ portable/
 runtime/windows/php/
 runtime/windows/php.zip
 *.log
+webapp/
+LOCAL_WEBAPP_ENCRYPTION.md
+.webapp-archive-work/
+scripts/__pycache__/
