@@ -53,6 +53,7 @@ class BelgeselSemoFlix {
 
     async init() {
         await (window.__BELGESEL_STORAGE_READY || Promise.resolve());
+        window.__BELGESEL_APP_READY__ = false;
         this.showLoading();
         await this.loadData();
         this.buildCategoryMappings();
@@ -60,6 +61,8 @@ class BelgeselSemoFlix {
         this.setupEventListeners();
         this.renderPage('home');
         this.hideLoading();
+        window.__BELGESEL_APP_READY__ = true;
+        window.dispatchEvent(new CustomEvent('belgeselsemo:app-ready'));
     }
 
     syncDesktopStorageKey(key) {

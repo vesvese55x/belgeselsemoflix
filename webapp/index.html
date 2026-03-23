@@ -1455,6 +1455,10 @@
         let remotePopupTimer = null;
         let remotePopupArmed = false;
 
+        function isAppReadyForRemotePopup() {
+            return window.__BELGESEL_APP_READY__ === true;
+        }
+
         function isLoginVisible() {
             const overlay = document.getElementById('loginOverlay');
             return !!overlay && !overlay.classList.contains('hidden');
@@ -1568,6 +1572,7 @@
 
         function scheduleRemotePopup(delayMs = 1500) {
             if (!remotePopupArmed) return;
+            if (!isAppReadyForRemotePopup()) return;
             if (isLoginVisible()) return;
             if (remotePopupVisible || remotePopupInflight) return;
 
@@ -1584,6 +1589,12 @@
         window.addEventListener('message', (event) => {
             if (event?.data?.type === 'belgeselsemo-remote-popup-close') {
                 clearRemotePopup();
+            }
+        });
+
+        window.addEventListener('belgeselsemo:app-ready', () => {
+            if (remotePopupArmed && !isLoginVisible()) {
+                scheduleRemotePopup(1500);
             }
         });
 
@@ -1914,7 +1925,9 @@
                         updateUserInfo();
                         remotePopupArmed = true;
                         renderAfterLoginStateChange();
-                        scheduleRemotePopup();
+                        if (isAppReadyForRemotePopup()) {
+                            scheduleRemotePopup();
+                        }
                     } else {
                         // Hata göster
                         errorDiv.textContent = `❌ ${result.error}`;
@@ -1955,7 +1968,9 @@
                     updateUserInfo();
                     remotePopupArmed = true;
                     renderAfterLoginStateChange();
-                    scheduleRemotePopup();
+                    if (isAppReadyForRemotePopup()) {
+                        scheduleRemotePopup();
+                    }
                 } finally {
                     guestBtn.disabled = false;
                     submitBtn.disabled = false;

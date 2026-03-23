@@ -117,7 +117,7 @@ mod launcher {
         ));
         fs::write(
             &status_file,
-            "PROGRESS|0|WebView2 indiriliyor... %0\nLütfen bekleyiniz.\n\nBELGESELFLIX'in çalışması için gereklidir. Anlayışınız için teşekkür ederiz.",
+            "PROGRESS|0|WebView2 indiriliyor... %0\nLütfen bekleyiniz.",
         )?;
         let status_window = start_webview2_status_window(&status_file);
         let installer_path = env::temp_dir().join(format!(
@@ -168,7 +168,7 @@ mod launcher {
                             write_webview2_status(
                                 &status_file,
                                 &format!(
-                                    "WebView2 indiriliyor... %{percent}\nLütfen bekleyiniz.\n\nBELGESELFLIX'in çalışması için gereklidir. Anlayışınız için teşekkür ederiz."
+                                    "WebView2 indiriliyor... %{percent}\nLütfen bekleyiniz."
                                 ),
                                 Some(percent),
                             );
@@ -185,14 +185,14 @@ mod launcher {
             if !download_progress_set {
                 write_webview2_status(
                     &status_file,
-                    "WebView2 indiriliyor... %33\nLütfen bekleyiniz.\n\nBELGESELFLIX'in çalışması için gereklidir. Anlayışınız için teşekkür ederiz.",
+                    "WebView2 indiriliyor... %33\nLütfen bekleyiniz.",
                     Some(33),
                 );
             }
 
             write_webview2_status(
                 &status_file,
-                "WebView2 kuruluyor... %66\nBu işlem 1-2 dk sürebilir. Lütfen bekleyiniz.\n\nBELGESELFLIX'in çalışması için gereklidir. Anlayışınız için teşekkür ederiz.",
+                "WebView2 kuruluyor... %66\nBu işlem 1-2 dk sürebilir. Lütfen bekleyiniz.",
                 Some(66),
             );
 
@@ -206,7 +206,7 @@ mod launcher {
 
             write_webview2_status(
                 &status_file,
-                "Kurulum doğrulanıyor... %100\nLütfen bekleyiniz.\n\nBELGESELFLIX'in çalışması için gereklidir. Anlayışınız için teşekkür ederiz.",
+                "Kurulum doğrulanıyor... %100\nLütfen bekleyiniz.",
                 Some(100),
             );
 
@@ -321,10 +321,10 @@ $progress.Location = New-Object System.Drawing.Point(24, 154)
 $form.Controls.Add($progress)
 
 $footer = New-Object System.Windows.Forms.Label
-$footer.Text = "BELGESELFLIX'in çalışması için gereklidir. Anlayışınız için teşekkür ederiz.`r`n`r`n"
+$footer.Text = "BELGESELFLIX'in çalışması için gereklidir. Anlayışınız için teşekkür ederiz.`r`n`r`n`r`n"
 $footer.Font = New-Object System.Drawing.Font("Segoe UI", 9)
 $footer.AutoSize = $false
-$footer.Size = New-Object System.Drawing.Size(410, 36)
+$footer.Size = New-Object System.Drawing.Size(410, 72)
 $footer.Location = New-Object System.Drawing.Point(24, 180)
 $footer.ForeColor = [System.Drawing.Color]::Silver
 $form.Controls.Add($footer)
