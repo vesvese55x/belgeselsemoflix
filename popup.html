@@ -1,6 +1,119 @@
-<!--
-BELGESELSEMOFLIX remote popup alani
+<div class="popup-overlay" id="popup">
+    <div class="popup-content">
+        <button class="close-btn" onclick="closePopup()">×</button>
 
-Bu dosya bos birakilirsa uygulama popup gostermez.
-Istegin zaman popup HTML icerigini buraya yapistirabilirsin.
--->
+        <img src="https://i.ibb.co/8nXpzPz0/ramazan-bayram-mesaji.png" alt="RAMAZAN BAYRAMI" class="popup-image">
+
+<div class="footer-note">
+    20 Nisan'a kadar
+    <a href="https://belgeselsemo.com.tr/free30" target="_blank" style="color:#4da6ff; text-decoration: underline;">
+        https://belgeselsemo.com.tr/free30
+    </a> 
+    tıklayarak içeriklerimize Free Premium olarak erişebilirsiniz. Hayırlı Bayramlar dileriz.
+</div>
+    </div>
+</div>
+
+<style>
+.popup-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 999999;
+}
+
+/* ANA KUTU */
+.popup-content {
+    background: linear-gradient(145deg, #1a1a2e, #2c2c54);
+    color: #fff;
+    padding: 20px;
+    border-radius: 15px;
+
+    width: 60vw;
+    max-width: 800px;
+
+    /* 🔥 KRİTİK NOKTA */
+    height: auto;
+    max-height: 90vh;
+
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+
+    display: flex;
+    flex-direction: column;
+
+    overflow: hidden; /* scroll YOK */
+}
+
+/* RESİM */
+.popup-image {
+    width: 100%;
+    max-height: 35vh;
+    object-fit: cover;
+    border-radius: 10px;
+    margin-bottom: 10px;
+}
+
+/* METİN */
+.text-content {
+    text-align: justify;
+
+    /* 🔥 otomatik küçülür */
+    font-size: clamp(10px, 1.5vw, 14px);
+    line-height: 1.5;
+}
+
+/* BAŞLIK */
+.text-content h2 {
+    text-align: center;
+    color: #ff4d4d;
+    margin-bottom: 10px;
+    font-size: clamp(14px, 2vw, 18px);
+}
+
+/* FOOTER */
+.footer-note {
+    margin-top: 10px;
+    font-size: clamp(9px, 1.3vw, 12px);
+    text-align: center;
+    opacity: 0.9;
+}
+
+/* CLOSE */
+.close-btn {
+    position: absolute;
+    top: 5px;
+    right: 10px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: none;
+    background: #ff4d4d;
+    color: #fff;
+    cursor: pointer;
+}
+
+/* MOBİL */
+@media (max-width: 768px) {
+    .popup-content {
+        width: 90vw;
+        padding: 12px;
+    }
+
+    .popup-image {
+        max-height: 25vh;
+    }
+}
+</style>
+
+<script>
+window.onload = function() {
+    document.getElementById('popup').style.display = 'block';
+}
+
+function closePopup() {
+    document.getElementById('popup').style.display = 'none';
+}
+</script>
