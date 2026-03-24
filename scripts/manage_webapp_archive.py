@@ -28,7 +28,20 @@ DEFAULT_SECRET_NAME = "WEBAPP_ARCHIVE_PASSWORD"
 DEFAULT_REPOSITORY = "vesvese55x/belgeselsemoflix"
 DEFAULT_STATE_DIR = ROOT / ".webapp-archive-work"
 DEFAULT_STATE_FILE = DEFAULT_STATE_DIR / "archive-state.json"
+DEFAULT_TOKEN_FILE = DEFAULT_STATE_DIR / "github-token"
 SYSTEM_RANDOM = random.SystemRandom()
+PASSWORD_LENGTH = 20
+PASSWORD_DIGIT_COUNT = 6
+PASSWORD_UPPER_COUNT = 1
+PASSWORD_PUNCTUATION_COUNT = 1
+PASSWORD_SPECIAL_COUNT = 1
+PASSWORD_LOWER_COUNT = (
+    PASSWORD_LENGTH
+    - PASSWORD_DIGIT_COUNT
+    - PASSWORD_UPPER_COUNT
+    - PASSWORD_PUNCTUATION_COUNT
+    - PASSWORD_SPECIAL_COUNT
+)
 
 
 def resolve_openssl() -> str:
@@ -45,12 +58,12 @@ def resolve_openssl() -> str:
 
 
 def generate_password() -> str:
-    letters = [SYSTEM_RANDOM.choice(string.ascii_lowercase) for _ in range(6)]
-    letters += [SYSTEM_RANDOM.choice(string.ascii_uppercase) for _ in range(6)]
-    digits = [SYSTEM_RANDOM.choice(string.digits) for _ in range(6)]
-    punctuation = [SYSTEM_RANDOM.choice(".,;:!?")]
-    special = [SYSTEM_RANDOM.choice("@#$%&*+-_=")]
-    password_chars = letters + digits + punctuation + special
+    letters = [SYSTEM_RANDOM.choice(string.ascii_lowercase) for _ in range(PASSWORD_LOWER_COUNT)]
+    uppercase = [SYSTEM_RANDOM.choice(string.ascii_uppercase) for _ in range(PASSWORD_UPPER_COUNT)]
+    digits = [SYSTEM_RANDOM.choice(string.digits) for _ in range(PASSWORD_DIGIT_COUNT)]
+    punctuation = [SYSTEM_RANDOM.choice(".,;:!?") for _ in range(PASSWORD_PUNCTUATION_COUNT)]
+    special = [SYSTEM_RANDOM.choice("@#$%&*+-_=") for _ in range(PASSWORD_SPECIAL_COUNT)]
+    password_chars = letters + uppercase + digits + punctuation + special
     SYSTEM_RANDOM.shuffle(password_chars)
     return "".join(password_chars)
 
@@ -203,6 +216,10 @@ def github_token_from_env() -> str | None:
         value = os.environ.get(key)
         if value:
             return value
+    if DEFAULT_TOKEN_FILE.exists():
+        value = DEFAULT_TOKEN_FILE.read_text(encoding="utf-8").strip()
+        if value:
+            return value
     return None
 
 
@@ -213,7 +230,10 @@ def github_api_json(url: str, token: str, method: str = "GET", payload: bytes | 
     if payload is not None:
         req.add_header("Content-Type", "application/json")
     with request.urlopen(req) as response:
-        return __import__("json").load(response)
+        body = response.read()
+        if not body:
+            return {}
+        return json.loads(body.decode("utf-8"))
 
 
 def update_repo_secret(repository: str, secret_name: str, password: str, token: str) -> None:
@@ -263,9 +283,11 @@ def pack(args: argparse.Namespace) -> int:
     if not args.skip_secret_update:
         token = github_token_from_env()
         if not token:
-            last_password = read_last_password(args.notes)
-            if last_password:
-                password = last_password
+            raise RuntimeError(
+                "GitHub token bulunamadi. Yeni parola ile arsivlemek icin "
+                "BELGESELSEMO_GITHUB_TOKEN / GH_TOKEN / GITHUB_TOKEN tanimlayin "
+                "veya `.webapp-archive-work/github-token` dosyasina token yazin."
+            )
 
     create_encrypted_archive(args.source, args.archive, password)
 
