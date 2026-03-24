@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import argparse
 import base64
+import hashlib
+import json
 import os
 import random
 import shutil
@@ -24,6 +26,8 @@ DEFAULT_SOURCE = ROOT / "webapp"
 DEFAULT_NOTES = ROOT / "LOCAL_WEBAPP_ENCRYPTION.md"
 DEFAULT_SECRET_NAME = "WEBAPP_ARCHIVE_PASSWORD"
 DEFAULT_REPOSITORY = "vesvese55x/belgeselsemoflix"
+DEFAULT_STATE_DIR = ROOT / ".webapp-archive-work"
+DEFAULT_STATE_FILE = DEFAULT_STATE_DIR / "archive-state.json"
 SYSTEM_RANDOM = random.SystemRandom()
 
 
@@ -49,6 +53,36 @@ def generate_password() -> str:
     password_chars = letters + digits + punctuation + special
     SYSTEM_RANDOM.shuffle(password_chars)
     return "".join(password_chars)
+
+
+def ensure_state_dir() -> None:
+    DEFAULT_STATE_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def compute_source_hash(source_dir: Path) -> str:
+    digest = hashlib.sha256()
+    for path in sorted(source_dir.rglob("*")):
+        if path.is_dir():
+            continue
+        digest.update(path.relative_to(source_dir).as_posix().encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(path.read_bytes())
+        digest.update(b"\0")
+    return digest.hexdigest()
+
+
+def load_state(path: Path) -> dict:
+    if not path.exists():
+        return {}
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+
+
+def save_state(path: Path, state: dict) -> None:
+    ensure_state_dir()
+    path.write_text(json.dumps(state, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
 
 def ensure_notes_file(path: Path) -> None:
@@ -83,10 +117,11 @@ def append_notes(path: Path, password: str, archive: Path, secret_name: str, sec
 def read_last_password(path: Path) -> str | None:
     if not path.exists():
         return None
-
-    for line in reversed(path.read_text(encoding="utf-8").splitlines()):
-        if line.startswith("- password: `") and line.endswith("`"):
-            return line[len("- password: `") : -1]
+    content = path.read_text(encoding="utf-8")
+    for line in reversed(content.splitlines()):
+        stripped = line.strip()
+        if stripped.startswith("- password: `") and stripped.endswith("`"):
+            return stripped[len("- password: `") : -1]
     return None
 
 
@@ -207,19 +242,48 @@ def update_repo_secret(repository: str, secret_name: str, password: str, token: 
 
 
 def pack(args: argparse.Namespace) -> int:
+    if not args.source.is_dir():
+        raise FileNotFoundError(f"webapp klasoru bulunamadi: {args.source}")
+
+    source_hash = compute_source_hash(args.source)
+    state = load_state(args.state_file)
+    if args.archive.exists() and state.get("source_hash") == source_hash:
+        print(f"Encrypted archive already up to date: {args.archive}")
+        return 0
+
     password = args.password or (
         read_last_password(args.notes) if args.reuse_last_password else None
     ) or generate_password()
     secret_updated = False
+    if args.reuse_last_password:
+        last_password = read_last_password(args.notes)
+        if last_password:
+            password = last_password
+    token = None
+    if not args.skip_secret_update:
+        token = github_token_from_env()
+        if not token:
+            last_password = read_last_password(args.notes)
+            if last_password:
+                password = last_password
+
     create_encrypted_archive(args.source, args.archive, password)
 
     if not args.skip_secret_update:
-        token = github_token_from_env()
         if token:
             update_repo_secret(args.repository, args.secret_name, password, token)
             secret_updated = True
 
     append_notes(args.notes, password, args.archive, args.secret_name, secret_updated)
+    save_state(
+        args.state_file,
+        {
+            "source_hash": source_hash,
+            "archive": str(args.archive),
+            "secret_name": args.secret_name,
+            "updated_at": datetime.now(timezone.utc).astimezone().isoformat(),
+        },
+    )
     print(f"Encrypted archive ready: {args.archive}")
     print(f"Secret updated: {'yes' if secret_updated else 'no'}")
     return 0
@@ -239,6 +303,7 @@ def build_parser() -> argparse.ArgumentParser:
     pack_parser.add_argument("--source", type=Path, default=DEFAULT_SOURCE)
     pack_parser.add_argument("--archive", type=Path, default=DEFAULT_ARCHIVE)
     pack_parser.add_argument("--notes", type=Path, default=DEFAULT_NOTES)
+    pack_parser.add_argument("--state-file", type=Path, default=DEFAULT_STATE_FILE)
     pack_parser.add_argument("--secret-name", default=DEFAULT_SECRET_NAME)
     pack_parser.add_argument("--repository", default=DEFAULT_REPOSITORY)
     pack_parser.add_argument("--password")

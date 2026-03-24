@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(git rev-parse --show-toplevel)"
+cd "$ROOT"
+
+if [[ ! -d webapp ]]; then
+  exit 0
+fi
+
+echo "[pre-push] webapp.secure.enc kontrol ediliyor..."
+python3 scripts/manage_webapp_archive.py pack
+
+if ! git diff --quiet -- webapp.secure.enc || ! git diff --cached --quiet -- webapp.secure.enc; then
+  git add webapp.secure.enc
+  echo "[pre-push] webapp.secure.enc guncellendi ama commit icine henuz girmedi." >&2
+  echo "[pre-push] Lutfen commit tamamlaninca push komutunu tekrar calistir." >&2
+  exit 1
+fi

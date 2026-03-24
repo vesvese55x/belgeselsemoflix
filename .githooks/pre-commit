@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(git rev-parse --show-toplevel)"
+cd "$ROOT"
+
+if [[ ! -d webapp ]]; then
+  exit 0
+fi
+
+echo "[pre-commit] webapp.secure.enc guncelleniyor..."
+python3 scripts/manage_webapp_archive.py pack
+
+if ! git diff --quiet -- webapp.secure.enc; then
+  git add webapp.secure.enc
+fi
