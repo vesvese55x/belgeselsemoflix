@@ -12,6 +12,19 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
+REQUIRED_WEBAPP_FILES = (
+    "index.html",
+    "index.php",
+    "css/style.css",
+    "css/mobile-menu.css",
+    "js/app.js",
+    "js/youtube-client-simple.js",
+)
+
+
+def is_complete_webapp(destination: Path) -> bool:
+    webapp_dir = destination / "webapp"
+    return all(webapp_dir.joinpath(relative_path).is_file() for relative_path in REQUIRED_WEBAPP_FILES)
 
 
 def resolve_openssl() -> str:
@@ -28,12 +41,16 @@ def resolve_openssl() -> str:
 
 
 def restore(archive: Path, destination: Path, password: str) -> None:
-    if destination.joinpath("webapp", "index.html").is_file():
+    if is_complete_webapp(destination):
         print("webapp mevcut, restore atlandi")
         return
 
     if not archive.is_file():
         raise FileNotFoundError(f"sifreli webapp arsivi bulunamadi: {archive}")
+
+    webapp_dir = destination / "webapp"
+    if webapp_dir.exists():
+        shutil.rmtree(webapp_dir)
 
     with tempfile.TemporaryDirectory(prefix="belgeselsemo-webapp-ci-") as temp_dir:
         temp_root = Path(temp_dir)
@@ -64,8 +81,8 @@ def restore(archive: Path, destination: Path, password: str) -> None:
         with tarfile.open(tar_path, "r:gz") as handle:
             handle.extractall(destination)
 
-    if not destination.joinpath("webapp", "index.html").is_file():
-        raise RuntimeError("webapp restore sonrasi index.html bulunamadi")
+    if not is_complete_webapp(destination):
+        raise RuntimeError("webapp restore sonrasi zorunlu dosyalar eksik")
 
 
 def main() -> int:
