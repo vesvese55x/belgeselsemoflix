@@ -80,6 +80,16 @@ def append_notes(path: Path, password: str, archive: Path, secret_name: str, sec
         )
 
 
+def read_last_password(path: Path) -> str | None:
+    if not path.exists():
+        return None
+
+    for line in reversed(path.read_text(encoding="utf-8").splitlines()):
+        if line.startswith("- password: `") and line.endswith("`"):
+            return line[len("- password: `") : -1]
+    return None
+
+
 def run_openssl(args: list[str]) -> None:
     result = subprocess.run(args, cwd=ROOT, capture_output=True, text=True)
     if result.returncode != 0:
@@ -197,7 +207,9 @@ def update_repo_secret(repository: str, secret_name: str, password: str, token: 
 
 
 def pack(args: argparse.Namespace) -> int:
-    password = generate_password()
+    password = args.password or (
+        read_last_password(args.notes) if args.reuse_last_password else None
+    ) or generate_password()
     secret_updated = False
     create_encrypted_archive(args.source, args.archive, password)
 
@@ -229,6 +241,8 @@ def build_parser() -> argparse.ArgumentParser:
     pack_parser.add_argument("--notes", type=Path, default=DEFAULT_NOTES)
     pack_parser.add_argument("--secret-name", default=DEFAULT_SECRET_NAME)
     pack_parser.add_argument("--repository", default=DEFAULT_REPOSITORY)
+    pack_parser.add_argument("--password")
+    pack_parser.add_argument("--reuse-last-password", action="store_true")
     pack_parser.add_argument("--skip-secret-update", action="store_true")
     pack_parser.set_defaults(func=pack)
 
