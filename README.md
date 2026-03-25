@@ -5,66 +5,68 @@
 </p>
 
 <p align="center">
-  <strong>BELGESELSEMOFLIX</strong>, <strong>BELGESELSEMO</strong> dunyasini masaustunde bulusturan; tek belgeselleri, seri yapilari, YouTube secimlerini, premium ayricaliklari ve yardimci araclari ayni deneyimde toplayan masaustu uygulamasidir.
+  <strong>BELGESELSEMOFLIX</strong>, <strong>BELGESELSEMO</strong> dünyasını masaüstünde buluşturan; tek belgeselleri, seri yapıları, YouTube seçkilerini, premium ayrıcalıklarını ve yardımcı araçları aynı deneyimde toplayan masaüstü uygulamasıdır.
 </p>
 
 <p align="center">
-  <a href="promo/promo.html"><strong>PROMO SUNUMUNU AC</strong></a>
+  <a href="https://rawgit.loltek.net/https://raw.githubusercontent.com/vesvese55x/belgeselsemoflix/refs/heads/main/promo/promo.html"><strong>PROMO SUNUMU</strong></a>
+  ·
+  <a href="https://gh.maple3142.workers.dev/vesvese55x/belgeselsemoflix/2287019ec7b45789d16b3b4159ae221f2104ddde/promo/promo.html"><strong>PROMO YEDEK LİNK</strong></a>
   ·
   <a href="https://belgeselsemo.com.tr"><strong>BELGESELSEMO.COM.TR</strong></a>
   ·
   <a href="https://github.com/vesvese55x/belgeselsemoflix"><strong>GITHUB</strong></a>
 </p>
 
-## BELGESELSEMO Deneyimi Bilgisayarda
+## BELGESELSEMO deneyimi bilgisayarda
 
-BELGESELSEMOFLIX; uzun sure ekranda kalmak isteyen belgesel izleyicileri icin hazirlandi. Ana sayfa, tek belgeseller, seri yapilar, kategori akislari, YouTube katmani ve yardimci araclar tek urun dili icinde bir araya gelir. Kullanici, farkli icerik ve arac alanlari arasinda kopukluk hissetmeden gezinebilir.
+BELGESELSEMOFLIX; uzun süre ekranda kalmak isteyen belgesel izleyicileri için hazırlandı. Ana sayfa, tek belgeseller, seri yapılar, kategori akışları, YouTube katmanı ve yardımcı araçlar tek ürün dili içinde bir araya gelir. Kullanıcı, farklı içerik ve araç alanları arasında kopukluk hissetmeden gezinebilir.
 
 <p align="center">
-  <img src="promo/assets/screens/login-full.png" alt="BELGESELSEMOFLIX giris ekrani" width="48%">
+  <img src="promo/assets/screens/login-full.png" alt="BELGESELSEMOFLIX giriş ekranı" width="48%">
   <img src="promo/assets/screens/premium-modal.png" alt="BELGESELSEMOFLIX premium modal" width="48%">
 </p>
 
-## Icerik Katmanlari
+## İçerik katmanları
 
-- Tek belgeseller bolumu hizli kesif ve filtreleme mantigiyla genis bir kart akisi sunar.
-- Seri belgeseller alani sezon ve bolum takibini daha rahat hale getirir.
-- Kategori yapisi bilimden tarihe, biyografiden dogaya kadar uzanan buyuk bir kutuphane hissi verir.
-- YouTube belgeseller bolumu, ana katalogu kanal ve oynatma listeleriyle daha da buyutur.
-- Premium ve misafir giris mantigi ayni ilk acilis deneyiminde net olarak gorunur.
+✨ Tek belgeseller bölümü hızlı keşif ve filtreleme mantığıyla geniş bir kart akışı sunar.  
+🎞️ Seri belgeseller alanı sezon ve bölüm takibini daha rahat hale getirir.  
+🧭 Kategori yapısı bilimden tarihe, biyografiden doğaya kadar uzanan büyük bir kütüphane hissi verir.  
+📺 YouTube belgeseller bölümü, ana katalogu kanal ve oynatma listeleriyle daha da büyütür.  
+🔓 Premium ve misafir giriş mantığı aynı ilk açılış deneyiminde net olarak görünür.
 
 <p align="center">
-  <img src="promo/assets/screens/categories-grid.png" alt="BELGESELSEMOFLIX kategori ekrani" width="48%">
+  <img src="promo/assets/screens/categories-grid.png" alt="BELGESELSEMOFLIX kategori ekranı" width="48%">
   <img src="promo/assets/screens/youtube-grid.png" alt="BELGESELSEMOFLIX YouTube belgeseller" width="48%">
 </p>
 
-## Yardimci Araclar ve Ek Alanlar
+## Yardımcı araçlar ve ek alanlar
 
-BELGESELSEMOFLIX yalnizca belgesel izleme ekranlarindan ibaret degildir. EPG goruntuleyici, ceviri, PDF, wiki, muzik, ekonomi ve farkli mini araclarla uygulama gunluk kullanimda da aktif kalir. DsmartGo ve Extra TV taraflari da urunun icerik evrenini daha genis hale getirir.
+BELGESELSEMOFLIX yalnızca belgesel izleme ekranlarından ibaret değildir. EPG görüntüleyici, çeviri, PDF, wiki, müzik, ekonomi ve farklı mini araçlarla uygulama günlük kullanımda da aktif kalır. DsmartGo ve Extra TV tarafları da ürünün içerik evrenini daha geniş hale getirir.
 
 <p align="center">
-  <img src="promo/assets/screens/tools-grid.png" alt="BELGESELSEMOFLIX yardimci araclar" width="32%">
-  <img src="promo/assets/screens/tool-epg-viewer.png" alt="BELGESELSEMOFLIX EPG viewer" width="32%">
-  <img src="promo/assets/screens/tool-translate.png" alt="BELGESELSEMOFLIX ceviri araci" width="32%">
+  <img src="promo/assets/screens/tools-grid.png" alt="BELGESELSEMOFLIX yardımcı araçlar" width="32%">
+  <img src="promo/assets/screens/tool-epg-viewer.png" alt="BELGESELSEMOFLIX EPG Viewer" width="32%">
+  <img src="promo/assets/screens/tool-translate.png" alt="BELGESELSEMOFLIX çeviri aracı" width="32%">
 </p>
 
 <p align="center">
-  <img src="promo/assets/screens/tool-pdf-viewer.png" alt="BELGESELSEMOFLIX PDF viewer" width="32%">
-  <img src="promo/assets/screens/tool-wiki.png" alt="BELGESELSEMOFLIX wiki araci" width="32%">
-  <img src="promo/assets/screens/tool-music-player.png" alt="BELGESELSEMOFLIX muzik player" width="32%">
+  <img src="promo/assets/screens/tool-pdf-viewer.png" alt="BELGESELSEMOFLIX PDF Viewer" width="32%">
+  <img src="promo/assets/screens/tool-wiki.png" alt="BELGESELSEMOFLIX wiki aracı" width="32%">
+  <img src="promo/assets/screens/tool-music-player.png" alt="BELGESELSEMOFLIX müzik oynatıcı" width="32%">
 </p>
 
-## Premium Ayricaliklar
+## Premium ayrıcalıklar
 
-Premium taraf, sadece giris ekraninda degil uygulamanin farkli alanlarinda da hissedilir. Ozellikle belgesel indirme alani, Premium Uyelere ozel bir deneyim katmani olarak ayrilir ve kullaniciya daha kontrollu bir erisim akisi sunar.
+Premium taraf, sadece giriş ekranında değil uygulamanın farklı alanlarında da hissedilir. Özellikle belgesel indirme alanı, Premium Üyelere özel bir deneyim katmanı olarak ayrılır ve kullanıcıya daha kontrollü bir erişim akışı sunar.
 
 <p align="center">
-  <img src="promo/assets/screens/premium-downloads.png" alt="BELGESELSEMOFLIX premium indirme ekrani" width="88%">
+  <img src="promo/assets/screens/premium-downloads.png" alt="BELGESELSEMOFLIX premium indirme ekranı" width="88%">
 </p>
 
-## DsmartGo, Extra TV ve Daha Buyuk Evren
+## DsmartGo, Extra TV ve daha büyük evren
 
-BELGESELSEMOFLIX kendi kataloguna kapanmaz. DsmartGo ve Extra TV gecitleri sayesinde kullanici, tanidik urun dili icinde daha buyuk bir medya alanina acilir. Listeleme, secim ve oynatma ekranlari bu nedenle urunun dogal uzantisi gibi gorunur.
+BELGESELSEMOFLIX kendi kataloguna kapanmaz. DsmartGo ve Extra TV geçitleri sayesinde kullanıcı, tanıdık ürün dili içinde daha büyük bir medya alanına açılır. Listeleme, seçim ve oynatma ekranları bu nedenle ürünün doğal uzantısı gibi görünür.
 
 <p align="center">
   <img src="promo/assets/screens/dsmartgo-list.png" alt="BELGESELSEMOFLIX DsmartGo liste" width="32%">
@@ -72,27 +74,94 @@ BELGESELSEMOFLIX kendi kataloguna kapanmaz. DsmartGo ve Extra TV gecitleri sayes
   <img src="promo/assets/screens/dsmartgo-overlay.png" alt="BELGESELSEMOFLIX DsmartGo overlay" width="32%">
 </p>
 
-## Platform Paketleri
+## Platform paketleri ve kurulum komutları
 
-- Windows: installer ve portable dagitimlari bulunur. Portable hat en dusuk Windows 7 hedefini de gozetir.
-- Linux: `.deb`, `.rpm`, `.zst` ve `.AppImage` paketleriyle farkli dagitimlara uygun secenekler sunulur.
-- macOS: `.app` ve `.dmg` ciktilariyla kurulum ve tasima senaryolari ayrilir.
+<table>
+  <tr>
+    <th>Paket</th>
+    <th>Ne için?</th>
+    <th>Kurulum / Çalıştırma komutu</th>
+  </tr>
+  <tr>
+    <td><strong>Windows Setup</strong></td>
+    <td>Kurulum sihirbazı isteyen kullanıcılar için</td>
+    <td>
+      <pre><code>PowerShell -Command "Invoke-WebRequest -Uri 'https://github.com/vesvese55x/belgeselsemoflix/releases/download/v1.0/BELGESELSEMOFLIX_1.0.0_x64-setup.exe' -OutFile 'BELGESELSEMOFLIX_1.0.0_x64-setup.exe'; Start-Process .\BELGESELSEMOFLIX_1.0.0_x64-setup.exe"</code></pre>
+    </td>
+  </tr>
+  <tr>
+    <td><strong>Windows Portable</strong></td>
+    <td>Kurulum yapmadan taşınabilir kullanım için</td>
+    <td>
+      <pre><code>PowerShell -Command "Invoke-WebRequest -Uri 'https://github.com/vesvese55x/belgeselsemoflix/releases/download/v1.0/BELGESELSEMOFLIX-1.0.0-windows-portable.zip' -OutFile 'BELGESELSEMOFLIX-1.0.0-windows-portable.zip'"</code></pre>
+    </td>
+  </tr>
+  <tr>
+    <td><strong>Linux .deb</strong></td>
+    <td>Debian ve Ubuntu tabanlı sistemler için</td>
+    <td>
+      <pre><code>sudo apt update && wget -O BELGESELSEMOFLIX_1.0.0_amd64.deb "https://github.com/vesvese55x/belgeselsemoflix/releases/download/v1.0/BELGESELSEMOFLIX_1.0.0_amd64.deb" && sudo apt install ./BELGESELSEMOFLIX_1.0.0_amd64.deb</code></pre>
+    </td>
+  </tr>
+  <tr>
+    <td><strong>Linux .rpm</strong></td>
+    <td>Fedora ve RHEL tabanlı dağıtımlar için</td>
+    <td>
+      <pre><code>wget -O BELGESELSEMOFLIX-1.0.0-1.x86_64.rpm "https://github.com/vesvese55x/belgeselsemoflix/releases/download/v1.0/BELGESELSEMOFLIX-1.0.0-1.x86_64.rpm" && sudo dnf install ./BELGESELSEMOFLIX-1.0.0-1.x86_64.rpm</code></pre>
+    </td>
+  </tr>
+  <tr>
+    <td><strong>Linux .zst</strong></td>
+    <td>Arch Linux ve türevleri için</td>
+    <td>
+      <pre><code>wget -O belgeselsemoflix-1.0.0-1-x86_64.pkg.tar.zst "https://github.com/vesvese55x/belgeselsemoflix/releases/download/v1.0/belgeselsemoflix-1.0.0-1-x86_64.pkg.tar.zst" && sudo pacman -U ./belgeselsemoflix-1.0.0-1-x86_64.pkg.tar.zst</code></pre>
+    </td>
+  </tr>
+  <tr>
+    <td><strong>Linux AppImage</strong></td>
+    <td>Geniş Linux uyumluluğu isteyenler için</td>
+    <td>
+      <pre><code>wget -O BELGESELSEMOFLIX-1.0.0-x86_64.AppImage "https://github.com/vesvese55x/belgeselsemoflix/releases/download/v1.0/BELGESELSEMOFLIX-1.0.0-x86_64.AppImage" && chmod +x ./BELGESELSEMOFLIX-1.0.0-x86_64.AppImage && ./BELGESELSEMOFLIX-1.0.0-x86_64.AppImage</code></pre>
+    </td>
+  </tr>
+  <tr>
+    <td><strong>macOS .dmg</strong></td>
+    <td>Kurulum imajı ile klasik dağıtım isteyenler için</td>
+    <td>
+      <pre><code>curl -L "https://github.com/vesvese55x/belgeselsemoflix/releases/download/v1.0/BELGESELSEMOFLIX_1.0.0_aarch64.dmg" -o "BELGESELSEMOFLIX_1.0.0_aarch64.dmg" && open "BELGESELSEMOFLIX_1.0.0_aarch64.dmg"</code></pre>
+    </td>
+  </tr>
+  <tr>
+    <td><strong>macOS .app.zip</strong></td>
+    <td>Doğrudan uygulama paketini açmak isteyenler için</td>
+    <td>
+      <pre><code>curl -L "https://github.com/vesvese55x/belgeselsemoflix/releases/download/v1.0/BELGESELSEMOFLIX.app.zip" -o "BELGESELSEMOFLIX.app.zip"</code></pre>
+    </td>
+  </tr>
+</table>
 
-## Mobil BELGESELSEMO Ekosistemi
+🌟 Windows tarafında kurulumlu sürüm ile portable sürüm birlikte sunulur.  
+🐧 Linux tarafında `.deb`, `.rpm`, `.zst` ve `.AppImage` seçenekleri ayrı ihtiyaçlara göre hazırlanır.  
+🍎 macOS tarafında `.dmg` ve `.app.zip` birlikte verilir.  
+🧩 En düşük Windows hedefi portable tarafta Windows 7’dir.
 
-BELGESELSEMO dunyasi masaustuyla sinirli degildir. Android tarafinda da belgesel, trivia, TV rehberi, nobetci eczane, Nutuk ve yeni ekonomi odakli uygulama katmanlari ayni ekosistemi surdurur.
+## Mobil BELGESELSEMO ekosistemi
 
-- BELGESELSEMO
-- BELGESELSEMO TRIVIA
-- BELGESELSEMO TV REHBERI (EPG)
-- NOBETCI ECZANELER 7/24 TR-KKTC
-- NUTUK 1919-1927
-- BELGESELSEMO ECONOMY
+BELGESELSEMO dünyası masaüstüyle sınırlı değildir. Android tarafında da belgesel, trivia, TV rehberi, nöbetçi eczane, Nutuk ve yeni ekonomi odaklı uygulama katmanları aynı ekosistemi sürdürür.
 
-## Promo Sunumu
+📱 BELGESELSEMO  
+🧠 BELGESELSEMO TRIVIA  
+📡 BELGESELSEMO TV REHBERİ (EPG)  
+💊 NÖBETÇİ ECZANELER 7/24 TR-KKTC  
+📚 NUTUK 1919-1927  
+💹 BELGESELSEMO ECONOMY
 
-Repo icinde uygulamayi daha zengin ve sunum odakli sekilde anlatan ayri bir promo sayfasi bulunur:
+## Promo sunumu
 
-- [promo/promo.html](promo/promo.html)
+Repo içinde uygulamayı daha zengin ve sunum odaklı şekilde anlatan ayrı bir promo sayfası bulunur:
 
-Bu sayfa; ekranlar, urun akisi, yardimci araclar, platform paketleri ve mobil ekosistemle birlikte BELGESELSEMOFLIX deneyimini tek sahnede anlatir.
+🌐 Canlı promo: <a href="https://rawgit.loltek.net/https://raw.githubusercontent.com/vesvese55x/belgeselsemoflix/refs/heads/main/promo/promo.html">rawgit.loltek.net</a>  
+🛟 Yedek promo: <a href="https://gh.maple3142.workers.dev/vesvese55x/belgeselsemoflix/2287019ec7b45789d16b3b4159ae221f2104ddde/promo/promo.html">gh.maple3142.workers.dev</a>  
+📁 Repo içi dosya: <a href="promo/promo.html">promo/promo.html</a>
+
+Bu sayfa; ekranlar, ürün akışı, yardımcı araçlar, platform paketleri ve mobil ekosistemle birlikte BELGESELSEMOFLIX deneyimini tek sahnede anlatır.
