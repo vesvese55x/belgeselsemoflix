@@ -1,0 +1,2310 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BelgeselSemoFlix - Final Sunum</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #06070a;
+      --bg-soft: #0c0e14;
+      --panel: rgba(16, 20, 30, 0.88);
+      --panel-soft: rgba(22, 26, 38, 0.75);
+      --line: rgba(255, 255, 255, 0.055);
+      --line-strong: rgba(255, 255, 255, 0.11);
+      --text: #f2ede6;
+      --muted: #9c9690;
+      --accent: #c92a2a;
+      --accent-2: #d9550d;
+      --accent-glow: rgba(201, 42, 42, 0.32);
+      --shadow: 0 32px 80px rgba(0, 0, 0, 0.58);
+      --radius: 20px;
+      --radius-sm: 12px;
+      --header-height: 72px;
+      --footer-height: 70px;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+    }
+
+    body {
+      overflow-x: hidden;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--text);
+      background: var(--bg);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Animated Background */
+    .bg-canvas {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      overflow: hidden;
+      pointer-events: none;
+    }
+
+    .bg-gradient {
+      position: absolute;
+      inset: 0;
+      background: 
+        radial-gradient(ellipse 85% 65% at 12% 18%, rgba(127, 29, 29, 0.18), transparent 50%),
+        radial-gradient(ellipse 75% 55% at 88% 12%, rgba(30, 58, 138, 0.12), transparent 45%),
+        radial-gradient(ellipse 65% 45% at 50% 85%, rgba(88, 28, 135, 0.1), transparent 50%),
+        linear-gradient(180deg, #070810 0%, #040506 100%);
+    }
+
+    .bg-noise {
+      position: absolute;
+      inset: 0;
+      opacity: 0.025;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    }
+
+    .bg-grid {
+      position: absolute;
+      inset: 0;
+      background-image: 
+        linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+      background-size: 80px 80px;
+      mask-image: radial-gradient(ellipse at center, black 20%, transparent 70%);
+    }
+
+    .bg-orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(100px);
+      animation: orbFloat 30s ease-in-out infinite;
+      will-change: transform;
+    }
+
+    .bg-orb-1 {
+      width: 600px;
+      height: 600px;
+      top: -20%;
+      left: -15%;
+      background: radial-gradient(circle, rgba(201, 42, 42, 0.15), transparent 70%);
+      animation-delay: 0s;
+    }
+
+    .bg-orb-2 {
+      width: 500px;
+      height: 500px;
+      top: 55%;
+      right: -12%;
+      background: radial-gradient(circle, rgba(217, 85, 13, 0.12), transparent 70%);
+      animation-delay: -10s;
+    }
+
+    .bg-orb-3 {
+      width: 400px;
+      height: 400px;
+      bottom: -15%;
+      left: 25%;
+      background: radial-gradient(circle, rgba(109, 40, 217, 0.1), transparent 70%);
+      animation-delay: -20s;
+    }
+
+    @keyframes orbFloat {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      25% { transform: translate(40px, -30px) scale(1.08); }
+      50% { transform: translate(-30px, 40px) scale(0.92); }
+      75% { transform: translate(30px, 25px) scale(1.04); }
+    }
+
+    /* Mouse Follower */
+    .cursor-glow {
+      position: fixed;
+      width: 400px;
+      height: 400px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(201, 42, 42, 0.08), transparent 60%);
+      pointer-events: none;
+      z-index: 1;
+      transform: translate(-50%, -50%);
+      transition: opacity 0.3s ease;
+      opacity: 0;
+    }
+
+    .cursor-glow.active {
+      opacity: 1;
+    }
+
+    /* Presentation Shell */
+    .presentation-shell {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      z-index: 2;
+    }
+
+    /* Topbar */
+    .presentation-topbar {
+      position: fixed;
+      top: 16px;
+      left: 20px;
+      right: 20px;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 10px 18px;
+      border: 1px solid var(--line);
+      border-radius: 100px;
+      background: rgba(10, 12, 18, 0.78);
+      backdrop-filter: blur(28px);
+      -webkit-backdrop-filter: blur(28px);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      font-size: 12px;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .brand img {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      transition: transform 0.3s ease;
+    }
+
+    .brand:hover img {
+      transform: scale(1.08) rotate(-2deg);
+    }
+
+    .topbar-links {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .topbar-links a {
+      padding: 9px 16px;
+      border: 1px solid var(--line);
+      border-radius: 100px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      text-decoration: none;
+      background: transparent;
+      transition: all 0.3s ease;
+    }
+
+    .topbar-links a:hover {
+      color: var(--text);
+      border-color: rgba(255, 255, 255, 0.14);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .topbar-links a:first-child {
+      color: white;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      border-color: transparent;
+      box-shadow: 0 4px 20px var(--accent-glow);
+    }
+
+    .topbar-links a:first-child:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 28px var(--accent-glow);
+    }
+
+    /* Footer */
+    .presentation-footer {
+      position: fixed;
+      left: 50%;
+      bottom: 16px;
+      z-index: 100;
+      transform: translateX(-50%);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 28px;
+      border: 1px solid var(--line);
+      border-radius: 100px;
+      background: rgba(10, 12, 18, 0.78);
+      backdrop-filter: blur(28px);
+      -webkit-backdrop-filter: blur(28px);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+      transition: all 0.4s ease;
+    }
+
+    .presentation-footer a {
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-size: 11px;
+      color: #ddd5cb;
+      text-decoration: none;
+      transition: color 0.3s ease;
+    }
+
+    .presentation-footer:hover a {
+      color: var(--text);
+    }
+
+    /* Slide Counter */
+    .slide-counter {
+      position: fixed;
+      top: 50%;
+      left: 20px;
+      transform: translateY(-50%);
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      font-family: 'Space Grotesk', sans-serif;
+    }
+
+    .slide-counter-current {
+      font-size: 32px;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1;
+    }
+
+    .slide-counter-divider {
+      width: 2px;
+      height: 20px;
+      background: linear-gradient(180deg, var(--accent), transparent);
+      border-radius: 1px;
+    }
+
+    .slide-counter-total {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--muted);
+    }
+
+    /* Progress Bar */
+    .progress-bar-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      z-index: 150;
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      box-shadow: 0 0 12px var(--accent-glow);
+      transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      border-radius: 0 2px 2px 0;
+    }
+
+    /* Slides Container */
+    #presentation-container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding-top: calc(var(--header-height) + 20px);
+      padding-bottom: calc(var(--footer-height) + 60px);
+      padding-left: 40px;
+      padding-right: 40px;
+      opacity: 0;
+      visibility: hidden;
+      z-index: 1;
+      transform: scale(0.96) translateY(20px);
+      transition: all 0.65s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .slide.active {
+      opacity: 1;
+      visibility: visible;
+      z-index: 10;
+      transform: scale(1) translateY(0);
+    }
+
+    .slide-inner {
+      width: min(1360px, 100%);
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .center-stack {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+
+    .section-head {
+      max-width: 1100px;
+      margin: 0 auto 24px;
+      text-align: center;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 14px;
+      border-radius: 100px;
+      background: rgba(201, 42, 42, 0.1);
+      color: #e8a8a8;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      border: 1px solid rgba(201, 42, 42, 0.12);
+    }
+
+    .logo-mark {
+      font-size: 4.5rem;
+      margin-bottom: 12px;
+      filter: drop-shadow(0 12px 40px rgba(201, 42, 42, 0.22));
+      animation: logoPulse 4s ease-in-out infinite;
+    }
+
+    @keyframes logoPulse {
+      0%, 100% { transform: scale(1); filter: drop-shadow(0 12px 40px rgba(201, 42, 42, 0.22)); }
+      50% { transform: scale(1.02); filter: drop-shadow(0 16px 50px rgba(201, 42, 42, 0.28)); }
+    }
+
+    h1, h2, h3, p {
+      margin: 0;
+    }
+
+    h1 {
+      font-family: 'Space Grotesk', sans-serif;
+      margin-top: 16px;
+      margin-bottom: 16px;
+      font-size: clamp(36px, 4.5vw, 72px);
+      font-weight: 700;
+      line-height: 1;
+      letter-spacing: -0.05em;
+      background: linear-gradient(135deg, var(--text) 0%, #b8a99a 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    h2 {
+      font-family: 'Space Grotesk', sans-serif;
+      margin-top: 16px;
+      margin-bottom: 14px;
+      font-size: clamp(24px, 2.8vw, 48px);
+      font-weight: 700;
+      line-height: 1.1;
+      letter-spacing: -0.04em;
+      color: var(--text);
+    }
+
+    .lead, .section-copy {
+      max-width: 880px;
+      color: var(--muted);
+      font-size: clamp(13px, 1.4vw, 15px);
+      line-height: 1.7;
+      text-align: center;
+    }
+
+    .muted-note {
+      margin-top: 18px;
+      color: #6b6560;
+      font-size: 13px;
+    }
+
+    /* Hero Actions */
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 14px;
+      margin-top: 28px;
+    }
+
+    .cta {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 180px;
+      padding: 14px 26px;
+      border-radius: 14px;
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 600;
+      font-size: 12px;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      text-decoration: none;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      cursor: pointer;
+    }
+
+    .cta.primary {
+      color: white;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      border: none;
+      box-shadow: 0 8px 32px var(--accent-glow);
+    }
+
+    .cta.primary:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 14px 44px var(--accent-glow);
+    }
+
+    .cta.secondary {
+      color: var(--text);
+      border: 1px solid var(--line-strong);
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .cta.secondary:hover {
+      transform: translateY(-2px);
+      border-color: rgba(255, 255, 255, 0.22);
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    /* Stat Row */
+    .stat-row {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 18px;
+      width: min(980px, 100%);
+      margin-top: 28px;
+    }
+
+    .stat-row.compact {
+      width: min(900px, 100%);
+    }
+
+    .stat-card {
+      padding: 22px 18px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      box-shadow: var(--shadow);
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .stat-card:hover {
+      border-color: rgba(255, 255, 255, 0.1);
+      transform: translateY(-4px);
+      box-shadow: 0 40px 90px rgba(0, 0, 0, 0.6);
+    }
+
+    .stat-card:hover::before {
+      opacity: 1;
+    }
+
+    .stat-card strong {
+      display: block;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: clamp(26px, 2.6vw, 46px);
+      font-weight: 700;
+      color: var(--accent);
+      line-height: 1;
+    }
+
+    .stat-card span {
+      display: block;
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .stat-brand {
+      font-size: clamp(22px, 2vw, 36px) !important;
+    }
+
+    /* Duo Gallery */
+    .duo-gallery {
+      display: grid;
+      grid-template-columns: 1.35fr 0.65fr;
+      gap: 20px;
+      align-items: stretch;
+    }
+
+    .triptych {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    /* Frame Cards */
+    .frame-card {
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #080a0e;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+    }
+
+    .frame-card::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+      pointer-events: none;
+    }
+
+    .frame-card:hover {
+      border-color: rgba(255, 255, 255, 0.12);
+      transform: scale(1.008);
+    }
+
+    .frame-card img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      object-position: center;
+      background: #06080c;
+    }
+
+    .mega-frame {
+      height: clamp(300px, 45vh, 520px);
+    }
+
+    .duo-gallery .large {
+      height: clamp(260px, 38vh, 400px);
+    }
+
+    .duo-gallery .frame-card:not(.large) {
+      height: clamp(260px, 38vh, 400px);
+    }
+
+    .triptych .frame-card {
+      height: clamp(200px, 30vh, 340px);
+    }
+
+    /* Detail Strip */
+    .detail-strip {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      width: min(1160px, 100%);
+      margin: 18px auto 0;
+    }
+
+    .detail-card {
+      padding: 14px 16px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(12, 14, 22, 0.72);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      transition: all 0.35s ease;
+    }
+
+    .detail-card:hover {
+      border-color: rgba(255, 255, 255, 0.1);
+      background: rgba(14, 16, 24, 0.88);
+      transform: translateY(-2px);
+    }
+
+    .detail-card strong {
+      display: block;
+      margin-bottom: 6px;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .detail-card span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    /* Tool Grid */
+    .tool-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .tool-grid .frame-card {
+      height: clamp(140px, 18vh, 180px);
+    }
+
+    /* Feature Box */
+    .feature-box {
+      width: min(1120px, 100%);
+      padding: 20px 24px;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--accent);
+      border-radius: var(--radius);
+      background: linear-gradient(135deg, rgba(18, 22, 34, 0.92), rgba(14, 16, 26, 0.88));
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+    }
+
+    .feature-list {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px 20px;
+    }
+
+    .feature-list-single {
+      grid-template-columns: 1fr;
+    }
+
+    .feature-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 10px 14px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.015);
+      border: 1px solid transparent;
+      color: var(--text);
+      font-size: 13px;
+      line-height: 1.5;
+      transition: all 0.3s ease;
+    }
+
+    .feature-item:hover {
+      background: rgba(255, 255, 255, 0.035);
+      border-color: var(--line);
+    }
+
+    .icon {
+      flex-shrink: 0;
+      font-size: 16px;
+      line-height: 1;
+    }
+
+    /* Release Tool */
+    .release-tool {
+      width: min(1120px, 100%);
+      margin-top: 14px;
+      padding: 16px 20px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(12, 16, 24, 0.82);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.32);
+    }
+
+    .release-tool-top {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: 20px;
+      margin-bottom: 12px;
+    }
+
+    .release-tool-head strong {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .release-tool-head span {
+      display: block;
+      margin-top: 3px;
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .release-field {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .release-field span {
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .release-field select {
+      appearance: none;
+      width: 220px;
+      padding: 10px 38px 10px 14px;
+      border: 1px solid var(--line-strong);
+      border-radius: 12px;
+      color: var(--text);
+      background: #0d1016 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%239c9690' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 12px center;
+      font-family: inherit;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .release-field select:hover {
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .release-field select:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .release-command-box {
+      padding: 12px 16px;
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      border-radius: 14px;
+      background: #080a0f;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .release-command-box:hover {
+      border-color: rgba(255, 255, 255, 0.1);
+      background: #0a0d12;
+    }
+
+    .release-command-box pre {
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+      font-size: 11px;
+      line-height: 1.55;
+      color: #b8c4dc;
+    }
+
+    /* Apps Grid */
+    .apps-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      width: min(1180px, 100%);
+      margin: 12px auto 14px;
+    }
+
+    .app-card {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      box-shadow: var(--shadow);
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .app-card:hover {
+      border-color: rgba(255, 255, 255, 0.1);
+      transform: translateY(-4px);
+      box-shadow: 0 44px 100px rgba(0, 0, 0, 0.65);
+    }
+
+    .app-card-head {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .app-icon-thumb {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      flex-shrink: 0;
+      object-fit: cover;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.32);
+    }
+
+    .app-card-head strong {
+      display: block;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      line-height: 1.2;
+    }
+
+    .app-card-head span {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .app-card-head small {
+      display: block;
+      margin-top: 4px;
+      color: #6b6560;
+      font-size: 10px;
+    }
+
+    .faux-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      flex-shrink: 0;
+      color: white;
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 800;
+      font-size: 24px;
+    }
+
+    .economy-icon {
+      background: linear-gradient(135deg, #065f46, #10b981);
+    }
+
+    .app-card p {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .store-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      align-self: flex-start;
+      min-height: 36px;
+      padding: 9px 16px;
+      border-radius: 100px;
+      color: white;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      text-decoration: none;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      box-shadow: 0 6px 24px var(--accent-glow);
+      transition: all 0.3s ease;
+    }
+
+    .store-link:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 32px var(--accent-glow);
+    }
+
+    .store-link-soon {
+      background: linear-gradient(135deg, #3f4756, #282f3c);
+      box-shadow: none;
+    }
+
+    /* Support Note */
+    .support-note {
+      width: min(1180px, 100%);
+      margin: 8px auto 0;
+      padding: 12px 18px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(16, 20, 32, 0.72);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.55;
+      text-align: center;
+    }
+
+    .support-note strong {
+      color: var(--text);
+    }
+
+    .support-note a {
+      color: #d4a8a8;
+      text-decoration: none;
+      border-bottom: 1px solid transparent;
+      transition: all 0.3s ease;
+    }
+
+    .support-note a:hover {
+      color: #e8c4c4;
+      border-bottom-color: currentColor;
+    }
+
+    .outro-note {
+      margin-top: 20px;
+      max-width: 900px;
+    }
+
+    /* Section Divider */
+    .section-divider {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      margin: 40px auto 0;
+      width: min(500px, 70%);
+    }
+
+    .divider-line {
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--line-strong), transparent);
+    }
+
+    .divider-dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 10px var(--accent-glow);
+    }
+
+    .divider-icon {
+      font-size: 14px;
+      opacity: 0.35;
+    }
+
+    /* Nav Controls */
+    .nav-controls {
+      position: fixed;
+      left: 24px;
+      right: 24px;
+      bottom: 16px;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      pointer-events: none;
+    }
+
+    .nav-btn {
+      padding: 11px 22px;
+      border: 1px solid var(--line-strong);
+      border-radius: 12px;
+      background: rgba(10, 12, 18, 0.82);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      color: white;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      pointer-events: auto;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .nav-btn:hover {
+      background: var(--accent);
+      border-color: var(--accent);
+      transform: translateY(-2px);
+      box-shadow: 0 10px 32px var(--accent-glow);
+    }
+
+    .nav-btn:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    /* Slide Progress Dots */
+    .slide-progress {
+      position: fixed;
+      top: 50%;
+      right: 16px;
+      transform: translateY(-50%);
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .progress-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.12);
+      border: none;
+      cursor: pointer;
+      transition: all 0.35s ease;
+      padding: 0;
+    }
+
+    .progress-dot:hover {
+      background: rgba(255, 255, 255, 0.28);
+      transform: scale(1.2);
+    }
+
+    .progress-dot.active {
+      background: var(--accent);
+      box-shadow: 0 0 14px var(--accent-glow);
+      transform: scale(1.3);
+    }
+
+    /* Copy Toast */
+    .copy-toast {
+      position: fixed;
+      left: 50%;
+      bottom: 90px;
+      z-index: 150;
+      transform: translateX(-50%) translateY(12px);
+      padding: 12px 22px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 100px;
+      background: rgba(10, 12, 18, 0.96);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      color: var(--text);
+      font-size: 12px;
+      font-weight: 600;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+    }
+
+    .copy-toast.visible {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* Keyboard Hint */
+    .keyboard-hint {
+      position: fixed;
+      bottom: 75px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 90;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 14px;
+      border-radius: 100px;
+      background: rgba(10, 12, 18, 0.6);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      font-size: 10px;
+      color: var(--muted);
+      opacity: 0;
+      transition: opacity 0.4s ease;
+    }
+
+    .keyboard-hint.visible {
+      opacity: 1;
+    }
+
+    .keyboard-hint kbd {
+      padding: 3px 7px;
+      border-radius: 5px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--line-strong);
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 9px;
+      font-weight: 600;
+    }
+
+    /* Responsive - Mobile */
+    @media (max-width: 1100px) {
+      :root {
+        --header-height: 68px;
+        --footer-height: 65px;
+      }
+
+      .slide-counter,
+      .slide-progress,
+      .keyboard-hint {
+        display: none;
+      }
+
+      .presentation-shell,
+      #presentation-container {
+        height: auto;
+        min-height: 100vh;
+        overflow-y: auto;
+      }
+
+      body {
+        overflow-y: auto;
+      }
+
+      .presentation-topbar,
+      .presentation-footer,
+      .nav-controls {
+        position: fixed;
+      }
+
+      .slide {
+        position: relative;
+        opacity: 1;
+        visibility: visible;
+        transform: none;
+        padding-top: calc(var(--header-height) + 10px);
+        padding-bottom: calc(var(--footer-height) + 50px);
+        padding-left: 16px;
+        padding-right: 16px;
+        min-height: 100vh;
+        scroll-snap-align: start;
+      }
+
+      .slide.active {
+        opacity: 1;
+        visibility: visible;
+        transform: none;
+      }
+
+      .slide-inner {
+        height: auto;
+        display: block;
+      }
+
+      .stat-row,
+      .duo-gallery,
+      .triptych,
+      .tool-grid,
+      .feature-list,
+      .detail-strip,
+      .apps-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .tool-grid .frame-card:first-child {
+        grid-row: auto;
+      }
+
+      .mega-frame,
+      .duo-gallery .large,
+      .duo-gallery .frame-card:not(.large),
+      .triptych .frame-card,
+      .tool-grid .frame-card {
+        height: 240px;
+      }
+
+      .release-tool-top {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+
+      .release-field select {
+        width: 100%;
+      }
+
+      .brand span {
+        font-size: 11px;
+      }
+
+      .topbar-links a {
+        padding: 8px 12px;
+        font-size: 10px;
+      }
+
+      h1 {
+        font-size: clamp(30px, 8vw, 48px);
+      }
+
+      h2 {
+        font-size: clamp(22px, 6vw, 34px);
+      }
+
+      .feature-box {
+        padding: 16px 18px;
+      }
+
+      .app-card {
+        padding: 14px;
+      }
+
+      .nav-controls {
+        left: 12px;
+        right: 12px;
+      }
+
+      .nav-btn {
+        padding: 10px 16px;
+        font-size: 11px;
+      }
+
+      .presentation-topbar {
+        top: 10px;
+        left: 10px;
+        right: 10px;
+      }
+
+      .presentation-footer {
+        bottom: 10px;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .presentation-topbar {
+        flex-direction: column;
+        gap: 8px;
+        padding: 10px;
+        border-radius: 16px;
+      }
+
+      .topbar-links {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .cta {
+        min-width: 140px;
+        padding: 12px 18px;
+        font-size: 11px;
+      }
+
+      .slide {
+        padding-top: calc(var(--header-height) + 60px);
+        padding-bottom: calc(var(--footer-height) + 50px);
+        padding-left: 14px;
+        padding-right: 14px;
+      }
+
+      .logo-mark {
+        font-size: 3.5rem;
+      }
+
+      .progress-bar-container {
+        height: 2px;
+      }
+    }
+
+    /* Reduced Motion */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+
+      .slide {
+        transition: opacity 0.01ms;
+        transform: none !important;
+      }
+
+      .slide.active {
+        transform: none !important;
+      }
+
+      .bg-orb {
+        animation: none;
+      }
+
+      .cursor-glow {
+        display: none;
+      }
+    }
+
+    /* Focus Visible */
+    a:focus-visible,
+    button:focus-visible,
+    select:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    /* Loading State */
+    .loading-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg);
+      transition: opacity 0.5s ease, visibility 0.5s ease;
+    }
+
+    .loading-overlay.hidden {
+      opacity: 0;
+      visibility: hidden;
+    }
+
+    .loader {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .loader-spinner {
+      width: 44px;
+      height: 44px;
+      border: 3px solid var(--line);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    .loader-text {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <!-- Loading Overlay -->
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="loader">
+      <div class="loader-spinner"></div>
+      <div class="loader-text">Yukleniyor</div>
+    </div>
+  </div>
+
+  <!-- Animated Background -->
+  <div class="bg-canvas" aria-hidden="true">
+    <div class="bg-gradient"></div>
+    <div class="bg-noise"></div>
+    <div class="bg-grid"></div>
+    <div class="bg-orb bg-orb-1"></div>
+    <div class="bg-orb bg-orb-2"></div>
+    <div class="bg-orb bg-orb-3"></div>
+  </div>
+
+  <!-- Mouse Follower -->
+  <div class="cursor-glow" id="cursorGlow" aria-hidden="true"></div>
+
+  <!-- Progress Bar -->
+  <div class="progress-bar-container">
+    <div class="progress-bar-fill" id="progressBar" style="width: 0%"></div>
+  </div>
+
+  <div class="presentation-shell">
+    <header class="presentation-topbar" id="topbar">
+      <a class="brand" href="../README.md">
+        <img src="assets/app-icon.svg" alt="">
+        <span>BELGESELSEMOFLIX</span>
+      </a>
+      <div class="topbar-links">
+        <a href="https://belgeselsemo.com.tr" target="_blank" rel="noreferrer">BELGESELSEMO.COM.TR</a>
+        <a href="https://github.com/vesvese55x/belgeselsemoflix" target="_blank" rel="noreferrer">GITHUB</a>
+      </div>
+    </header>
+
+    <!-- Slide Counter -->
+    <div class="slide-counter" id="slideCounter">
+      <div class="slide-counter-current" id="currentSlideNum">01</div>
+      <div class="slide-counter-divider"></div>
+      <div class="slide-counter-total" id="totalSlideNum">13</div>
+    </div>
+
+    <main id="presentation-container">
+      <!-- Slide 1: Intro -->
+      <section class="slide active" id="slide1" data-slide="1">
+        <div class="slide-inner center-stack intro-slide">
+          <span class="logo-mark">🎬</span>
+          <span class="eyebrow">TAURI + RUST + BELGESELSEMO</span>
+          <h1>BELGESELSEMOFLIX</h1>
+          <p class="lead">
+            Linux, Windows ve macOS icin hazirlanan; <strong>BELGESELSEMO</strong> arsivini tek belgesellerden seri yapilara, YouTube seckilerinden yardimci araclara kadar bilgisayarda duzenli, guclu ve keyifli bir deneyime donusturen belgesel platformu.
+          </p>
+          <div class="stat-row compact">
+            <article class="stat-card">
+              <strong>v1.0.0</strong>
+              <span>Final Surum</span>
+            </article>
+            <article class="stat-card">
+              <strong>3</strong>
+              <span>Platform</span>
+            </article>
+            <article class="stat-card">
+              <strong class="stat-brand">BELGESELSEMO</strong>
+              <span>Belgesel dunyasi</span>
+            </article>
+          </div>
+          <div class="section-divider">
+            <div class="divider-line"></div>
+            <div class="divider-dot"></div>
+            <span class="divider-icon">◆</span>
+            <div class="divider-dot"></div>
+            <div class="divider-line"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 2: Content -->
+      <section class="slide" id="slide2" data-slide="2">
+        <div class="slide-inner center-stack">
+          <span class="eyebrow">ICERIK HACMI</span>
+          <h2>Devasa bir belgesel arsivi</h2>
+          <p class="section-copy">
+            BELGESELSEMOFLIX sadece bir player degil; surekli genisleyen, kategoriye ayrilan ve kullanicinin uzun sure uygulama icinde tutan kapsamli bir icerik evrenidir.
+          </p>
+          <div class="stat-row">
+            <article class="stat-card">
+              <strong>2154</strong>
+              <span>Bolum</span>
+            </article>
+            <article class="stat-card">
+              <strong>290</strong>
+              <span>Seri</span>
+            </article>
+            <article class="stat-card">
+              <strong>245</strong>
+              <span>Tek Belgesel</span>
+            </article>
+          </div>
+          <p class="muted-note">Surekli guncellenen yapi, kesfetmeyi ve uzun izleme oturumlarini destekler.</p>
+          <div class="section-divider">
+            <div class="divider-line"></div>
+            <div class="divider-dot"></div>
+            <span class="divider-icon">◆</span>
+            <div class="divider-dot"></div>
+            <div class="divider-line"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 3: Login -->
+      <section class="slide slide-premium slide-focus" id="slide3" data-slide="3">
+        <div class="slide-inner">
+          <div class="section-head">
+            <span class="eyebrow">GIRIS VE PREMIUM</span>
+            <h2>Ilk acilistan itibaren guven veren, temiz ve hizli giris deneyimi</h2>
+            <p class="section-copy">
+              BELGESELSEMOFLIX; premium uyelik girisi, misafir erisimi ve kampanya tabanli premium acilis akislarini tek sahnede toplar. Kullanici daha ilk ekranda ne yapacagini net bicimde anlar.
+            </p>
+          </div>
+          <div class="duo-gallery">
+            <article class="frame-card large">
+              <img src="assets/screens/login-full.png" alt="BELGESELSEMOFLIX login">
+            </article>
+            <article class="frame-card">
+              <img src="assets/screens/premium-modal.png" alt="Premium modal">
+            </article>
+          </div>
+          <div class="detail-strip">
+            <article class="detail-card">
+              <strong>Premium giris</strong>
+              <span>Uyelik bilgileriyle kisitsiz erisim ve kalici kullanim akisi.</span>
+            </article>
+            <article class="detail-card">
+              <strong>Misafir modu</strong>
+              <span>Hizli baslangic isteyen kullanicilar icin tek dokunusla erisim.</span>
+            </article>
+            <article class="detail-card">
+              <strong>Kampanya destegi</strong>
+              <span>Ozel donem popup ve premium kazan akislariyla esnek kullanim modeli.</span>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 4: Home -->
+      <section class="slide" id="slide4" data-slide="4">
+        <div class="slide-inner">
+          <div class="section-head">
+            <span class="eyebrow">ANA SAYFA</span>
+            <h2>Tek belgeseller ve seri akislari ayni sahnede</h2>
+            <p class="section-copy">
+              Ana ekran; one cikan seriler, BELGESELSEMO uygulamalari, kesif alanlari ve devam eden izleme mantigini tek gorunumde bulusturur.
+            </p>
+          </div>
+          <article class="frame-card mega-frame">
+            <img src="assets/screens/home-hero.png" alt="BELGESELSEMOFLIX ana sayfa">
+          </article>
+        </div>
+      </section>
+
+      <!-- Slide 5: Categories -->
+      <section class="slide" id="slide5" data-slide="5">
+        <div class="slide-inner">
+          <div class="section-head">
+            <span class="eyebrow">KATEGORI VE PLAYER</span>
+            <h2>Kesif ekranlarindan oynatma deneyimine</h2>
+            <p class="section-copy">
+              Kategori yapisi bilimden biyografiye kadar genisler; player tarafinda ise icerik aciklamasi, detayli bilgi ve izleme hissi tek bir sahnede toplanir.
+            </p>
+          </div>
+          <div class="duo-gallery">
+            <article class="frame-card">
+              <img src="assets/screens/categories-grid.png" alt="Kategori grid">
+            </article>
+            <article class="frame-card">
+              <img src="assets/screens/player-detail.png" alt="Player detail">
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 6: YouTube -->
+      <section class="slide slide-wide-title" id="slide6" data-slide="6">
+        <div class="slide-inner">
+          <div class="section-head">
+            <span class="eyebrow">YOUTUBE BELGESELLER</span>
+            <h2>YouTube belgeseller ile katalog daha da genisliyor</h2>
+            <p class="section-copy">
+              Uygulamanin kendi katalogu, YouTube belgeseller bolumuyle daha da buyur. Kanallar, seckiler ve video akislari ana arayuzun dilini bozmadan yeni kesif kapilari acar.
+            </p>
+          </div>
+          <article class="frame-card mega-frame">
+            <img src="assets/screens/youtube-grid.png" alt="YouTube belgeseller">
+          </article>
+        </div>
+      </section>
+
+      <!-- Slide 7: Tools Primary -->
+      <section class="slide" id="slide7" data-slide="7">
+        <div class="slide-inner">
+          <div class="section-head">
+            <span class="eyebrow">YARDIMCI HTML ARACLAR</span>
+            <h2>EPG, yardimci aracler ve mini uygulamalar ayni dunyada birlesiyor</h2>
+            <p class="section-copy">
+              BELGESELSEMOFLIX yalnizca belgesel izletmiyor; EPG goruntuleyici, hesap makineleri ve farkli yardimci HTML araclerle gunluk kullanimda da aktif kalan daha zengin bir uygulama haline geliyor.
+            </p>
+          </div>
+          <div class="tool-grid tools-primary">
+            <article class="frame-card">
+              <img src="assets/screens/tools-grid.png" alt="Araclar grid">
+            </article>
+            <article class="frame-card">
+              <img src="assets/screens/tool-epg-viewer.png" alt="EPG Viewer">
+            </article>
+            <article class="frame-card">
+              <img src="assets/screens/tool-translate.png" alt="Ceviri araci">
+            </article>
+            <article class="frame-card">
+              <img src="assets/screens/tool-economy.png" alt="Ekonomi araci">
+            </article>
+            <article class="frame-card">
+              <img src="assets/screens/tool-extra-1.png" alt="Yardimci arac ekrani">
+            </article>
+            <article class="frame-card">
+              <img src="assets/screens/calculator-grid-c.png" alt="Hesap ekrani">
+            </article>
+          </div>
+          <div class="detail-strip">
+            <article class="detail-card">
+              <strong>TV rehberi</strong>
+              <span>Kanal ve yayin akisini tek sahnede izlenebilir hale getiren yardimci ekranlar.</span>
+            </article>
+            <article class="detail-card">
+              <strong>Mini aracler</strong>
+              <span>Hesaplama ve hizli erisim odakli ekranlarla uygulama tek amacli kalmiyor.</span>
+            </article>
+            <article class="detail-card">
+              <strong>Ekosistem hissi</strong>
+              <span>Kullanici, BELGESELSEMOFLIX icinde farkli islerini de cozebildigini hissediyor.</span>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 8: Tools Secondary -->
+      <section class="slide" id="slide8" data-slide="8">
+        <div class="slide-inner">
+          <div class="section-head">
+            <span class="eyebrow">DAHA FAZLA YARDIMCI ARAC</span>
+            <h2>Ceviri, PDF, wiki ve hesap ekranlariyla daha dolu bir gunluk kullanim</h2>
+            <p class="section-copy">
+              Yardimci aracler tek bir kategoriye sikismiyor; okuma, ceviri, arastirma ve hizli hesaplama gibi ihtiyaclar icin farkli mini uygulamalar ayni urun dili icinde sunuluyor.
+            </p>
+          </div>
+          <div class="tool-grid tools-secondary">
+            <article class="frame-card">
+              <img src="assets/screens/tool-pdf-viewer.png" alt="PDF Viewer">
+            </article>
+            <article class="frame-card">
+              <img src="assets/screens/tool-wiki.png" alt="Wiki araci">
+            </article>
+            <article class="frame-card">
+              <img src="assets/screens/tool-music-player.png" alt="Muzik oynatici">
+            </article>
+            <article class="frame-card">
+              <img src="assets/screens/tool-extra-2.png" alt="Yardimci arac ekrani">
+            </article>
+            <article class="frame-card">
+              <img src="assets/screens/calculator-grid-a.png" alt="Hesap ekrani">
+            </article>
+            <article class="frame-card">
+              <img src="assets/screens/calculator-grid-b.png" alt="Hesap ekrani">
+            </article>
+          </div>
+          <div class="detail-strip">
+            <article class="detail-card">
+              <strong>PDF goruntuleme</strong>
+              <span>Belge odakli yardimci icerikler uygulamadan cikmadan goruntulenebilir.</span>
+            </article>
+            <article class="detail-card">
+              <strong>Wiki ve arastirma</strong>
+              <span>Merak edilen basliklar icin hizli bilgi ekranlari ayni urun icinde kalir.</span>
+            </article>
+            <article class="detail-card">
+              <strong>Hesap ve ceviri araclari</strong>
+              <span>Gunluk ihtiyaclara cevap veren mini aracler uygulamayi daha kullanisli hale getirir.</span>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 9: Premium Downloads -->
+      <section class="slide" id="slide9" data-slide="9">
+        <div class="slide-inner">
+          <div class="section-head">
+            <span class="eyebrow">PREMIUM Icerik INDIRME</span>
+            <h2>Belgesel indirme alani Premium Uyelere ozel bir ayricalik sunuyor</h2>
+            <p class="section-copy">
+              Indirme bolumu, premium kullanicilarin icerikleri daha kontrollu bicimde takip etmesi ve ozel erisim akislarindan yararlanmasi icin tasarlandi. Bu alan, ucretsiz deneyimden premium katmana gecisi de gorunur kiliyor.
+            </p>
+          </div>
+          <div class="duo-gallery download-gallery">
+            <article class="frame-card large">
+              <img src="assets/screens/premium-downloads.png" alt="Premium indirme ekrani">
+            </article>
+            <article class="feature-box feature-box-side">
+              <div class="feature-list feature-list-single">
+                <div class="feature-item"><span class="icon">⬇️</span> Belgesel indirme ozelligi Premium Uyelere ozeldir</div>
+                <div class="feature-item"><span class="icon">⭐</span> Premium alan ayri bir erisim ve avantaj katmani olusturur</div>
+                <div class="feature-item"><span class="icon">🧭</span> Indirme akisi, uygulamanin genel gorunumuyle uyumlu ilerler</div>
+                <div class="feature-item"><span class="icon">🔒</span> Ayricalikli icerik yonetimi tek ekrandan daha anlasilir hale gelir</div>
+              </div>
+            </article>
+          </div>
+          <div class="detail-strip">
+            <article class="detail-card">
+              <strong>Premium ayricaligi</strong>
+              <span>Belgesel indirme alani ucretsiz akistan ayrilarak Premium Uyelere ozel tutulur.</span>
+            </article>
+            <article class="detail-card">
+              <strong>Daha kontrollu erisim</strong>
+              <span>Kullanici hangi icerigin indirilebilir oldugunu tek bakista anlayabilir.</span>
+            </article>
+            <article class="detail-card">
+              <strong>Icerik yonetimi</strong>
+              <span>Indirme bolumu, premium tarafin somut faydasini acik ve temiz bicimde gosterir.</span>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 10: DsmartGo -->
+      <section class="slide" id="slide10" data-slide="10">
+        <div class="slide-inner">
+          <div class="section-head">
+            <span class="eyebrow">DSMARTGO &amp; EXTRA TV</span>
+            <h2>DsmartGo ve Extra TV ile icerik dunyasi daha da genisliyor</h2>
+            <p class="section-copy">
+              BELGESELSEMOFLIX sadece kendi kataloguna kapanmiyor; DsmartGo ve Extra TV gecitleri sayesinde kullaniciyi daha genis medya akislarina kontrollu ve tanidik bir arayuz uzerinden tasiyor.
+            </p>
+          </div>
+          <div class="triptych">
+            <article class="frame-card">
+              <img src="assets/screens/dsmartgo-list.png" alt="DsmartGo list">
+            </article>
+            <article class="frame-card">
+              <img src="assets/screens/dsmartgo-player.png" alt="DsmartGo player">
+            </article>
+            <article class="frame-card">
+              <img src="assets/screens/dsmartgo-overlay.png" alt="DsmartGo overlay">
+            </article>
+          </div>
+          <div class="detail-strip">
+            <article class="detail-card">
+              <strong>Liste akisi</strong>
+              <span>Icerik secimi ve gezinme, ana urun dilinden kopmadan devam eder.</span>
+            </article>
+            <article class="detail-card">
+              <strong>Oynatma sahnesi</strong>
+              <span>Harici servis ekranlari da BELGESELSEMOFLIX icinde dogal bir uzanti gibi gorunur.</span>
+            </article>
+            <article class="detail-card">
+              <strong>Daha buyuk evren</strong>
+              <span>Tek uygulama icinde daha fazla servis ve daha uzun kullanim suresi hedeflenir.</span>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 11: Technical -->
+      <section class="slide slide-technical" id="slide11" data-slide="11">
+        <div class="slide-inner center-stack">
+          <span class="eyebrow">PLATFORMA GORE DOGRU PAKET</span>
+          <h2>Dogru paketi secmek bastan nettir</h2>
+          <p class="section-copy">
+            Windows, Linux ve macOS icin hangi dosyanin kime uygun oldugu tek bakista anlasilir.
+          </p>
+          <div class="feature-box">
+            <div class="feature-list">
+              <div class="feature-item"><span class="icon">🪟</span> Windows'ta installer kurulum icindir, portable ise kurmadan kullanim icindir; en dusuk hedef Windows 7'dir</div>
+              <div class="feature-item"><span class="icon">🐧</span> .deb Debian ve Ubuntu icin, .rpm Fedora ve RHEL icin hazirlanir</div>
+              <div class="feature-item"><span class="icon">🧩</span> .zst paketi Arch Linux icindir, .AppImage ise cok daha genis Linux uyumlulugu sunar</div>
+              <div class="feature-item"><span class="icon">🍎</span> macOS'ta .app hazir uygulama paketidir, .dmg ise indirip acilan kurulum imajidir</div>
+              <div class="feature-item"><span class="icon">⚡</span> Hizli acilis ve akici gecisler kullaniciyi dogrudan icerige odaklar</div>
+              <div class="feature-item"><span class="icon">🎬</span> Koyu ve sakin arayuz, uzun kullanimlarda goz yormadan sinematik bir his verir</div>
+            </div>
+          </div>
+          <div class="release-tool">
+            <div class="release-tool-top">
+              <div class="release-tool-head">
+                <strong>Kurulum komutu olusturucu</strong>
+                <span>Paketi sec, son surum icin uygun komutu aninda gor.</span>
+              </div>
+              <div class="release-tool-controls">
+                <label class="release-field">
+                  <span>Paket turu</span>
+                  <select id="releasePackageSelect">
+                    <option value="deb">Linux .deb</option>
+                    <option value="rpm">Linux .rpm</option>
+                    <option value="zst">Linux .zst</option>
+                    <option value="appimage">Linux AppImage</option>
+                    <option value="windows-setup">Windows Setup</option>
+                    <option value="windows-portable">Windows Portable</option>
+                    <option value="macos-dmg">macOS .dmg</option>
+                    <option value="macos-app">macOS .app</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+            <div class="release-command-box" id="releaseCommandBox" role="button" tabindex="0" aria-label="Kurulum komutunu kopyala">
+              <pre id="releaseCommandOutput">Yukleniyor...</pre>
+            </div>
+          </div>
+          <div class="detail-strip detail-strip-wide">
+            <article class="detail-card">
+              <strong>Windows icin net tercih</strong>
+              <span>Kurulum isteyen kullaniciya installer, dosyayi yaninda tasimak isteyene portable secenek verilir.</span>
+            </article>
+            <article class="detail-card">
+              <strong>Linux icin dagitima gore secim</strong>
+              <span>Debian/Ubuntu, Fedora/RHEL ve Arch icin ayri paketler; tek dosyada genis uyumluluk isteyenler icin AppImage sunulur.</span>
+            </article>
+            <article class="detail-card">
+              <strong>macOS icin sade dagitim</strong>
+              <span>.app ve .dmg birlikte sunularak indirme, tasima ve acma sureci kullanici icin daha anlasilir hale gelir.</span>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 12: Android Apps -->
+      <section class="slide" id="slide12" data-slide="12">
+        <div class="slide-inner">
+          <div class="section-head">
+            <span class="eyebrow">ANDROID MOBIL UYGULAMALARIMIZ</span>
+            <h2>BELGESELSEMO ekosistemi mobilde de buyuyor</h2>
+            <p class="section-copy">
+              Belgesel, trivia, TV rehberi, nobetci eczane, Nutuk ve yeni ekonomi uygulamamiz ayni urun ailesini telefonda da surduruyor.
+            </p>
+          </div>
+          <div class="apps-grid">
+            <article class="app-card">
+              <div class="app-card-head">
+                <img class="app-icon-thumb" src="https://play-lh.googleusercontent.com/vlfs0KVW99715oyn6M4DrX4LBod8m2fjWe7TVG3_2dFfeHGegCSC-hNfDs8ZVlCYMlWe=s256" alt="BELGESELSEMO">
+                <div>
+                  <strong>BELGESELSEMO</strong>
+                  <span>Belgeseller + aracler + 13 dil destegi</span>
+                  <small>Ilk yayinlanma: 23 Temmuz 2025</small>
+                </div>
+              </div>
+              <p>Binlerce HD belgeseli; ceviri, hava durumu, EPG, PDF, not defteri, QR, ekonomi ve daha bircok gunluk aracla tek mobil uygulamada topar.</p>
+              <a class="store-link" href="https://play.google.com/store/apps/details?id=com.belgeselsemo.tr" target="_blank" rel="noreferrer">Play Store'a git</a>
+            </article>
+            <article class="app-card">
+              <div class="app-card-head">
+                <img class="app-icon-thumb" src="https://play-lh.googleusercontent.com/N9SZMLxSJ8VFtIvJsy_-B6EbhiV6rTBEpyB5tXBJrnIHx3CWQyPKoOU8ScUaTgxsAH_Q7y4a0Frm1tzI_Y6D=s256" alt="BELGESELSEMO TRIVIA">
+                <div>
+                  <strong>BELGESELSEMO TRIVIA</strong>
+                  <span>Kategorili bilgi yarismani</span>
+                  <small>Ilk yayinlanma: 24 Agustos 2025</small>
+                </div>
+              </div>
+              <p>24 farkli kategori, coklu dil destegi, joker haklari, gunluk meydan okumalar, seviye sistemi ve coklu profil mantigiyla guclu bir trivia deneyimi sunar.</p>
+              <a class="store-link" href="https://play.google.com/store/apps/details?id=com.belgeselsemo.trivia" target="_blank" rel="noreferrer">Play Store'a git</a>
+            </article>
+            <article class="app-card">
+              <div class="app-card-head">
+                <img class="app-icon-thumb" src="https://play-lh.googleusercontent.com/CLmBtb1IF14ygKG1a9-Is7BaFXKroQaMs6CDRVlQSHlzETHFQBEhGeekb47pmUrNWqbuG8emvOL5Y_wxvh1ueQ=s256" alt="BELGESELSEMO TV REHBERI">
+                <div>
+                  <strong>TV REHBERI (EPG)</strong>
+                  <span>250+ kaynakli yayin akisi</span>
+                  <small>Ilk yayinlanma: 16 Agustos 2025</small>
+                </div>
+              </div>
+              <p>Dunya genelinde yuzlerce EPG kaynagini, favori sistemini, hatirlaticilari, XMLTV destegini ve cam efektli temalari tek rehberde bir araya getirir.</p>
+              <a class="store-link" href="https://play.google.com/store/apps/details?id=com.belgeselsemo.epgviewer" target="_blank" rel="noreferrer">Play Store'a git</a>
+            </article>
+            <article class="app-card">
+              <div class="app-card-head">
+                <img class="app-icon-thumb" src="https://play-lh.googleusercontent.com/OMrderXOxOJvAWQj8X912y6tnICDUG1V4pOksxPUIRTWknkX0lfTajssPipGJX9ZssAXGczB1Pk2Ob_hHqNV=s256" alt="Nobetci Eczaneler 7/24">
+                <div>
+                  <strong>NOBETCI ECZANELER 7/24</strong>
+                  <span>Turkiye + KKTC kapsama</span>
+                  <small>Ilk yayinlanma: 17 Eylul 2025</small>
+                </div>
+              </div>
+              <p>GPS konumu, harita, arama, yol tarifi, paylasim ve favorilerle Turkiye'nin 81 ili ve KKTC icin en hizli nobetci eczane erisimini saglar.</p>
+              <a class="store-link" href="https://play.google.com/store/apps/details?id=com.belgeselsemo.nb724" target="_blank" rel="noreferrer">Play Store'a git</a>
+            </article>
+            <article class="app-card">
+              <div class="app-card-head">
+                <img class="app-icon-thumb" src="https://play-lh.googleusercontent.com/07-bd0NNX6xQA3QtQtbWHrl6So_GlCjs1oHo87IImwhkdoimCM8485EYBu-fwAwqCpNbX64eeD8mX7eEsZOsjw=s256" alt="Nutuk 1919-1927">
+                <div>
+                  <strong>NUTUK 1919-1927</strong>
+                  <span>Cok dilli, sesli ve etkilesimli</span>
+                  <small>Ilk yayinlanma: 7 Kasim 2025</small>
+                </div>
+              </div>
+              <p>20'den fazla dil, sesli kitap, Nutuk sozlugu, quiz, cevrimdisi erisim ve kisisellestirilebilir okuma deneyimiyle tarih odakli ozel bir mobil uygulamadir.</p>
+              <a class="store-link" href="https://play.google.com/store/apps/details?id=com.belgeselsemo.nutuk" target="_blank" rel="noreferrer">Play Store'a git</a>
+            </article>
+            <article class="app-card">
+              <div class="app-card-head">
+                <div class="app-icon-thumb faux-icon economy-icon" aria-hidden="true">₺</div>
+                <div>
+                  <strong>BELGESELSEMO ECONOMY</strong>
+                  <span>Ekonomi odakli takip ve veri ekranlari</span>
+                  <small>Yayin tarihi: Yakinda</small>
+                </div>
+              </div>
+              <p>Piyasa takibi, ekonomi verileri, finans akisi ve pratik araclari BELGESELSEMO urun diliyle tek bir mobil uygulamada toplamayi hedefleyen yeni uygulamamiz.</p>
+              <span class="store-link store-link-soon">YAKINDA</span>
+            </article>
+          </div>
+          <div class="support-note">
+            <strong>Destek olmak isterseniz:</strong> Uygulamalarimizi yukleyip paylasarak ve Play Store'da puan-yorum yaparak bize katki sunabilirsiniz. Gelistirici baglantimiz: <a href="https://play.google.com/store/apps/details?id=com.belgeselsemo.tr" target="_blank" rel="noreferrer">play.google.com/store/apps/details?id=com.belgeselsemo.tr</a>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 13: Outro -->
+      <section class="slide" id="slide13" data-slide="13">
+        <div class="slide-inner center-stack outro-slide">
+          <span class="eyebrow">FINAL</span>
+          <h1>BELGESELSEMOFLIX</h1>
+          <p class="lead">
+            Tek belgeseller, seri yapilar, YouTube belgeseller, DsmartGo &amp; Extra TV ve yardimci araclarla birlikte BELGESELSEMO markasini bilgisayarda duzenli, guclu ve zengin bir belgesel deneyimine donusturur.
+          </p>
+          <div class="hero-actions">
+            <a class="cta primary" href="https://belgeselsemo.com.tr" target="_blank" rel="noreferrer">BELGESELSEMO.COM.TR</a>
+            <a class="cta secondary" href="https://github.com/vesvese55x/belgeselsemoflix" target="_blank" rel="noreferrer">GITHUB</a>
+          </div>
+          <div class="support-note outro-note">
+            <strong>YouTube tarafi da acik:</strong> BELGESELSEMO Learn &amp; Explore kanalimiza abone olabilir, oynatma listeleri uzerinden daha fazla icerige ulasabilirsiniz. <a href="https://www.youtube.com/@belgeselsemo55/playlists" target="_blank" rel="noreferrer">youtube.com/@belgeselsemo55/playlists</a>
+          </div>
+          <div class="support-note outro-note">
+            <strong>Iletisim:</strong> Gorus, oneri ve sikayetleriniz icin <a href="mailto:semihsy54@gmail.com">semihsy54@gmail.com</a> adresine mail atabilirsiniz.
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="presentation-footer">
+      <a href="https://belgeselsemo.com.tr" target="_blank" rel="noreferrer">BELGESELSEMO.COM.TR</a>
+    </footer>
+
+    <!-- Navigation -->
+    <div class="nav-controls">
+      <button class="nav-btn" id="prevBtn" type="button">◀ Geri</button>
+      <button class="nav-btn" id="nextBtn" type="button">Ileri ▶</button>
+    </div>
+
+    <!-- Progress Dots -->
+    <div class="slide-progress" id="slideProgress" aria-hidden="true"></div>
+
+    <!-- Keyboard Hint -->
+    <div class="keyboard-hint" id="keyboardHint">
+      <kbd>←</kbd> <kbd>→</kbd> veya <kbd>Space</kbd> ile gezin
+    </div>
+
+    <!-- Toast -->
+    <div class="copy-toast" id="copyToast" aria-live="polite">Komut Kopyalandi</div>
+  </div>
+
+  <script>
+    // Initialize all variables first
+    const slides = Array.from(document.querySelectorAll('.slide'));
+    const totalSlides = slides.length;
+    let currentSlide = 0;
+    let keyboardHintTimer = null;
+    let toastTimer = null;
+
+    // DOM Elements
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const slideProgress = document.getElementById('slideProgress');
+    const progressBar = document.getElementById('progressBar');
+    const currentSlideNum = document.getElementById('currentSlideNum');
+    const totalSlideNum = document.getElementById('totalSlideNum');
+    const packageSelect = document.getElementById('releasePackageSelect');
+    const releaseCommandOutput = document.getElementById('releaseCommandOutput');
+    const releaseCommandBox = document.getElementById('releaseCommandBox');
+    const copyToast = document.getElementById('copyToast');
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    const keyboardHint = document.getElementById('keyboardHint');
+    const cursorGlow = document.getElementById('cursorGlow');
+
+    // Check if mobile
+    function isMobile() {
+      return window.innerWidth <= 1100;
+    }
+
+    // Loading
+    window.addEventListener('load', function() {
+      setTimeout(function() {
+        if (loadingOverlay) {
+          loadingOverlay.classList.add('hidden');
+        }
+      }, 400);
+    });
+
+    // Mouse follower (desktop only)
+    if (!isMobile() && cursorGlow) {
+      document.addEventListener('mousemove', function(e) {
+        cursorGlow.classList.add('active');
+        cursorGlow.style.left = e.clientX + 'px';
+        cursorGlow.style.top = e.clientY + 'px';
+      });
+
+      document.addEventListener('mouseleave', function() {
+        cursorGlow.classList.remove('active');
+      });
+    }
+
+    // Create progress dots
+    function createProgressDots() {
+      if (!slideProgress) return;
+      slideProgress.innerHTML = '';
+      for (let i = 0; i < totalSlides; i++) {
+        const dot = document.createElement('button');
+        dot.className = 'progress-dot' + (i === 0 ? ' active' : '');
+        dot.setAttribute('aria-label', 'Slide ' + (i + 1));
+        dot.addEventListener('click', function() { showSlide(i); });
+        slideProgress.appendChild(dot);
+      }
+    }
+
+    // Update progress dots
+    function updateProgressDots() {
+      if (!slideProgress) return;
+      const dots = slideProgress.querySelectorAll('.progress-dot');
+      dots.forEach(function(dot, index) {
+        dot.classList.toggle('active', index === currentSlide);
+      });
+    }
+
+    // Update progress bar
+    function updateProgressBar() {
+      if (!progressBar) return;
+      const progress = ((currentSlide + 1) / totalSlides) * 100;
+      progressBar.style.width = progress + '%';
+    }
+
+    // Update slide counter
+    function updateSlideCounter() {
+      if (currentSlideNum) {
+        currentSlideNum.textContent = String(currentSlide + 1).padStart(2, '0');
+      }
+      if (totalSlideNum) {
+        totalSlideNum.textContent = String(totalSlides).padStart(2, '0');
+      }
+    }
+
+    // Show slide - unified function for both mobile and desktop
+    function showSlide(index) {
+      // Clamp index
+      if (index < 0) index = totalSlides - 1;
+      if (index >= totalSlides) index = 0;
+      
+      currentSlide = index;
+      
+      if (isMobile()) {
+        // Mobile: scroll to the slide element
+        const targetSlide = slides[currentSlide];
+        if (targetSlide) {
+          targetSlide.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      } else {
+        // Desktop: toggle active classes
+        slides.forEach(function(slide, slideIndex) {
+          slide.classList.toggle('active', slideIndex === currentSlide);
+        });
+      }
+      
+      updateProgressDots();
+      updateProgressBar();
+      updateSlideCounter();
+    }
+
+    // Change slide
+    function changeSlide(direction) {
+      let next = currentSlide + direction;
+      showSlide(next);
+    }
+
+    // Package strategies
+    const packageStrategies = {
+      deb: {
+        matcher: function(name) { return name.endsWith('.deb'); },
+        command: function(url, name) { return 'sudo apt update && wget -O ' + name + ' "' + url + '" && sudo apt install ./' + name; }
+      },
+      rpm: {
+        matcher: function(name) { return name.endsWith('.rpm'); },
+        command: function(url, name) { return 'wget -O ' + name + ' "' + url + '" && sudo dnf install ./' + name; }
+      },
+      zst: {
+        matcher: function(name) { return name.endsWith('.zst'); },
+        command: function(url, name) { return 'wget -O ' + name + ' "' + url + '" && sudo pacman -U ./' + name; }
+      },
+      appimage: {
+        matcher: function(name) { return name.endsWith('.AppImage'); },
+        command: function(url, name) { return 'wget -O ' + name + ' "' + url + '" && chmod +x ./' + name + ' && ./' + name; }
+      },
+      'windows-setup': {
+        matcher: function(name) { return /setup|nsis/i.test(name) && name.endsWith('.exe'); },
+        command: function(url, name) { return "PowerShell -Command \"Invoke-WebRequest -Uri '" + url + "' -OutFile '" + name + "'; Start-Process .\\" + name + '"'; }
+      },
+      'windows-portable': {
+        matcher: function(name) { return /portable/i.test(name) && /\.(zip|7z|exe)$/i.test(name); },
+        command: function(url, name) { return "PowerShell -Command \"Invoke-WebRequest -Uri '" + url + "' -OutFile '" + name + '"'; }
+      },
+      'macos-dmg': {
+        matcher: function(name) { return name.endsWith('.dmg'); },
+        command: function(url, name) { return 'curl -L "' + url + '" -o "' + name + '" && open "' + name + '"'; }
+      },
+      'macos-app': {
+        matcher: function(name) { return /\.app(\.zip)?$/i.test(name) || (/macos/i.test(name) && name.endsWith('.zip')); },
+        command: function(url, name) { return 'curl -L "' + url + '" -o "' + name + '"'; }
+      }
+    };
+
+    // Refresh release command
+    async function refreshReleaseCommand() {
+      if (!packageSelect || !releaseCommandOutput) return;
+      releaseCommandOutput.textContent = 'Son surum paketi kontrol ediliyor...';
+
+      try {
+        const response = await fetch('https://api.github.com/repos/vesvese55x/belgeselsemoflix/releases/latest', {
+          headers: { Accept: 'application/vnd.github+json' }
+        });
+
+        if (!response.ok) {
+          throw new Error('GitHub API hatasi: ' + response.status);
+        }
+
+        const release = await response.json();
+        const selected = packageSelect.value;
+        const strategy = packageStrategies[selected];
+        const assets = release.assets || [];
+        let asset = null;
+        
+        for (let i = 0; i < assets.length; i++) {
+          if (strategy.matcher(assets[i].name)) {
+            asset = assets[i];
+            break;
+          }
+        }
+
+        if (!asset) {
+          releaseCommandOutput.textContent = 'Bu paket turu icin uygun son surum dosyasi bulunamadi.';
+          return;
+        }
+
+        releaseCommandOutput.textContent = strategy.command(asset.browser_download_url, asset.name);
+      } catch (error) {
+        releaseCommandOutput.textContent = 'Komut alinamadi: ' + error.message;
+      }
+    }
+
+    // Copy release command
+    async function copyReleaseCommand() {
+      if (!releaseCommandOutput) return;
+      const command = releaseCommandOutput.textContent.trim();
+      
+      if (!command || command === 'Yukleniyor...' || command.startsWith('Komut alinamadi') || command.includes('uygun son surum dosyasi bulunamadi')) {
+        return;
+      }
+
+      try {
+        await navigator.clipboard.writeText(command);
+      } catch (error) {
+        const helper = document.createElement('textarea');
+        helper.value = command;
+        document.body.appendChild(helper);
+        helper.select();
+        document.execCommand('copy');
+        document.body.removeChild(helper);
+      }
+
+      if (copyToast) {
+        copyToast.classList.add('visible');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(function() { copyToast.classList.remove('visible'); }, 1800);
+      }
+    }
+
+    // Show keyboard hint
+    function showKeyboardHint() {
+      if (!keyboardHint || isMobile()) return;
+      keyboardHint.classList.add('visible');
+      clearTimeout(keyboardHintTimer);
+      keyboardHintTimer = setTimeout(function() {
+        keyboardHint.classList.remove('visible');
+      }, 3000);
+    }
+
+    // Mobile scroll observer
+    function setupMobileScrollObserver() {
+      if (!isMobile()) return;
+      
+      let scrollTimeout = null;
+      
+      window.addEventListener('scroll', function() {
+        clearTimeout(scrollTimeout);
+        scrollTimeout = setTimeout(function() {
+          const scrollPos = window.scrollY + window.innerHeight / 3;
+          
+          slides.forEach(function(slide, index) {
+            const rect = slide.getBoundingClientRect();
+            const slideTop = rect.top + window.scrollY;
+            const slideBottom = slideTop + rect.height;
+            
+            if (scrollPos >= slideTop && scrollPos < slideBottom) {
+              if (currentSlide !== index) {
+                currentSlide = index;
+                updateProgressBar();
+                updateSlideCounter();
+                updateProgressDots();
+              }
+            }
+          });
+        }, 50);
+      }, { passive: true });
+    }
+
+    // Event listeners
+    prevBtn.addEventListener('click', function() { changeSlide(-1); });
+    nextBtn.addEventListener('click', function() { changeSlide(1); });
+
+    if (packageSelect) {
+      packageSelect.addEventListener('change', refreshReleaseCommand);
+    }
+
+    if (releaseCommandBox) {
+      releaseCommandBox.addEventListener('click', copyReleaseCommand);
+      releaseCommandBox.addEventListener('keydown', function(event) {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          copyReleaseCommand();
+        }
+      });
+    }
+
+    // Keyboard navigation
+    document.addEventListener('keydown', function(event) {
+      if (event.key === 'ArrowRight' || event.key === ' ') {
+        event.preventDefault();
+        changeSlide(1);
+        showKeyboardHint();
+      }
+      if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        changeSlide(-1);
+        showKeyboardHint();
+      }
+    });
+
+    // Touch swipe for desktop
+    let touchStartX = 0;
+    let touchEndX = 0;
+
+    document.addEventListener('touchstart', function(event) {
+      touchStartX = event.changedTouches[0].screenX;
+    }, { passive: true });
+
+    document.addEventListener('touchend', function(event) {
+      touchEndX = event.changedTouches[0].screenX;
+      
+      // Only handle swipe on desktop (mobile uses scroll)
+      if (!isMobile()) {
+        const threshold = 60;
+        const diff = touchStartX - touchEndX;
+        
+        if (Math.abs(diff) > threshold) {
+          if (diff > 0) {
+            changeSlide(1);
+          } else {
+            changeSlide(-1);
+          }
+        }
+      }
+    }, { passive: true });
+
+    // Resize handler
+    window.addEventListener('resize', function() {
+      updateProgressBar();
+      updateSlideCounter();
+    });
+
+    // Initialize
+    createProgressDots();
+    showSlide(0);
+    refreshReleaseCommand();
+    setupMobileScrollObserver();
+
+    // Hide loading after a short delay
+    setTimeout(function() {
+      if (loadingOverlay) {
+        loadingOverlay.classList.add('hidden');
+      }
+    }, 600);
+  </script>
+</body>
+</html>
