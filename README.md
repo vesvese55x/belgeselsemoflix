@@ -9,13 +9,13 @@
 </p>
 
 <p align="center">
-  <a href="https://rawgit.loltek.net/https://raw.githubusercontent.com/vesvese55x/belgeselsemoflix/refs/heads/main/promo/promo.html"><strong>PROMO SUNUMU</strong></a>
+  <a href="https://rawgit.loltek.net/https://raw.githubusercontent.com/vesvese55x/belgeselsemoflix/refs/heads/main/promo/promo.html" target="_blank" rel="noreferrer"><strong>TANITIM SUNUMU</strong></a>
   ·
-  <a href="https://gh.maple3142.workers.dev/vesvese55x/belgeselsemoflix/2287019ec7b45789d16b3b4159ae221f2104ddde/promo/promo.html"><strong>PROMO YEDEK LİNK</strong></a>
+  <a href="https://htmlpreview.github.io/?https://github.com/vesvese55x/belgeselsemoflix/blob/main/promo/promo.html" target="_blank" rel="noreferrer"><strong>TANITIM YEDEK LİNK</strong></a>
   ·
-  <a href="https://belgeselsemo.com.tr"><strong>BELGESELSEMO.COM.TR</strong></a>
+  <a href="https://belgeselsemo.com.tr" target="_blank" rel="noreferrer"><strong>BELGESELSEMO.COM.TR</strong></a>
   ·
-  <a href="https://github.com/vesvese55x/belgeselsemoflix"><strong>GITHUB</strong></a>
+  <a href="https://github.com/vesvese55x/belgeselsemoflix" target="_blank" rel="noreferrer"><strong>GITHUB</strong></a>
 </p>
 
 ## BELGESELSEMO deneyimi bilgisayarda
@@ -86,56 +86,71 @@ BELGESELSEMOFLIX kendi kataloguna kapanmaz. DsmartGo ve Extra TV geçitleri saye
     <td><strong>Windows Setup</strong></td>
     <td>Kurulum sihirbazı isteyen kullanıcılar için</td>
     <td>
-      <pre><code>PowerShell -Command "Invoke-WebRequest -Uri 'https://github.com/vesvese55x/belgeselsemoflix/releases/download/v1.0/BELGESELSEMOFLIX_1.0.0_x64-setup.exe' -OutFile 'BELGESELSEMOFLIX_1.0.0_x64-setup.exe'; Start-Process .\BELGESELSEMOFLIX_1.0.0_x64-setup.exe"</code></pre>
+      <code>PowerShell -Command</code><br>
+      <code>"Invoke-WebRequest -Uri 'https://github.com/vesvese55x/belgeselsemoflix/releases/download/v1.0/BELGESELSEMOFLIX_1.0.0_x64-setup.exe'</code><br>
+      <code>-OutFile 'BELGESELSEMOFLIX_1.0.0_x64-setup.exe'; Start-Process .\BELGESELSEMOFLIX_1.0.0_x64-setup.exe"</code>
     </td>
   </tr>
   <tr>
     <td><strong>Windows Portable</strong></td>
     <td>Kurulum yapmadan taşınabilir kullanım için</td>
     <td>
-      <pre><code>PowerShell -Command "Invoke-WebRequest -Uri 'https://github.com/vesvese55x/belgeselsemoflix/releases/download/v1.0/BELGESELSEMOFLIX-1.0.0-windows-portable.zip' -OutFile 'BELGESELSEMOFLIX-1.0.0-windows-portable.zip'"</code></pre>
+      <code>PowerShell -Command</code><br>
+      <code>"Invoke-WebRequest -Uri 'https://github.com/vesvese55x/belgeselsemoflix/releases/download/v1.0/BELGESELSEMOFLIX-1.0.0-windows-portable.zip'</code><br>
+      <code>-OutFile 'BELGESELSEMOFLIX-1.0.0-windows-portable.zip'"</code>
     </td>
   </tr>
   <tr>
     <td><strong>Linux .deb</strong></td>
     <td>Debian ve Ubuntu tabanlı sistemler için</td>
     <td>
-      <pre><code>sudo apt update && wget -O BELGESELSEMOFLIX_1.0.0_amd64.deb "https://github.com/vesvese55x/belgeselsemoflix/releases/download/v1.0/BELGESELSEMOFLIX_1.0.0_amd64.deb" && sudo apt install ./BELGESELSEMOFLIX_1.0.0_amd64.deb</code></pre>
+      <code>sudo apt update</code><br>
+      <code>&amp;&amp; wget -O BELGESELSEMOFLIX_1.0.0_amd64.deb "https://github.com/vesvese55x/belgeselsemoflix/releases/download/v1.0/BELGESELSEMOFLIX_1.0.0_amd64.deb"</code><br>
+      <code>&amp;&amp; sudo apt install ./BELGESELSEMOFLIX_1.0.0_amd64.deb</code>
     </td>
   </tr>
   <tr>
     <td><strong>Linux .rpm</strong></td>
     <td>Fedora ve RHEL tabanlı dağıtımlar için</td>
     <td>
-      <pre><code>wget -O BELGESELSEMOFLIX-1.0.0-1.x86_64.rpm "https://github.com/vesvese55x/belgeselsemoflix/releases/download/v1.0/BELGESELSEMOFLIX-1.0.0-1.x86_64.rpm" && sudo dnf install ./BELGESELSEMOFLIX-1.0.0-1.x86_64.rpm</code></pre>
+      <code>wget -O BELGESELSEMOFLIX-1.0.0-1.x86_64.rpm</code><br>
+      <code>"https://github.com/vesvese55x/belgeselsemoflix/releases/download/v1.0/BELGESELSEMOFLIX-1.0.0-1.x86_64.rpm"</code><br>
+      <code>&amp;&amp; sudo dnf install ./BELGESELSEMOFLIX-1.0.0-1.x86_64.rpm</code>
     </td>
   </tr>
   <tr>
     <td><strong>Linux .zst</strong></td>
     <td>Arch Linux ve türevleri için</td>
     <td>
-      <pre><code>wget -O belgeselsemoflix-1.0.0-1-x86_64.pkg.tar.zst "https://github.com/vesvese55x/belgeselsemoflix/releases/download/v1.0/belgeselsemoflix-1.0.0-1-x86_64.pkg.tar.zst" && sudo pacman -U ./belgeselsemoflix-1.0.0-1-x86_64.pkg.tar.zst</code></pre>
+      <code>wget -O belgeselsemoflix-1.0.0-1-x86_64.pkg.tar.zst</code><br>
+      <code>"https://github.com/vesvese55x/belgeselsemoflix/releases/download/v1.0/belgeselsemoflix-1.0.0-1-x86_64.pkg.tar.zst"</code><br>
+      <code>&amp;&amp; sudo pacman -U ./belgeselsemoflix-1.0.0-1-x86_64.pkg.tar.zst</code>
     </td>
   </tr>
   <tr>
     <td><strong>Linux AppImage</strong></td>
     <td>Geniş Linux uyumluluğu isteyenler için</td>
     <td>
-      <pre><code>wget -O BELGESELSEMOFLIX-1.0.0-x86_64.AppImage "https://github.com/vesvese55x/belgeselsemoflix/releases/download/v1.0/BELGESELSEMOFLIX-1.0.0-x86_64.AppImage" && chmod +x ./BELGESELSEMOFLIX-1.0.0-x86_64.AppImage && ./BELGESELSEMOFLIX-1.0.0-x86_64.AppImage</code></pre>
+      <code>wget -O BELGESELSEMOFLIX-1.0.0-x86_64.AppImage</code><br>
+      <code>"https://github.com/vesvese55x/belgeselsemoflix/releases/download/v1.0/BELGESELSEMOFLIX-1.0.0-x86_64.AppImage"</code><br>
+      <code>&amp;&amp; chmod +x ./BELGESELSEMOFLIX-1.0.0-x86_64.AppImage &amp;&amp; ./BELGESELSEMOFLIX-1.0.0-x86_64.AppImage</code>
     </td>
   </tr>
   <tr>
     <td><strong>macOS .dmg</strong></td>
     <td>Kurulum imajı ile klasik dağıtım isteyenler için</td>
     <td>
-      <pre><code>curl -L "https://github.com/vesvese55x/belgeselsemoflix/releases/download/v1.0/BELGESELSEMOFLIX_1.0.0_aarch64.dmg" -o "BELGESELSEMOFLIX_1.0.0_aarch64.dmg" && open "BELGESELSEMOFLIX_1.0.0_aarch64.dmg"</code></pre>
+      <code>curl -L "https://github.com/vesvese55x/belgeselsemoflix/releases/download/v1.0/BELGESELSEMOFLIX_1.0.0_aarch64.dmg"</code><br>
+      <code>-o "BELGESELSEMOFLIX_1.0.0_aarch64.dmg"</code><br>
+      <code>&amp;&amp; open "BELGESELSEMOFLIX_1.0.0_aarch64.dmg"</code>
     </td>
   </tr>
   <tr>
     <td><strong>macOS .app.zip</strong></td>
     <td>Doğrudan uygulama paketini açmak isteyenler için</td>
     <td>
-      <pre><code>curl -L "https://github.com/vesvese55x/belgeselsemoflix/releases/download/v1.0/BELGESELSEMOFLIX.app.zip" -o "BELGESELSEMOFLIX.app.zip"</code></pre>
+      <code>curl -L "https://github.com/vesvese55x/belgeselsemoflix/releases/download/v1.0/BELGESELSEMOFLIX.app.zip"</code><br>
+      <code>-o "BELGESELSEMOFLIX.app.zip"</code>
     </td>
   </tr>
 </table>
@@ -149,19 +164,19 @@ BELGESELSEMOFLIX kendi kataloguna kapanmaz. DsmartGo ve Extra TV geçitleri saye
 
 BELGESELSEMO dünyası masaüstüyle sınırlı değildir. Android tarafında da belgesel, trivia, TV rehberi, nöbetçi eczane, Nutuk ve yeni ekonomi odaklı uygulama katmanları aynı ekosistemi sürdürür.
 
-📱 BELGESELSEMO  
-🧠 BELGESELSEMO TRIVIA  
-📡 BELGESELSEMO TV REHBERİ (EPG)  
-💊 NÖBETÇİ ECZANELER 7/24 TR-KKTC  
-📚 NUTUK 1919-1927  
+📱 <a href="https://play.google.com/store/apps/details?id=com.belgeselsemo.tr" target="_blank" rel="noreferrer">BELGESELSEMO</a>  
+🧠 <a href="https://play.google.com/store/apps/details?id=com.belgeselsemo.trivia" target="_blank" rel="noreferrer">BELGESELSEMO TRIVIA</a>  
+📡 <a href="https://play.google.com/store/apps/details?id=com.belgeselsemo.epgviewer" target="_blank" rel="noreferrer">BELGESELSEMO TV REHBERİ (EPG)</a>  
+💊 <a href="https://play.google.com/store/apps/details?id=com.belgeselsemo.nb724" target="_blank" rel="noreferrer">NÖBETÇİ ECZANELER 7/24 TR-KKTC</a>  
+📚 <a href="https://play.google.com/store/apps/details?id=com.belgeselsemo.nutuk" target="_blank" rel="noreferrer">NUTUK 1919-1927</a>  
 💹 BELGESELSEMO ECONOMY
 
-## Promo sunumu
+## Tanıtım sunumu
 
-Repo içinde uygulamayı daha zengin ve sunum odaklı şekilde anlatan ayrı bir promo sayfası bulunur:
+Repo içinde uygulamayı daha zengin ve sunum odaklı şekilde anlatan ayrı bir tanıtım sayfası bulunur:
 
-🌐 Canlı promo: <a href="https://rawgit.loltek.net/https://raw.githubusercontent.com/vesvese55x/belgeselsemoflix/refs/heads/main/promo/promo.html">rawgit.loltek.net</a>  
-🛟 Yedek promo: <a href="https://gh.maple3142.workers.dev/vesvese55x/belgeselsemoflix/2287019ec7b45789d16b3b4159ae221f2104ddde/promo/promo.html">gh.maple3142.workers.dev</a>  
-📁 Repo içi dosya: <a href="promo/promo.html">promo/promo.html</a>
+🌐 Canlı tanıtım: <a href="https://rawgit.loltek.net/https://raw.githubusercontent.com/vesvese55x/belgeselsemoflix/refs/heads/main/promo/promo.html" target="_blank" rel="noreferrer">rawgit.loltek.net</a>  
+🛟 Yedek tanıtım: <a href="https://htmlpreview.github.io/?https://github.com/vesvese55x/belgeselsemoflix/blob/main/promo/promo.html" target="_blank" rel="noreferrer">htmlpreview.github.io</a>  
+📁 Repo içi dosya: <a href="promo/promo.html" target="_blank" rel="noreferrer">promo/promo.html</a>
 
 Bu sayfa; ekranlar, ürün akışı, yardımcı araçlar, platform paketleri ve mobil ekosistemle birlikte BELGESELSEMOFLIX deneyimini tek sahnede anlatır.
