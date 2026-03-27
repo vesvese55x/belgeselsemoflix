@@ -30,7 +30,7 @@ DEFAULT_STATE_DIR = ROOT / ".webapp-archive-work"
 DEFAULT_STATE_FILE = DEFAULT_STATE_DIR / "archive-state.json"
 DEFAULT_TOKEN_FILE = DEFAULT_STATE_DIR / "github-token"
 SYSTEM_RANDOM = random.SystemRandom()
-PASSWORD_LENGTH = 20
+PASSWORD_LENGTH = 12
 PASSWORD_DIGIT_COUNT = 6
 PASSWORD_UPPER_COUNT = 1
 PASSWORD_PUNCTUATION_COUNT = 1
@@ -108,7 +108,9 @@ def ensure_notes_file(path: Path) -> None:
         "- webapp klasoru yerelde acik halde kalir.\n"
         "- GitHub'a sadece sifreli webapp.secure.enc arsivi gonderilir.\n"
         "- workflow build sirasinda WEBAPP_ARCHIVE_PASSWORD secret'i ile arsivi acar.\n"
-        "- Arsiv her paketlemede yeni parola ile uretilir.\n\n"
+        "- Arsiv her paketlemede 12 karakterlik yeni parola ile uretilir.\n"
+        "- Parola formati: 1 buyuk harf, 1 ozel karakter, 1 noktalama isareti, 6 rakam ve 3 kucuk harf.\n"
+        "- Her paketlemede GitHub secret'i otomatik olarak guncellenir.\n\n"
         "## Son Parolalar\n",
         encoding="utf-8",
     )
@@ -271,30 +273,21 @@ def pack(args: argparse.Namespace) -> int:
         print(f"Encrypted archive already up to date: {args.archive}")
         return 0
 
-    password = args.password or (
-        read_last_password(args.notes) if args.reuse_last_password else None
-    ) or generate_password()
+    password = generate_password()
     secret_updated = False
-    if args.reuse_last_password:
-        last_password = read_last_password(args.notes)
-        if last_password:
-            password = last_password
-    token = None
-    if not args.skip_secret_update:
-        token = github_token_from_env()
-        if not token:
-            raise RuntimeError(
-                "GitHub token bulunamadi. Yeni parola ile arsivlemek icin "
-                "BELGESELSEMO_GITHUB_TOKEN / GH_TOKEN / GITHUB_TOKEN tanimlayin "
-                "veya `.webapp-archive-work/github-token` dosyasina token yazin."
-            )
+    token = github_token_from_env()
+    if not token:
+        raise RuntimeError(
+            "GitHub token bulunamadi. Arsivleme her zaman yeni parola uretip "
+            "WEBAPP_ARCHIVE_PASSWORD secret'ini guncellemek zorunda. "
+            "BELGESELSEMO_GITHUB_TOKEN / GH_TOKEN / GITHUB_TOKEN tanimlayin "
+            "veya `.webapp-archive-work/github-token` dosyasina token yazin."
+        )
 
     create_encrypted_archive(args.source, args.archive, password)
 
-    if not args.skip_secret_update:
-        if token:
-            update_repo_secret(args.repository, args.secret_name, password, token)
-            secret_updated = True
+    update_repo_secret(args.repository, args.secret_name, password, token)
+    secret_updated = True
 
     append_notes(args.notes, password, args.archive, args.secret_name, secret_updated)
     save_state(
@@ -328,9 +321,6 @@ def build_parser() -> argparse.ArgumentParser:
     pack_parser.add_argument("--state-file", type=Path, default=DEFAULT_STATE_FILE)
     pack_parser.add_argument("--secret-name", default=DEFAULT_SECRET_NAME)
     pack_parser.add_argument("--repository", default=DEFAULT_REPOSITORY)
-    pack_parser.add_argument("--password")
-    pack_parser.add_argument("--reuse-last-password", action="store_true")
-    pack_parser.add_argument("--skip-secret-update", action="store_true")
     pack_parser.set_defaults(func=pack)
 
     unpack_parser = subparsers.add_parser("unpack", help="Restore local webapp from encrypted archive")
